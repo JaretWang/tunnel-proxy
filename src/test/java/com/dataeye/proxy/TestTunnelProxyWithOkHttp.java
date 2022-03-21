@@ -1,6 +1,5 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.cons.TunnelCons;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -10,7 +9,7 @@ import java.net.Proxy;
 /**
  * @author jaret
  * @date 2022/3/19 17:00
- * @description
+ * @description 测试第三方隧道代理接口
  */
 public class TestTunnelProxyWithOkHttp {
 
@@ -32,17 +31,12 @@ public class TestTunnelProxyWithOkHttp {
         int port = 15818;
 
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ip, port));
-//        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(TunnelCons.EXCLUSIVE_IP, TunnelCons.EXCLUSIVE_PORT));
 
-        Authenticator authenticator = new Authenticator() {
-            @Override
-            public Request authenticate(Route route, Response response) {
-                String credential = Credentials.basic(username, password);
-//                String credential = Credentials.basic(TunnelCons.EXCLUSIVE_IP_USERNAME, TunnelCons.EXCLUSIVE_IP_PASSWORD);
-                return response.request().newBuilder()
-                        .header("Proxy-Authorization", credential)
-                        .build();
-            }
+        Authenticator authenticator = (route, response) -> {
+            String credential = Credentials.basic(username, password);
+            return response.request().newBuilder()
+                    .header("Proxy-Authorization", credential)
+                    .build();
         };
         OkHttpClient client = new OkHttpClient.Builder()
                 .proxy(proxy)

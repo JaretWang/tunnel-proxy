@@ -13,7 +13,7 @@ public class HostNamePortUtils {
      * 获取主机名
      *
      * @param addr 源地址
-     * @return
+     * @return 主机名
      */
     public static String getHostName(String addr) {
         return StringUtils.split(addr, ": ")[0];
@@ -22,9 +22,9 @@ public class HostNamePortUtils {
     /**
      * 获取端口
      *
-     * @param addr 源地址
+     * @param addr        源地址
      * @param defaultPort 默认端口
-     * @return
+     * @return 端口
      */
     public static int getPort(String addr, int defaultPort) {
         String[] ss = StringUtils.split(addr, ": ");

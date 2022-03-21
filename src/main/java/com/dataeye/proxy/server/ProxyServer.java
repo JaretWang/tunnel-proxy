@@ -1,13 +1,15 @@
 package com.dataeye.proxy.server;
 
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.cons.TunnelCons;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
  * @description
  */
 @Slf4j
+@Data
 @Component
 public class ProxyServer {
 
@@ -28,16 +31,18 @@ public class ProxyServer {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
-    public void start2() {
-        int bossThreadCount = proxyServerConfig.getBossThreadCount();
-        int workerThreadCount = proxyServerConfig.getWorkerThreadCount();
-        bossGroup = new NioEventLoopGroup(bossThreadCount);
-        workerGroup = new NioEventLoopGroup(workerThreadCount);
+    /**
+     * 启动一个代理服务器
+     */
+    public ProxyServer start() {
         String host = proxyServerConfig.getHost();
         int port = proxyServerConfig.getPort();
+        bossGroup = new NioEventLoopGroup(proxyServerConfig.getBossThreadCount());
+        workerGroup = new NioEventLoopGroup(proxyServerConfig.getWorkerThreadCount());
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
+                .handler(new LoggingHandler(LogLevel.DEBUG))
                 .childHandler(proxyServerChannelInitializer)
                 .childOption(ChannelOption.SO_KEEPALIVE, false)
                 .childOption(ChannelOption.TCP_NODELAY, false);
@@ -46,45 +51,20 @@ public class ProxyServer {
             log.info("代理服务器启动成功, ip: {}, port: {}", host, port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
-            log.error("proxy server 出现异常：{}", e.getMessage());
+            log.error("代理服务器出现异常：{}", e.getMessage());
             e.printStackTrace();
         } finally {
-            log.warn("被动关闭 proxy server");
+            log.warn("被动关闭代理服务器");
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
-    }
-
-
-    //    @PostConstruct
-    public void start() {
-        Runnable task = () -> {
-            log.info("HttpProxyServer started on port: {}", proxyServerConfig.getPort());
-            EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-            EventLoopGroup workerGroup = new NioEventLoopGroup();
-            try {
-                ServerBootstrap serverBootstrap = new ServerBootstrap();
-                serverBootstrap.group(bossGroup, workerGroup)
-                        .channel(NioServerSocketChannel.class)
-//                        .handler(new LoggingHandler(LogLevel.DEBUG))
-                        .childHandler(proxyServerChannelInitializer)
-                        .bind(proxyServerConfig.getPort())
-                        .sync().channel().closeFuture().sync();
-            } catch (InterruptedException e) {
-                log.error("捕获异常：{}", e.getMessage());
-            } finally {
-                bossGroup.shutdownGracefully();
-                workerGroup.shutdownGracefully();
-            }
-        };
-
-        new Thread(task).start();
+        return this;
     }
 
     public void shutdown() {
-        log.warn("主动关闭 proxy server");
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }
+
 
 }

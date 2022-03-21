@@ -19,13 +19,13 @@ import org.springframework.stereotype.Component;
 @Component
 @NoArgsConstructor
 @Scope("prototype")
-public class ProxyRemoteHandler extends ChannelInboundHandlerAdapter {
+public class ProxyClientRemoteHandler extends ChannelInboundHandlerAdapter {
 
     private String taskId = "未知任务id";
     private Channel clientChannel;
     private Channel remoteChannel;
 
-    public ProxyRemoteHandler(String taskId, Channel clientChannel) {
+    public ProxyClientRemoteHandler(String taskId, Channel clientChannel) {
         this.taskId = taskId;
         this.clientChannel = clientChannel;
     }

@@ -31,6 +31,14 @@ public class IpSelector {
     @Resource
     private ProxyServerConfig proxyServerConfig;
 
+    /**
+     * 获取单个代理ip
+     *
+     * @param originalHost 原始ip
+     * @param originalPort 原始端口
+     * @return 代理ip
+     * @throws IOException
+     */
     public String getProxyIp(String originalHost, int originalPort) throws IOException {
         String connect = originalHost.trim() + ":" + originalPort;
         String uuid = Md5Utils.md5Encode(connect);
@@ -74,16 +82,12 @@ public class IpSelector {
     /**
      * 随机获取代理ip
      *
-     * @return
+     * @return 随机代理ip
      */
     public String getRandomProxyIp() throws IOException {
         String proxyIp = "";
-//        String url = proxyServerConfig.getDirectIpAccessLink();
-        //27.38.143.94
-        String url = proxyServerConfig.getTunnelIpAccessLink();
-        HttpResponse httpResponse = Request.Get(url)
-                .execute()
-                .returnResponse();
+        String url = proxyServerConfig.getDirectIpAccessLink();
+        HttpResponse httpResponse = Request.Get(url).execute().returnResponse();
         HttpEntity entity = httpResponse.getEntity();
         String content = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
         int statusCode = httpResponse.getStatusLine().getStatusCode();

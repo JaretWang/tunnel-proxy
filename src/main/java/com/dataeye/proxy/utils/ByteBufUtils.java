@@ -1,4 +1,4 @@
-package com.dataeye.proxy.server;
+package com.dataeye.proxy.utils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,15 +17,26 @@ import org.springframework.stereotype.Component;
 @ToString(of = {"method", "host", "port", "https"})
 public class ByteBufUtils {
 
-    @Getter private String method;
-    @Getter private String host;
-    @Getter private int port;
-    @Getter private boolean https;
-    @Getter private boolean complete;
-    @Getter private ByteBuf byteBuf = Unpooled.buffer();
+    @Getter
+    private String method;
+    @Getter
+    private String host;
+    @Getter
+    private int port;
+    @Getter
+    private boolean https;
+    @Getter
+    private boolean complete;
+    @Getter
+    private ByteBuf byteBuf = Unpooled.buffer();
 
     private final StringBuilder lineBuf = new StringBuilder();
 
+    /**
+     * 从 ByteBuf 中提取 host port protocol
+     *
+     * @param in netty 缓冲流
+     */
     public void digest(ByteBuf in) {
         while (in.isReadable()) {
             if (complete) {
