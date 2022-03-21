@@ -31,3 +31,4 @@ build/
 .vscode/
 
 tunnel-proxy-logs/
+proxy_result/

@@ -4,6 +4,7 @@ import com.dataeye.proxy.server.ProxyServer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author jaret
@@ -13,10 +14,11 @@ import org.junit.BeforeClass;
 @Slf4j
 public class TestProxyBase {
 
-    private static ProxyServer server;
+    @Autowired
+    private ProxyServer server;
 
     @BeforeClass
-    public static void setUpServer() {
+    public void setUpServer() {
         Thread t = new Thread(() -> {
             log.info("开启代理服务器");
             server = new ProxyServer();
@@ -26,14 +28,14 @@ public class TestProxyBase {
 
         t.start();
         try {
-            Thread.sleep(2000L);
+            Thread.sleep(5000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     @AfterClass
-    public static void shutDownServer() {
+    public void shutDownServer() {
         log.info("关闭代理服务器");
         server.shutdown();
     }

@@ -30,8 +30,8 @@ public class TunnelProxyApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
 //        proxyServer.start();
-        new Thread(() -> proxyServer.start()).start();
-        log.info("代理服务器启动成功");
+//        new Thread(() -> proxyServer.start()).start();
+//        log.info("代理服务器启动成功");
     }
 
 }

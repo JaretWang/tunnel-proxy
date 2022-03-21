@@ -63,7 +63,7 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter {
     private ProxyServerConfig proxyServerConfig;
     private static final String CONNECT_ESTABLISHED = "HTTP/1.1 200 Connection Established\r\n\r\n";
     private static final String USER_AGENT = "Mozilla/5.0 xx-dev-web-common httpclient/4.x";
-    private static final String RESPONSE_HTML = "C:\\Users\\王朝甲\\Desktop\\DataEye\\GitLab\\tunnel-proxy\\src\\main\\resources\\templates\\response.html";
+    private static final String RESPONSE_HTML = System.getProperty("user.dir") + File.separator + "proxy_result" + File.separator + "response.html";
     private static final HashMap<String, String> HEADERS = new HashMap<String, String>() {
         {
             put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36");
@@ -250,6 +250,7 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter {
             }
         });
     }
+
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
