@@ -1,43 +1,38 @@
-package com.dataeye.proxy.utils;
+package com.dataeye.proxy.component;
 
 import com.dataeye.proxy.config.ProxyServerConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.ProxyConfig;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 
 /**
  * @author jaret
- * @date 2022/3/18 16:55
+ * @date 2022/3/25 17:51
  * @description
  */
 @Slf4j
-public class ProxySslContextUtils {
+@Component
+public class ProxySslContextFactory {
 
-    @Resource
-    private static ApplicationContext applicationContext;
+    @Autowired
+    private ProxyServerConfig proxyServerConfig;
 
-    /**
-     * 根据 host，port 创建 SSLEngine
-     *
-     * @param host
-     * @param port
-     * @return
-     */
-    public static SSLEngine createClientSslEnginForRemoteAddress(String host, int port) {
+    public SSLEngine createClientSslEnginForRemoteAddress(String host, int port) {
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
             TrustManager[] trustManagers = null;
-            ProxyServerConfig proxyServerConfig = applicationContext.getBean(ProxyServerConfig.class);
             if (proxyServerConfig.isUseTrustStore()) {
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
                 KeyStore tks = KeyStore.getInstance("JKS");
-                tks.load(new FileInputStream(proxyServerConfig.getTrustStorePath()),
-                        proxyServerConfig.getTrustStorePassword().toCharArray());
+                String trustStorePath = proxyServerConfig.getTrustStorePath();
+                String trustStorePassword = proxyServerConfig.getTrustStorePassword();
+                FileInputStream inputStream = new FileInputStream(trustStorePath);
+                tks.load(inputStream, trustStorePassword.toCharArray());
                 tmf.init(tks);
                 trustManagers = tmf.getTrustManagers();
             }
@@ -45,6 +40,7 @@ public class ProxySslContextUtils {
             sslcontext.init(null, trustManagers, null);
 
             return sslcontext.createSSLEngine(host, port);
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -52,12 +48,11 @@ public class ProxySslContextUtils {
     }
 
     /**
-     * 创建 SSLEngine
-     *
-     * @param proxyServerConfig
+     * 创建 SslEngine
      * @return
      */
-    public static SSLEngine createServerSslEngine(ProxyServerConfig proxyServerConfig) {
+    public SSLEngine createServerSslEngine() {
+
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
 
@@ -69,28 +64,28 @@ public class ProxySslContextUtils {
 
             String keyStorePath = proxyServerConfig.getKeyStorePath();
             String keyStorePassword = proxyServerConfig.getKeyStorePassword();
-
             String trustStorePath = proxyServerConfig.getTrustStorePath();
-            String trustStorePassword = proxyServerConfig.getKeyStorePassword();
-
+            String trustStorePassword = proxyServerConfig.getTrustStorePassword();
             ks.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
             tks.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
 
-            String keyPassword = proxyServerConfig.getKeyStorePassword();
-            kmf.init(ks, keyPassword.toCharArray());
+            kmf.init(ks, keyStorePassword.toCharArray());
             tmf.init(tks);
 
             sslcontext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
             SSLEngine sslEngine = sslcontext.createSSLEngine();
             sslEngine.setUseClientMode(false);
+            // should config?
             sslEngine.setNeedClientAuth(false);
 
             return sslEngine;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+
         return null;
+
     }
 
 }

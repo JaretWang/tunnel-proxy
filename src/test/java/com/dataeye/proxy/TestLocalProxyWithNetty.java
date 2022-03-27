@@ -1,7 +1,5 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.server.ProxyServerChannelInitializer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -12,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import javax.annotation.Resource;
-
 /**
  * @author jaret
  * @date 2022/3/18 18:24
@@ -21,10 +17,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @SpringBootTest
-public class TestProxyWithNetty {
-
-    @Resource
-    private ProxyServerConfig proxyServerConfig;
+public class TestLocalProxyWithNetty {
 
     @Test
     public void test(String host, String path) {
@@ -32,17 +25,17 @@ public class TestProxyWithNetty {
         try {
             Bootstrap b = new Bootstrap();
             b.group(group).channel(NioSocketChannel.class)
-                    .handler(new ProxyServerChannelInitializer());
+//                    .handler(new ProxyServerChannelInitializer());
+                    .handler(new HttpClientCodec());
 
             // Make the connection attempt.
-            Channel ch = b.connect(proxyServerConfig.getHost(), proxyServerConfig.getPort()).sync().channel();
+//            Channel ch = b.connect(proxyServerConfig.getHost(), proxyServerConfig.getPort()).sync().channel();
+            Channel ch = b.connect("127.0.0.1", 8123).sync().channel();
 
             // Prepare the HTTP request.
-            HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
-                    "http://" + host + path);
-            request.headers().set(HttpHeaders.Names.HOST, host);
-            request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
-            //request.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.GZIP);
+            HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.CONNECT, "http://www.baidu.com");
+            request.headers().set("Connection", "close");
+            request.headers().set("Host", "http://www.baidu.com:80");
 
             // Send the HTTP request.
             ch.writeAndFlush(request);

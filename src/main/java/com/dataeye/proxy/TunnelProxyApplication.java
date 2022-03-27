@@ -1,12 +1,14 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.server.ProxyServer;
+import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import sun.rmi.runtime.Log;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.annotation.Resource;
 
@@ -16,8 +18,10 @@ import javax.annotation.Resource;
  * @description
  */
 @Slf4j
+@EnableAsync
+@EnableScheduling
 @EnableConfigurationProperties
-@SpringBootApplication
+@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
 public class TunnelProxyApplication implements CommandLineRunner {
 
     public static void main(String[] args) {
@@ -25,13 +29,12 @@ public class TunnelProxyApplication implements CommandLineRunner {
     }
 
     @Resource
-    ProxyServer proxyServer;
+    TunnelProxyServer tunnelProxyServer;
 
     @Override
-    public void run(String... args) {
-//        proxyServer.start();
-//        new Thread(() -> proxyServer.start()).start();
-//        log.info("代理服务器启动成功");
+    public void run(String... args) throws InterruptedException {
+//        tunnelProxyServer.start();
+        log.info("代理服务器启动成功");
     }
 
 }
