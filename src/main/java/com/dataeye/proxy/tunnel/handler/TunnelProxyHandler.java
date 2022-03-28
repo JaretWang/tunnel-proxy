@@ -63,63 +63,50 @@ public class TunnelProxyHandler extends ChannelInboundHandlerAdapter {
             String remoteHost = proxyServerConfig.getRemoteHost();
             int remotePort = proxyServerConfig.getRemotePort();
             bootstrap.connect(remoteHost,remotePort)
-                    .addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(final ChannelFuture future1) throws Exception {
-                            boolean success = future1.isSuccess();
-                            System.out.println(success);
-                            if (success) {
-                                // successfully connect to the original server
-                                // send connect success msg to UA
+                    .addListener((ChannelFutureListener) future1 -> {
+                        if (future1.isSuccess()) {
+                            // successfully connect to the original server
+                            // send connect success msg to UA
 
-                                if (proxyServerConfig.isAppleyRemoteRule()) {
-                                    ctx.pipeline().remove("codec");
-                                    ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
-                                    ctx.pipeline().remove(TunnelProxyHandler.HANDLER_NAME);
+                            if (proxyServerConfig.isAppleyRemoteRule()) {
+                                ctx.pipeline().remove("codec");
+                                ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
+                                ctx.pipeline().remove(TunnelProxyHandler.HANDLER_NAME);
 
-                                    // add relay handler
-                                    ctx.pipeline().addLast(
-                                            new TunnelProxyRelayHandler("UA --> Remote", future1.channel()));
+                                // add relay handler
+                                ctx.pipeline().addLast(new TunnelProxyRelayHandler("UA --> Remote", future1.channel()));
 
-                                    String data = constructConnectRequestForProxy(httpRequest, proxyServerConfig);
-                                    ByteBuf content = Unpooled.copiedBuffer(data, CharsetUtil.UTF_8);
-                                    future1.channel()
-                                            .writeAndFlush(content)
-                                            .addListener(new ChannelFutureListener() {
-                                                @Override
-                                                public void operationComplete(ChannelFuture future2) throws Exception {
-                                                    if (!future2.channel().config()
-                                                            .getOption(ChannelOption.AUTO_READ)) {
-                                                        future2.channel().read();
-                                                    }
-                                                }
-                                            });
-
-                                } else {
-                                    HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(
-                                            HttpVersion.HTTP_1_1, new HttpResponseStatus(200, "Connection established"));
-                                    ctx.writeAndFlush(proxyConnectSuccessResponse).addListener(
-                                            new ChannelFutureListener() {
-                                                @Override
-                                                public void operationComplete(ChannelFuture future2)
-                                                        throws Exception {
-                                                    // remove handlers
-                                                    ctx.pipeline().remove("codec");
-                                                    ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
-                                                    ctx.pipeline().remove(TunnelProxyHandler.HANDLER_NAME);
-
-                                                    // add relay handler
-                                                    String tag = "UA --> " + proxyServerConfig.getRemote();
-                                                    ctx.pipeline().addLast(new TunnelProxyRelayHandler(tag, future1.channel()));
-                                                }
-                                            });
-                                }
+                                String data = constructConnectRequestForProxy(httpRequest, proxyServerConfig);
+                                ByteBuf content = Unpooled.copiedBuffer(data, CharsetUtil.UTF_8);
+                                future1.channel()
+                                        .writeAndFlush(content)
+                                        .addListener((ChannelFutureListener) future2 -> {
+                                            if (!future2.channel().config()
+                                                    .getOption(ChannelOption.AUTO_READ)) {
+                                                future2.channel().read();
+                                            }
+                                        });
 
                             } else {
-                                if (ctx.channel().isActive()) {
-                                    ctx.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
-                                            .addListener(ChannelFutureListener.CLOSE);
-                                }
+                                HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(
+                                        HttpVersion.HTTP_1_1, new HttpResponseStatus(200, "Connection established"));
+                                ctx.writeAndFlush(proxyConnectSuccessResponse).addListener(
+                                        (ChannelFutureListener) future2 -> {
+                                            // remove handlers
+                                            ctx.pipeline().remove("codec");
+                                            ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
+                                            ctx.pipeline().remove(TunnelProxyHandler.HANDLER_NAME);
+
+                                            // add relay handler
+                                            String tag = "UA --> " + proxyServerConfig.getRemote();
+                                            ctx.pipeline().addLast(new TunnelProxyRelayHandler(tag, future1.channel()));
+                                        });
+                            }
+
+                        } else {
+                            if (ctx.channel().isActive()) {
+                                ctx.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
+                                        .addListener(ChannelFutureListener.CLOSE);
                             }
                         }
                     });

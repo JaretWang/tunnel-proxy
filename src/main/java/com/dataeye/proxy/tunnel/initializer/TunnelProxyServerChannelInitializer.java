@@ -52,7 +52,7 @@ public class TunnelProxyServerChannelInitializer extends ChannelInitializer<Sock
         // 前置处理
         pipeline.addLast(TunnelProxyPreHandler.HANDLER_NAME, new TunnelProxyPreHandler(proxyServerConfig));
         // 请求模式选择处理
-        pipeline.addLast(TunnelProxySchemaHandler.HANDLER_NAME, new TunnelProxySchemaHandler());
+        pipeline.addLast(TunnelProxySchemaHandler.HANDLER_NAME, new TunnelProxySchemaHandler(proxyServerConfig));
         // 缓存检查
         pipeline.addLast(TunnelCacheFindHandler.HANDLER_NAME, new TunnelCacheFindHandler());
         // 本地代理转发

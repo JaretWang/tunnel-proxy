@@ -87,7 +87,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
                 };
 
-                log.debug("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
+                log.info("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
 
                 Bootstrap bootstrap = new Bootstrap()
                         .group(uaChannel.eventLoop())
@@ -99,10 +99,8 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                                 proxySslContextFactory, cb));
 
                 // set local address
-                // todo 改动
-                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
-
-
+                // todo 改动 放开的话 这里会报出重复绑定的错误
+//                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
                 ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
 
                 remoteChannel = remoteConnectFuture.channel();
@@ -128,7 +126,8 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                                     }
                                 });
                     } else {
-                        String errorMsg = "remote connect to " + remoteAddr + " fail";
+                        future.cause().printStackTrace();
+                        String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
                         log.error(errorMsg);
                         // send error response
                         HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
@@ -180,8 +179,8 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error(cause.getMessage(), cause);
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        log.error("TunnelProxyForwardHandler 出现异常: {}", cause.getMessage());
         ctx.close();
     }
 

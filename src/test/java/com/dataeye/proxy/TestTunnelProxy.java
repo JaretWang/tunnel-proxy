@@ -47,7 +47,6 @@ public class TestTunnelProxy {
     private ProxyServerConfig proxyServerConfig;
 
     // 要访问的目标网页
-//    private static final String pageUrl = "https://www.baidu.com";
     private static final String pageUrl = "https://www.zhihu.com";
     private static final String proxyIp = "127.0.0.1";
     private static final int proxyPort = 8123;

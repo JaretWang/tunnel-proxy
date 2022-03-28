@@ -12,13 +12,9 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -34,47 +30,52 @@ import java.util.Objects;
  * @description
  */
 @Slf4j
-public class TestProductEnviroment {
+public class TestLocalEnviroment {
 
 //    private static final String pageUrl = "https://www.zhihu.com";
     private static final String pageUrl = "http://www.zhihu.com";
-    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
-    private static final int proxyPort = 21330;
+    private static final String proxyIp = "127.0.0.1";
+    private static final int proxyPort = 8123;
     private static final String username = "t14480740933876";
     private static final String password = "wnwx5oeo";
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
-        sendByHttpClient("HttpClient_repsonse.html");
-//        sendByOkHttp("OkHttp_repsonse.html");
-//        sendByOriginal("Original_repsonse.html");
+        sendByHttpClient("sendHttpsByHttpClient_repsonse.html");
+//        sendByOkHttp("sendByOkHttp_repsonse.html");
+//        sendByOriginal("sendByOriginal_repsonse.html");
     }
 
     public static void sendByHttpClient(String saveFileName) throws IOException {
         String saveFile = root + File.separator + saveFileName;
 
-        // JDK 8u111版本后，目标页面为HTTPS协议，启用proxy用户密码鉴权
-        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        HttpClientBuilder clientBuilder = HttpClients.custom();
 
-        credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort), new UsernamePasswordCredentials(username, password));
-        CloseableHttpClient httpclient = HttpClients.custom().setDefaultCredentialsProvider(credsProvider).build();
-
-        // 构造请求
+        // config
         URL url = new URL(pageUrl);
         HttpHost target = new HttpHost(url.getHost(), url.getDefaultPort(), url.getProtocol());
-        HttpHost proxy = new HttpHost(proxyIp, proxyPort);
+        RequestConfig.Builder configBuilder = RequestConfig.custom().setConnectTimeout(6000).setConnectionRequestTimeout(2000).setSocketTimeout(6000);
 
-        RequestConfig config = RequestConfig.custom()
-                .setProxy(proxy).setConnectTimeout(6000)
-                .setConnectionRequestTimeout(2000).setSocketTimeout(6000).build();
-
+        // 构造请求
         HttpGet httpget = new HttpGet(url.getPath());
-        httpget.setConfig(config);
         httpget.addHeader("Accept-Encoding", "gzip"); // 使用gzip压缩传输数据让访问更快
-        httpget.addHeader("Connection", "K");
-        httpget.addHeader("Proxy-Authorization", Credentials.basic(username, password));
+        httpget.addHeader("Connection", "close");
         httpget.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36");
 
+        boolean isHttps = pageUrl.startsWith("https");
+        if (true) {
+            // JDK 8u111版本后，目标页面为HTTPS协议，启用proxy用户密码鉴权
+            CredentialsProvider credsProvider = new BasicCredentialsProvider();
+            credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort), new UsernamePasswordCredentials(username, password));
+            clientBuilder.setDefaultCredentialsProvider(credsProvider);
+            configBuilder.setProxy(new HttpHost(proxyIp, proxyPort));
+            httpget.addHeader("Proxy-Authorization", "123");
+//            httpget.addHeader("Proxy-Authorization", Credentials.basic(username, password));
+        }
+
+        RequestConfig config = configBuilder.build();
+        httpget.setConfig(config);
+        CloseableHttpClient httpclient = clientBuilder.build();
         CloseableHttpResponse response = httpclient.execute(target, httpget);
 
         try {
@@ -90,25 +91,28 @@ public class TestProductEnviroment {
 
     public static void sendByOkHttp(String saveFileName) throws IOException {
         String saveFile = root + File.separator + saveFileName;
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
-
-        Authenticator authenticator = (route, response) -> {
-            String credential = Credentials.basic(username, password);
-            return response.request().newBuilder()
-                    .header("Proxy-Authorization", credential)
-                    .build();
-        };
-        OkHttpClient client = new OkHttpClient.Builder()
-                .proxy(proxy)
-                .proxyAuthenticator(authenticator)
-                .build();
+        boolean isHttps = pageUrl.startsWith("https");
+        if (isHttps) {
+            Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
+            Authenticator authenticator = (route, response) -> {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+            clientBuilder.proxy(proxy);
+            clientBuilder.proxyAuthenticator(authenticator);
+        }
 
         Request request = new Request.Builder()
                 .url(pageUrl)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
                 .addHeader("Connection","close")
                 .build();
+
+        OkHttpClient client = clientBuilder.build();
 
         Response response = client.newCall(request).execute();
         String content = Objects.requireNonNull(response.body()).string();

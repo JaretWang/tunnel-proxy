@@ -79,8 +79,8 @@ public class IpSelector {
      *
      * @return
      */
-    @Scheduled(cron = CRON)
-    @PostConstruct
+//    @Scheduled(cron = CRON)
+//    @PostConstruct
     public void getProxyListBySchedule() throws IOException {
         String directIpAccessLink = proxyServerConfig.getDirectIpAccessLink();
         PROXY_IP_LIST = getRandomProxyIpList(directIpAccessLink);
