@@ -51,6 +51,8 @@ public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
     private boolean preCheck(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
+            log.info("TunnelProxyPreHandler 接收到请求内容: {}", httpRequest.toString());
+
             String hostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
             String originalHost = HostNamePortUtils.getHostName(hostHeader);
 

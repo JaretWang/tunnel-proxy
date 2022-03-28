@@ -43,6 +43,7 @@ public class TunnelProxyHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof HttpRequest) {
             final HttpRequest httpRequest = (HttpRequest) msg;
+            log.info("TunnelProxyHandler 接收到请求内容: {}", httpRequest.toString());
 
 //            String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
 //            String originalHost = HostNamePortUtils.getHostName(originalHostHeader);

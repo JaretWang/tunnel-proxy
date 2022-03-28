@@ -33,7 +33,7 @@ public class TunnelProxyApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws InterruptedException {
-        tunnelProxyServer.start();
+//        tunnelProxyServer.start();
         log.info("代理服务器启动成功");
     }
 

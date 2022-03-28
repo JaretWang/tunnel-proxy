@@ -1,5 +1,6 @@
 package com.dataeye.proxy;
 
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -42,16 +43,15 @@ public class TestTunnelProxy {
 
     @Resource
     private TunnelProxyServer tunnelProxyServer;
+    @Resource
+    private ProxyServerConfig proxyServerConfig;
 
     // 要访问的目标网页
 //    private static final String pageUrl = "https://www.baidu.com";
     private static final String pageUrl = "https://www.zhihu.com";
     private static final String proxyIp = "127.0.0.1";
     private static final int proxyPort = 8123;
-    // 用户名密码认证(私密代理/独享代理)
-    private static final String username = "t14480740933876";
-    private static final String password = "wnwx5oeo";
-    private static final String targetFile = "C:\\Users\\王朝甲\\Desktop\\DataEye\\GitLab\\tunnel-proxy\\src\\test\\java\\com\\dataeye\\proxy\\response.html";
+    private static final String targetFile = System.getProperty("user.dir") + File.separator + "proxy_result" + File.separator + "repsonse11.html";
 
     @Test
     public void test() throws IOException, InterruptedException {
@@ -61,6 +61,9 @@ public class TestTunnelProxy {
         // JDK 8u111版本后，目标页面为HTTPS协议，启用proxy用户密码鉴权
         System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
         CredentialsProvider credsProvider = new BasicCredentialsProvider();
+
+        String username = proxyServerConfig.getProxyUserName();
+        String password = proxyServerConfig.getProxyPassword();
 
         credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort),
                 new UsernamePasswordCredentials(username, password));
