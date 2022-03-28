@@ -12,7 +12,8 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,7 +28,7 @@ import java.util.Properties;
  */
 public class TunnelCacheSaveHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = Logger.getLogger(TunnelCacheSaveHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(TunnelCacheSaveHandler.class);
 
     public static final String HANDLER_NAME = "apnproxy.cache.save";
 
