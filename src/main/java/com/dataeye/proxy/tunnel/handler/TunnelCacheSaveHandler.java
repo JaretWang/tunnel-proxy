@@ -30,7 +30,7 @@ public class TunnelCacheSaveHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(TunnelCacheSaveHandler.class);
 
-    public static final String HANDLER_NAME = "apnproxy.cache.save";
+    public static final String HANDLER_NAME = "tunnel_proxy_cache_save";
 
     private boolean caching = false;
 

@@ -31,7 +31,7 @@ public class TunnelProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
-            log.info("TunnelProxySchemaHandler 接收到请求内容: {}", httpRequest.toString());
+            log.debug("TunnelProxySchemaHandler 接收到请求内容: {}", httpRequest.toString());
 
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {
                 ctx.pipeline().remove(TunnelCacheFindHandler.HANDLER_NAME);

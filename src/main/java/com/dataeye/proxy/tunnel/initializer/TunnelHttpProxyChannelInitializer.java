@@ -28,17 +28,17 @@ public class TunnelHttpProxyChannelInitializer extends ChannelInitializer<Socket
     private TunnelHttpProxyHandler.RemoteChannelInactiveCallback remoteChannelInactiveCallback;
 
     public TunnelHttpProxyChannelInitializer(ProxyServerConfig proxyServerConfig, Channel uaChannel,
-                                             String remtoeAddr,ProxySslContextFactory proxySslContextFactory,
+                                             String remoteAddr,ProxySslContextFactory proxySslContextFactory,
                                              TunnelHttpProxyHandler.RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
         this.proxyServerConfig = proxyServerConfig;
         this.uaChannel = uaChannel;
-        this.remoteAddr = remtoeAddr;
+        this.remoteAddr = remoteAddr;
         this.proxySslContextFactory = proxySslContextFactory;
         this.remoteChannelInactiveCallback = remoteChannelInactiveCallback;
     }
 
     @Override
-    public void initChannel(SocketChannel channel) throws Exception {
+    public void initChannel(SocketChannel channel) {
 
         ChannelPipeline pipeline = channel.pipeline();
 
@@ -50,15 +50,9 @@ public class TunnelHttpProxyChannelInitializer extends ChannelInitializer<Socket
             pipeline.addLast("ssl", new SslHandler(engine));
         }
 
-        if (proxyServerConfig.getRemoteListenType() == TunnelProxyListenType.SSL) {
-            SSLEngine engine = proxySslContextFactory.createClientSslEnginForRemoteAddress(remoteHost, remotePort);
-            engine.setUseClientMode(true);
-            pipeline.addLast("ssl", new SslHandler(engine));
-        }
-
         pipeline.addLast("codec", new HttpClientCodec());
         pipeline.addLast(TunnelHttpProxyHandler.HANDLER_NAME, new TunnelHttpProxyHandler(uaChannel, remoteAddr, remoteChannelInactiveCallback));
-        pipeline.addLast(TunnelCacheSaveHandler.HANDLER_NAME, new TunnelCacheSaveHandler());
+//        pipeline.addLast(TunnelCacheSaveHandler.HANDLER_NAME, new TunnelCacheSaveHandler());
     }
 }
 

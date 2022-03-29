@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TunnelHttpProxyHandler extends ChannelInboundHandlerAdapter {
 
-    public static final String HANDLER_NAME = "apnproxy.proxy";
+    public static final String HANDLER_NAME = "tunnel_proxy_http_proxy";
 
     private Channel uaChannel;
 

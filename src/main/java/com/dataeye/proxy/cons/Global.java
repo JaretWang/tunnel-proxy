@@ -1,5 +1,11 @@
 package com.dataeye.proxy.cons;
 
+import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.http.ProxyServer;
+import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 /**

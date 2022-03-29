@@ -36,7 +36,7 @@ public class TunnelCacheFindHandler extends ChannelInboundHandlerAdapter {
 
         if (ho instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) ho;
-            log.info("TunnelCacheFindHandler 接收到请求内容: {}", httpRequest.toString());
+            log.debug("TunnelCacheFindHandler 接收到请求内容: {}", httpRequest.toString());
 
             String url = httpRequest.getUri();
 

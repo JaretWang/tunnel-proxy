@@ -14,10 +14,6 @@ import java.net.Proxy;
 public class TestThirdProxyWithOkHttp {
 
     public static void main(String args[]) throws IOException {
-//        final String username = "t14552639449562";
-//        final String password = "36sphe7b";
-//        String credential = Credentials.basic(username, password);
-//        System.out.println(credential);
 
 //        testTunnelProxy();
 
@@ -28,10 +24,10 @@ public class TestThirdProxyWithOkHttp {
         // 目标网站
         String targetUrl = "https://www.baidu.com";
 //        // 用户名密码, 若已添加白名单则不需要添加
-        final String username = "t14552639449562";
-        final String password = "36sphe7b";
+        final String username = "t14480740933876";
+        final String password = "wnwx5oeo";
         // 代理服务器IP
-        String ip = "tps579.kdlapi.com";
+        String ip = "tps582.kdlapi.com";
         int port = 15818;
 
 //        String ip = "127.0.0.1";

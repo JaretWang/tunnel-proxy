@@ -41,12 +41,12 @@ public class TestLocalEnviroment {
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
-        sendByHttpClient("sendHttpsByHttpClient_repsonse.html");
+        sendByHttpClient("sendHttpsByHttpClient_repsonse.html",true);
 //        sendByOkHttp("sendByOkHttp_repsonse.html");
 //        sendByOriginal("sendByOriginal_repsonse.html");
     }
 
-    public static void sendByHttpClient(String saveFileName) throws IOException {
+    public static void sendByHttpClient(String saveFileName, boolean isHttps) throws IOException {
         String saveFile = root + File.separator + saveFileName;
 
         HttpClientBuilder clientBuilder = HttpClients.custom();
@@ -60,10 +60,10 @@ public class TestLocalEnviroment {
         HttpGet httpget = new HttpGet(url.getPath());
         httpget.addHeader("Accept-Encoding", "gzip"); // 使用gzip压缩传输数据让访问更快
         httpget.addHeader("Connection", "close");
+        httpget.addHeader("my-proxy-type", "direct");
         httpget.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36");
 
-        boolean isHttps = pageUrl.startsWith("https");
-        if (true) {
+        if (isHttps) {
             // JDK 8u111版本后，目标页面为HTTPS协议，启用proxy用户密码鉴权
             CredentialsProvider credsProvider = new BasicCredentialsProvider();
             credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort), new UsernamePasswordCredentials(username, password));

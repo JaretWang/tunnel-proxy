@@ -36,8 +36,7 @@ import java.util.Objects;
 @Slf4j
 public class TestProductEnviroment {
 
-//    private static final String pageUrl = "https://www.zhihu.com";
-    private static final String pageUrl = "http://www.zhihu.com";
+    private static final String pageUrl = "https://www.zhihu.com";
     private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final int proxyPort = 21330;
     private static final String username = "t14480740933876";

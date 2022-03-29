@@ -2,6 +2,8 @@ package com.dataeye.proxy.tunnel;
 
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.config.TunnelManageConfig;
+import com.dataeye.proxy.service.TunnelDistributeService;
 import com.dataeye.proxy.tunnel.initializer.TunnelProxyServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -17,7 +19,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
 
 /**
  * @author jaret
@@ -35,6 +40,12 @@ public class TunnelProxyServer {
     private ProxyServerConfig proxyServerConfig;
     @Autowired
     private ProxySslContextFactory proxySslContextFactory;
+    @Resource(name = "ioThreadPool")
+    private ThreadPoolTaskExecutor ioThreadPool;
+    @Autowired
+    private TunnelDistributeService tunnelDistributeService;
+    @Autowired
+    private TunnelManageConfig tunnelManageConfig;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
@@ -51,8 +62,8 @@ public class TunnelProxyServer {
                 .group(bossGroup, workerGroup)
                 .localAddress(host, port)
                 .channel(NioServerSocketChannel.class)
-                .handler(new LoggingHandler(LogLevel.DEBUG))
-                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory))
+                .handler(new LoggingHandler(LogLevel.INFO))
+                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory, ioThreadPool, tunnelDistributeService, tunnelManageConfig))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();

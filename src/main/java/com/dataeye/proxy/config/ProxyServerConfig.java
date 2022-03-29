@@ -117,6 +117,10 @@ public class ProxyServerConfig {
      */
     private boolean appleyRemoteRule = false;
     /**
+     * 定时器的时间, 单位:秒
+     */
+    private int timerDuration;
+    /**
      * 获取代理商的地址
      * @return
      */

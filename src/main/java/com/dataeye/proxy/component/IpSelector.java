@@ -1,8 +1,11 @@
 package com.dataeye.proxy.component;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.ProxyRemote;
+import com.dataeye.proxy.bean.ProxyType;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.cons.Global;
 import com.dataeye.proxy.utils.Md5Utils;
@@ -18,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
+import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -29,6 +33,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,10 +51,59 @@ public class IpSelector {
 
     @Resource
     private ProxyServerConfig proxyServerConfig;
+    @Resource
+    private ApplicationContext applicationContext;
 
     private static final String CRON = "0 0/5 * * * ?";
     public static final ConcurrentMap<String, String> PROXY_IP_PORT = new ConcurrentHashMap<>(4);
+    public static final ConcurrentHashMap<String, Timer> PROXY_IP_TIMER = new ConcurrentHashMap<>();
     public static List<String> PROXY_IP_LIST;
+    public final ConcurrentHashMap<ProxyType, List<IpTimer>> distributeList = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<ProxyType, String> accessLink = new ConcurrentHashMap<>();
+
+    /**
+     * 初始化代理IP列表
+     */
+    @Scheduled(cron = CRON)
+    @PostConstruct
+    public void initProxyIps() {
+        log.info("定时更新代理 ip 列表");
+
+        accessLink.put(ProxyType.direct, proxyServerConfig.getDirectIpAccessLink());
+        accessLink.put(ProxyType.exclusive, proxyServerConfig.getExclusiveIpAccessLink());
+        accessLink.put(ProxyType.tuunel, proxyServerConfig.getTunnelIpAccessLink());
+
+        accessLink.forEach((type, link) -> {
+            List<IpTimer> proxyIpList;
+            if (distributeList.containsKey(type)) {
+                proxyIpList = distributeList.get(type);
+            } else {
+                proxyIpList = new LinkedList<>();
+            }
+            try {
+                initList(proxyIpList, link);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            distributeList.put(type, proxyIpList);
+        });
+
+    }
+
+    public void initList(List<IpTimer> proxyIpList, String ipAccessLink) throws IOException {
+        List<String> randomProxyIpList = getRandomProxyIpList(ipAccessLink);
+        for (String item : randomProxyIpList) {
+            TimeCountDown timeCountDown = applicationContext.getBean(TimeCountDown.class);
+            // ip 计时器
+            String[] split = item.split(":");
+            if (split.length == 2) {
+                String ip = split[0];
+                int port = Integer.parseInt(split[1]);
+                IpTimer ipTimer = IpTimer.builder().ip(ip).port(port).timeCountDown(timeCountDown).build();
+                proxyIpList.add(ipTimer);
+            }
+        }
+    }
 
     /**
      * 随机获取代理ip
@@ -77,7 +131,7 @@ public class IpSelector {
     /**
      * 定时获取代理列表
      *
-     * @return
+     * @throws IOException
      */
 //    @Scheduled(cron = CRON)
 //    @PostConstruct
@@ -104,7 +158,8 @@ public class IpSelector {
             proxyIp = Global.PROXY_IP_MAPPING.get(uuid);
         } else {
             // 随机选择一个代理ip
-            proxyIp = getRandomProxyIp();
+            String url = proxyServerConfig.getDirectIpAccessLink();
+            proxyIp = getRandomProxyIp(url);
             Global.PROXY_IP_MAPPING.put(uuid, proxyIp);
         }
         return proxyIp;
@@ -126,7 +181,8 @@ public class IpSelector {
             proxyIp = Global.PROXY_IP_MAPPING.get(uuid);
         } else {
             // 随机选择一个代理ip
-            proxyIp = getRandomProxyIp();
+            String url = proxyServerConfig.getDirectIpAccessLink();
+            proxyIp = getRandomProxyIp(url);
             Global.PROXY_IP_MAPPING.put(uuid, proxyIp);
         }
         return ProxyRemote.builder()
@@ -140,9 +196,8 @@ public class IpSelector {
      *
      * @return 随机代理ip
      */
-    public String getRandomProxyIp() throws IOException {
+    public String getRandomProxyIp(String url) throws IOException {
         String proxyIp = "";
-        String url = proxyServerConfig.getDirectIpAccessLink();
         HttpResponse httpResponse = Request.Get(url).execute().returnResponse();
         HttpEntity entity = httpResponse.getEntity();
         String content = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
@@ -187,12 +242,12 @@ public class IpSelector {
      * @return 随机代理ip组
      * @throws IOException
      */
-    public List<String> getRandomProxyIpList(String proxyUrl) throws IOException {
+    public static List<String> getRandomProxyIpList(String proxyUrl) throws IOException {
         List<String> proxyList = new ArrayList<>(2);
         OkHttpClient client = new OkHttpClient();
         okhttp3.Request request = new okhttp3.Request.Builder().get().url(proxyUrl).build();
         Response response = client.newCall(request).execute();
-        String body = response.body().string();
+        String body = Objects.requireNonNull(response.body()).string();
         if (StringUtils.isNotBlank(body) && body.contains(":")) {
             String lineSeparator = System.lineSeparator();
             String[] split = body.split(lineSeparator);
