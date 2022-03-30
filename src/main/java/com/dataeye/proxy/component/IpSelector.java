@@ -7,6 +7,7 @@ import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.ProxyRemote;
 import com.dataeye.proxy.bean.ProxyType;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.config.TunnelManageConfig;
 import com.dataeye.proxy.cons.Global;
 import com.dataeye.proxy.utils.Md5Utils;
 import lombok.Data;
@@ -52,6 +53,8 @@ public class IpSelector {
     @Resource
     private ProxyServerConfig proxyServerConfig;
     @Resource
+    private TunnelManageConfig tunnelManageConfig;
+    @Resource
     private ApplicationContext applicationContext;
 
     private static final String CRON = "0 0/5 * * * ?";
@@ -64,34 +67,43 @@ public class IpSelector {
     /**
      * 初始化代理IP列表
      */
-    @Scheduled(cron = CRON)
-    @PostConstruct
+//    @Scheduled(cron = CRON)
+//    @PostConstruct
     public void initProxyIps() {
-        log.info("定时更新代理 ip 列表");
+        log.info("定时更新代理 ip 池");
 
         accessLink.put(ProxyType.direct, proxyServerConfig.getDirectIpAccessLink());
         accessLink.put(ProxyType.exclusive, proxyServerConfig.getExclusiveIpAccessLink());
         accessLink.put(ProxyType.tuunel, proxyServerConfig.getTunnelIpAccessLink());
 
         accessLink.forEach((type, link) -> {
-            List<IpTimer> proxyIpList;
-            if (distributeList.containsKey(type)) {
-                proxyIpList = distributeList.get(type);
-            } else {
-                proxyIpList = new LinkedList<>();
+            for (int i = 0; i < tunnelManageConfig.getSharedProxyIpPoolSizeEachType(); i++) {
+                List<IpTimer> proxyIpList;
+                if (distributeList.containsKey(type)) {
+                    proxyIpList = distributeList.get(type);
+                } else {
+                    proxyIpList = new LinkedList<>();
+                }
+                try {
+                    initList(proxyIpList, link);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                distributeList.put(type, proxyIpList);
             }
-            try {
-                initList(proxyIpList, link);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            distributeList.put(type, proxyIpList);
+            log.info("代理ip类型：{}, 代理ip数量：{}", type, distributeList.get(type).size());
         });
-
     }
 
     public void initList(List<IpTimer> proxyIpList, String ipAccessLink) throws IOException {
         List<String> randomProxyIpList = getRandomProxyIpList(ipAccessLink);
+        if (!ObjectUtils.isEmpty(randomProxyIpList)) {
+            String response = randomProxyIpList.get(0);
+            int code = JSONObject.parseObject(response).getInteger("code");
+            if (code != 200) {
+                log.error("获取代理ip异常, 原因：{}", response);
+            }
+        }
         for (String item : randomProxyIpList) {
             TimeCountDown timeCountDown = applicationContext.getBean(TimeCountDown.class);
             // ip 计时器

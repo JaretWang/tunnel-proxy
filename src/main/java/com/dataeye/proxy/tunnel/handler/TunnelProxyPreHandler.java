@@ -18,7 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * @author jaret
  * @date 2022/3/25 18:03
- * @description 检查请求的黑白名单
+ * @description 检查请求的黑白名单,包括请求的ip，port，类型
  */
 @Slf4j
 public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
@@ -89,13 +89,11 @@ public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
                 return false;
             }
 
-            // forbid request to proxy server internal network
+            // forbid request to proxy server from internal network
             for (String forbiddenIp : forbiddenIps) {
                 if (StringUtils.startsWith(originalHost, forbiddenIp)) {
                     String errorMsg = "Forbidden";
-                    ctx.write(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
-                            errorMsg));
-                    ctx.flush();
+                    ctx.writeAndFlush(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN, errorMsg));
                     return false;
                 }
             }
@@ -103,9 +101,7 @@ public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
             // forbid request to proxy server local
             if (StringUtils.equals(originalHost, HandlerCons.LOCALHOST_IP) || StringUtils.equals(originalHost, HandlerCons.LOCALHOST_NAME)) {
                 String errorMsg = "Forbidden";
-                ctx.write(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
-                        errorMsg));
-                ctx.flush();
+                ctx.writeAndFlush(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN, errorMsg));
                 return false;
             }
 
@@ -114,9 +110,7 @@ public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
             for (int fobiddenPort : forbiddenPorts) {
                 if (originalPort == fobiddenPort) {
                     String errorMsg = "Forbidden";
-                    ctx.write(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
-                            errorMsg));
-                    ctx.flush();
+                    ctx.writeAndFlush(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN, errorMsg));
                     return false;
                 }
             }

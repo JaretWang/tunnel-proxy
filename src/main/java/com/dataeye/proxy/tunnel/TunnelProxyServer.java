@@ -1,9 +1,10 @@
 package com.dataeye.proxy.tunnel;
 
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.TunnelManageConfig;
-import com.dataeye.proxy.service.TunnelDistributeService;
+import com.dataeye.proxy.service.ITunnelDistributeService;
 import com.dataeye.proxy.tunnel.initializer.TunnelProxyServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -23,6 +24,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author jaret
@@ -43,11 +46,80 @@ public class TunnelProxyServer {
     @Resource(name = "ioThreadPool")
     private ThreadPoolTaskExecutor ioThreadPool;
     @Autowired
-    private TunnelDistributeService tunnelDistributeService;
+    private ITunnelDistributeService tunnelDistributeService;
     @Autowired
     private TunnelManageConfig tunnelManageConfig;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
+
+    /**
+     * 根据配置参数启动
+     */
+    public void startByConfig(List<TunnelInstance> tunnelInstances) {
+        int size = tunnelInstances.size();
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = tunnelThreadpool(size);
+        for (TunnelInstance t : tunnelInstances) {
+            threadPoolTaskExecutor.submit(new CreateProxyServerTask(t));
+        }
+        log.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
+    }
+
+    public ThreadPoolTaskExecutor tunnelThreadpool(int threadSize) {
+        ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
+        pool.setCorePoolSize(threadSize);
+        pool.setMaxPoolSize(threadSize + 5);
+        pool.setQueueCapacity(50);
+        pool.setKeepAliveSeconds(600);
+        pool.setWaitForTasksToCompleteOnShutdown(true);
+        pool.setThreadNamePrefix("tunnel_create");
+        pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        pool.initialize();
+        log.info("隧道初始化线程池创建完成");
+        return pool;
+    }
+
+    /**
+     * 创建proxy server
+     */
+    class CreateProxyServerTask implements Runnable {
+
+        private final TunnelInstance tunnelInstance;
+
+        public CreateProxyServerTask(TunnelInstance tunnelInstance) {
+            this.tunnelInstance = tunnelInstance;
+        }
+
+        @Override
+        public void run() {
+            String alias = tunnelInstance.getAlias();
+            String host = tunnelInstance.getIp();
+            int port = tunnelInstance.getPort();
+            int bossThreadSize = tunnelInstance.getBossThreadSize();
+            int workerThreadSize = tunnelInstance.getWorkerThreadSize();
+
+            EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
+            EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
+            ServerBootstrap serverBootstrap = new ServerBootstrap()
+                    .group(bossGroup, workerGroup)
+                    .localAddress(host, port)
+                    .channel(NioServerSocketChannel.class)
+//                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
+                            ioThreadPool, tunnelDistributeService, tunnelManageConfig, tunnelInstance))
+                    .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
+            try {
+                ChannelFuture future = serverBootstrap.bind().sync();
+                log.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
+                future.channel().closeFuture().sync();
+            } catch (Exception e) {
+                log.error("启动代理服务器时，出现异常：{}", e.getMessage());
+                e.printStackTrace();
+            } finally {
+                bossGroup.shutdownGracefully();
+                workerGroup.shutdownGracefully();
+            }
+        }
+    }
 
     /**
      * 启动一个代理服务器
@@ -63,7 +135,8 @@ public class TunnelProxyServer {
                 .localAddress(host, port)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
-                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory, ioThreadPool, tunnelDistributeService, tunnelManageConfig))
+                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
+                        ioThreadPool, tunnelDistributeService, tunnelManageConfig, null))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();

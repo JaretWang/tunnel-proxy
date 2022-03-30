@@ -1,6 +1,7 @@
 package com.dataeye.proxy.cons;
 
 import io.netty.util.AttributeKey;
+import org.apache.tomcat.util.http.parser.Authorization;
 
 /**
  * @author jaret
@@ -21,5 +22,10 @@ public interface HandlerCons {
     String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml";
     String CACHE_DIR = "cache";
     String CACHE_DATA_DIR = "data";
+    String HEADER_PROXY_AUTHORIZATION = "Proxy-Authorization";
+
+    int connectTimeoutMillis = 1000;
+    double loadFactor = 0.5;
+
 
 }

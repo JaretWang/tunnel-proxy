@@ -1,8 +1,12 @@
 package com.dataeye.proxy;
 
+import com.alibaba.fastjson.JSON;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.TimeCountDown;
+import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import lombok.extern.slf4j.Slf4j;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -14,6 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author jaret
@@ -24,22 +29,20 @@ import javax.annotation.Resource;
 @EnableAsync
 @EnableScheduling
 @EnableConfigurationProperties
-@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
+@SpringBootApplication
+@MapperScan("com.dataeye.proxy.dao")
 public class TunnelProxyApplication implements CommandLineRunner {
-
-    @Autowired
-    private ApplicationContext applicationContext;
 
     public static void main(String[] args) {
         SpringApplication.run(TunnelProxyApplication.class, args);
     }
 
-    @Resource
-    TunnelProxyServer tunnelProxyServer;
+//    @Resource
+//    TunnelProxyServer tunnelProxyServer;
 
     @Override
     public void run(String... args) throws InterruptedException {
-        tunnelProxyServer.start();
+//        tunnelProxyServer.start();
         log.info("代理服务器启动成功");
     }
 

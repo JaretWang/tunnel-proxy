@@ -35,14 +35,17 @@ public class TestLocalEnviroment {
 //    private static final String pageUrl = "https://www.zhihu.com";
     private static final String pageUrl = "http://www.zhihu.com";
     private static final String proxyIp = "127.0.0.1";
-    private static final int proxyPort = 8123;
-    private static final String username = "t14480740933876";
-    private static final String password = "wnwx5oeo";
+    private static final int proxyPort = 8125;
+//    private static final String username = "t14480740933876";
+//    private static final String password = "wnwx5oeo";
+
+    private static final String username = "dataeye";
+    private static final String password = "dataeye++123";
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
-        sendByHttpClient("sendHttpsByHttpClient_repsonse.html",true);
-//        sendByOkHttp("sendByOkHttp_repsonse.html");
+//        sendByHttpClient(proxyPort+"_sendHttpsByHttpClient_repsonse.html",true);
+        sendByOkHttp(proxyPort + "_sendByOkHttp_repsonse.html", true);
 //        sendByOriginal("sendByOriginal_repsonse.html");
     }
 
@@ -69,8 +72,7 @@ public class TestLocalEnviroment {
             credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort), new UsernamePasswordCredentials(username, password));
             clientBuilder.setDefaultCredentialsProvider(credsProvider);
             configBuilder.setProxy(new HttpHost(proxyIp, proxyPort));
-            httpget.addHeader("Proxy-Authorization", "123");
-//            httpget.addHeader("Proxy-Authorization", Credentials.basic(username, password));
+            httpget.addHeader("Proxy-Authorization", Credentials.basic("dataeye", "dataeye++123"));
         }
 
         RequestConfig config = configBuilder.build();
@@ -89,11 +91,10 @@ public class TestLocalEnviroment {
         }
     }
 
-    public static void sendByOkHttp(String saveFileName) throws IOException {
+    public static void sendByOkHttp(String saveFileName, boolean isHttps) throws IOException {
         String saveFile = root + File.separator + saveFileName;
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        boolean isHttps = pageUrl.startsWith("https");
         if (isHttps) {
             Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
             Authenticator authenticator = (route, response) -> {
@@ -109,7 +110,7 @@ public class TestLocalEnviroment {
         Request request = new Request.Builder()
                 .url(pageUrl)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
-                .addHeader("Connection","close")
+                .addHeader("Connection", "close")
                 .build();
 
         OkHttpClient client = clientBuilder.build();

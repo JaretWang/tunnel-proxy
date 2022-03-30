@@ -113,7 +113,7 @@ public class ProxyServerConfig {
      */
     private String proxyPassword;
     /**
-     * 应用使用代理商的代理
+     * 是否使用代理商的代理发送请求
      */
     private boolean appleyRemoteRule = false;
     /**

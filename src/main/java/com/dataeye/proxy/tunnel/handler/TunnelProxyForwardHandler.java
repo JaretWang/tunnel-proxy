@@ -50,6 +50,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
         log.debug("TunnelProxyForwardHandler -> msg: {}", msg.toString());
         if (msg instanceof HttpRequest) {
+            log.debug("测试直接转发非 connect 请求..............");
             HttpRequest httpRequest = (HttpRequest) msg;
             log.debug("TunnelProxyForwardHandler 接收到请求内容: {}", httpRequest.toString());
 
@@ -76,6 +77,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             }
             // 发起代理转发请求
             else {
+
                 TunnelHttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
                     log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
                     uaChannel.close();
@@ -128,7 +130,6 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                         future.channel().close();
                     }
                 });
-
             }
             ReferenceCountUtil.release(msg);
         } else {
@@ -152,6 +153,63 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             }
         }
 
+    }
+
+
+    void sendProxyRequest(Channel uaChannel, String originalHost, String originalPort, Channel remoteChannel,
+                          HttpRequest httpRequest, Object msg) {
+        TunnelHttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
+            log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
+            uaChannel.close();
+            remoteChannelMap.remove(inactiveRemoteAddr);
+        };
+
+        log.info("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
+
+        Bootstrap bootstrap = new Bootstrap()
+                .group(uaChannel.eventLoop())
+                .channel(NioSocketChannel.class)
+//                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                .option(ChannelOption.AUTO_READ, false)
+                .handler(new TunnelHttpProxyChannelInitializer(proxyServerConfig, uaChannel, remoteAddr,
+                        proxySslContextFactory, cb));
+
+        // todo 改动 放开的话 这里会报出重复绑定的错误
+//                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
+        ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
+
+        remoteChannel = remoteConnectFuture.channel();
+        remoteChannel.attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
+        remoteChannelMap.put(remoteAddr, remoteChannel);
+
+        remoteConnectFuture.addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig);
+                future.channel().write(proxyRequest);
+
+                for (HttpContent hc : httpContentBuffer) {
+                    future.channel().writeAndFlush(hc);
+                }
+                httpContentBuffer.clear();
+
+                future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
+                        .addListener(new ChannelFutureListener() {
+                            @Override
+                            public void operationComplete(ChannelFuture future) throws Exception {
+                                future.channel().read();
+                            }
+                        });
+            } else {
+                String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
+                log.error(errorMsg);
+                // send error response
+                HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
+                uaChannel.writeAndFlush(errorResponseMsg);
+                httpContentBuffer.clear();
+                future.channel().close();
+            }
+        });
     }
 
     @Override

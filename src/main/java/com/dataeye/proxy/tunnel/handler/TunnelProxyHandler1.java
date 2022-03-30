@@ -2,10 +2,7 @@ package com.dataeye.proxy.tunnel.handler;
 
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.http.handler.SecondForwardHandler;
-import com.dataeye.proxy.http.handler.ThreadForwardHandler;
 import com.dataeye.proxy.tunnel.initializer.TunnelClientChannelInitializer;
-import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -13,19 +10,14 @@ import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Set;
-
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 /**
  * @author jaret

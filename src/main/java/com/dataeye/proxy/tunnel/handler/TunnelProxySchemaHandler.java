@@ -1,6 +1,9 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.cons.HandlerCons;
+import com.dataeye.proxy.utils.HttpErrorUtils;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,47 +23,61 @@ public class TunnelProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "tunnel_proxy_schema";
 
-    private ProxyServerConfig proxyServerConfig;
+    private final ProxyServerConfig proxyServerConfig;
+    private final TunnelInstance tunnelInstance;
+    HttpRequest httpRequest;
+    Object httpRequest2;
 
-    public TunnelProxySchemaHandler(ProxyServerConfig proxyServerConfig) {
+    public TunnelProxySchemaHandler(ProxyServerConfig proxyServerConfig, TunnelInstance tunnelInstance) {
         this.proxyServerConfig = proxyServerConfig;
+        this.tunnelInstance = tunnelInstance;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) {
 
-        if (msg instanceof HttpRequest) {
-            HttpRequest httpRequest = (HttpRequest) msg;
+        if (msg instanceof FullHttpRequest) {
+            log.debug("前置处理..............");
+            FullHttpRequest httpRequest = (FullHttpRequest) msg;
             log.debug("TunnelProxySchemaHandler 接收到请求内容: {}", httpRequest.toString());
 
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {
-                ctx.pipeline().remove(TunnelCacheFindHandler.HANDLER_NAME);
                 ctx.pipeline().remove(TunnelProxyForwardHandler.HANDLER_NAME);
-            } else {
-                HttpHeaders headers = httpRequest.headers();
-                String authInfo = headers.get("Proxy-Authorization", "");
-                if (StringUtils.isNotBlank(authInfo)) {
-                    log.info("请求带有 Proxy-Authorization, 请求类型: {}", httpRequest.method());
-                    headers.remove("Proxy-Authorization");
-                    String proxyUserName = proxyServerConfig.getProxyUserName();
-                    String proxyPassword = proxyServerConfig.getProxyPassword();
-                    headers.add("Proxy-Authorization", Credentials.basic(proxyUserName, proxyPassword));
-                } else {
-                    // TODO 检测是否带有认证信息
-                    log.info("请求没有 Proxy-Authorization, 请求类型: {}, 即将关闭通道", httpRequest.method());
-                    // 返回响应
-                    HttpResponse proxyAuthRequired = new DefaultFullHttpResponse(
-                            HttpVersion.HTTP_1_1, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED);
-                    ctx.writeAndFlush(proxyAuthRequired);
-                    SocksServerUtils.closeOnFlush(ctx.channel());
 
-//                    String proxyUserName = proxyServerConfig.getProxyUserName();
-//                    String proxyPassword = proxyServerConfig.getProxyPassword();
-//                    headers.add("Proxy-Authorization", Credentials.basic(proxyUserName, proxyPassword));
+                HttpHeaders headers = httpRequest.headers();
+                String authInfo = headers.get(HandlerCons.HEADER_PROXY_AUTHORIZATION, "");
+                if (StringUtils.isNotBlank(authInfo)) {
+                    log.info("CONNECT 请求携带的认证信息 Proxy-Authorization: {}", authInfo);
+                    boolean status = checkAuth(tunnelInstance, authInfo);
+                    if (!status) {
+                        String errorMsg = "Incorrect authentication info";
+                        ctx.writeAndFlush(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, errorMsg));
+                        SocksServerUtils.closeOnFlush(ctx.channel());
+                    }
+                    headers.remove("Proxy-Authorization");
+                    headers.add("Proxy-Authorization", Credentials.basic(proxyServerConfig.getProxyUserName(), proxyServerConfig.getProxyPassword()));
+                } else {
+                    log.warn("CONNECT 请求没有认证信息，即将关闭通道");
+                    String errorMsg = "missing " + HandlerCons.HEADER_PROXY_AUTHORIZATION;
+                    ctx.writeAndFlush(HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, errorMsg));
+                    SocksServerUtils.closeOnFlush(ctx.channel());
                 }
             }
         }
-
         ctx.fireChannelRead(msg);
+    }
+
+    /**
+     * 检查认证信息
+     *
+     * @param tunnelInstance
+     * @param authInfo
+     * @return
+     */
+    private boolean checkAuth(TunnelInstance tunnelInstance, String authInfo) {
+        String proxyUsername = tunnelInstance.getProxyUsername();
+        String proxyPassword = tunnelInstance.getProxyPassword();
+        String basic = Credentials.basic(proxyUsername, proxyPassword);
+        return StringUtils.equals(basic, authInfo);
     }
 }
