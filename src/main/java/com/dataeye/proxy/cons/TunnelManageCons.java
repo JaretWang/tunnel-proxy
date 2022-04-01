@@ -1,4 +1,4 @@
-package com.dataeye.proxy.config;
+package com.dataeye.proxy.cons;
 
 /**
  * @author jaret

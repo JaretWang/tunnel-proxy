@@ -22,25 +22,28 @@ public interface ITunnelDistributeService {
     void initMultiTunnel();
 
     /**
-     * 检查请代理类型, 直连ip, 独享ip, 隧道ip
-     *
-     * @param httpRequest 源请求
-     * @return
-     */
-    ProxyType checkType(HttpRequest httpRequest);
-
-    /**
      * 分配代理IP,port，username，password
      *
      * @param httpRequest 源请求
      * @return
      * @throws IOException
      */
-    TunnelAllocateResult getDistributeParams(HttpRequest httpRequest) throws IOException;
+    TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException;
 
     /**
-     * 发送代理请求
+     * 发送connect类型请求
      */
-    void sendProxyRequest(ChannelHandlerContext ctx,  HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException;
+    void sendTunnelProxyRequest(ChannelHandlerContext ctx, HttpRequest httpRequest,
+                                TunnelInstance tunnelInstance,  ProxyService proxyService) throws IOException;
+
+    /**
+     * 发送普通http请求
+     *
+     * @param ctx
+     * @param httpRequest
+     * @throws IOException
+     */
+    void sendHttpProxyRequest(ChannelHandlerContext ctx, HttpRequest httpRequest) throws IOException;
+
 
 }

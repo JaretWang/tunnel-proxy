@@ -1,10 +1,17 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.bean.ProxyType;
+import com.dataeye.proxy.bean.TunnelAllocateResult;
+import com.dataeye.proxy.bean.TunnelProxyListenType;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.proxy.cons.ProxyConstants;
+import com.dataeye.proxy.service.ITunnelDistributeService;
+import com.dataeye.proxy.service.ProxyService;
 import com.dataeye.proxy.tunnel.initializer.TunnelHttpProxyChannelInitializer;
 import com.dataeye.proxy.utils.HostNamePortUtils;
 import com.dataeye.proxy.utils.HttpErrorUtils;
@@ -32,25 +39,32 @@ import java.util.*;
 public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "tunnel_proxy_forward";
-    private String remoteAddr;
-    private Map<String, Channel> remoteChannelMap = new HashMap<>();
-    private List<HttpContent> httpContentBuffer = new ArrayList<>();
+    public String remoteAddr;
+    private final TunnelInstance tunnelInstance;
     private final ProxyServerConfig proxyServerConfig;
     private final ProxySslContextFactory proxySslContextFactory;
+    private final ITunnelDistributeService tunnelDistributeService;
+    private final ProxyService proxyService;
+    private final Map<String, Channel> remoteChannelMap = new HashMap<>();
+    private final List<HttpContent> httpContentBuffer = new ArrayList<>();
 
-    public TunnelProxyForwardHandler(ProxyServerConfig proxyServerConfig, ProxySslContextFactory proxySslContextFactory) {
+    public TunnelProxyForwardHandler(TunnelInstance tunnelInstance, ProxyServerConfig proxyServerConfig, ProxySslContextFactory proxySslContextFactory,
+                                     ITunnelDistributeService tunnelDistributeService, ProxyService proxyService) {
+        this.proxyService = proxyService;
+        this.tunnelInstance = tunnelInstance;
         this.proxyServerConfig = proxyServerConfig;
         this.proxySslContextFactory = proxySslContextFactory;
+        this.tunnelDistributeService = tunnelDistributeService;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws Exception {
+        log.info("非 CONNECT 请求, 直接转发");
 
         final Channel uaChannel = ctx.channel();
 
         log.debug("TunnelProxyForwardHandler -> msg: {}", msg.toString());
         if (msg instanceof HttpRequest) {
-            log.debug("测试直接转发非 connect 请求..............");
             HttpRequest httpRequest = (HttpRequest) msg;
             log.debug("TunnelProxyForwardHandler 接收到请求内容: {}", httpRequest.toString());
 
@@ -58,15 +72,38 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             String originalHost = HostNamePortUtils.getHostName(originalHostHeader);
             int originalPort = HostNamePortUtils.getPort(originalHostHeader, HandlerCons.DEFAULT_HTTP_PORT);
 
-            // todo 有更改
-            remoteAddr = proxyServerConfig.getRemote();
+            // 隧道分配结果
+            TunnelAllocateResult allocateResult = tunnelDistributeService.getDistributeParams(httpRequest, tunnelInstance);
 
+//            TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
+//                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
+//                    .ip(HandlerCons.ip).port(HandlerCons.port).build();
+
+
+//            ProxyCfg proxyCfg = proxyService.getOne().get();
+//            log.warn("云代理");
+//            TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
+//                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
+//                    .ip(proxyCfg.getHost()).port(proxyCfg.getPort())
+//                    .username(proxyCfg.getUserName()).password(proxyCfg.getPassword()).build();
+
+//            // todo 芝麻代理套餐有限，不利于测试，现在使用快代理测试，线上部署记得换回到上面的那个
+//            log.warn("芝麻代理套餐有限，不利于测试，现在使用快代理测试，后续记得换回到上面的那个");
+//            TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
+//                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
+//                    .ip(proxyServerConfig.getRemoteHost()).port(proxyServerConfig.getRemotePort())
+//                    .username(proxyServerConfig.getProxyUserName()).password(proxyServerConfig.getProxyPassword()).build();
+
+            // todo 暂时写死。后续需要根据请求类型，加上监听类型
+            allocateResult.setTunnelProxyListenType(TunnelProxyListenType.PLAIN);
+
+            remoteAddr = allocateResult.getRemote();
             Channel remoteChannel = remoteChannelMap.get(remoteAddr);
 
             // 复用远程连接
             if (remoteChannel != null && remoteChannel.isActive()) {
                 log.debug("Use old remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
-                HttpRequest request = constructRequestForProxy(httpRequest, proxyServerConfig);
+                HttpRequest request = constructRequestForProxy(httpRequest, proxyServerConfig.isAppleyRemoteRule(), allocateResult);
                 remoteChannel.attr(ProxyConstants.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
                 remoteChannel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
@@ -77,7 +114,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             }
             // 发起代理转发请求
             else {
-
+                log.debug("发起代理转发请求.....");
                 TunnelHttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
                     log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
                     uaChannel.close();
@@ -86,18 +123,22 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
                 log.info("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
 
+                // 向代理商发送请求
                 Bootstrap bootstrap = new Bootstrap()
                         .group(uaChannel.eventLoop())
                         .channel(NioSocketChannel.class)
-//                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                         .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                         .option(ChannelOption.AUTO_READ, false)
-                        .handler(new TunnelHttpProxyChannelInitializer(proxyServerConfig, uaChannel, remoteAddr,
-                                proxySslContextFactory, cb));
+                        .handler(new TunnelHttpProxyChannelInitializer(allocateResult, uaChannel, proxySslContextFactory, cb));
 
                 // todo 改动 放开的话 这里会报出重复绑定的错误
 //                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
-                ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
+//                ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
+                ChannelFuture remoteConnectFuture = bootstrap.connect(allocateResult.getIp(), allocateResult.getPort());
+
+                log.debug("分配结果：" + allocateResult.toString());
+                log.debug("链接代理商...");
 
                 remoteChannel = remoteConnectFuture.channel();
                 remoteChannel.attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
@@ -105,13 +146,15 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
                 remoteConnectFuture.addListener((ChannelFutureListener) future -> {
                     if (future.isSuccess()) {
-                        HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig);
+                        log.debug("链接代理商成功....");
+                        HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig.isAppleyRemoteRule(), allocateResult);
                         future.channel().write(proxyRequest);
 
                         for (HttpContent hc : httpContentBuffer) {
                             future.channel().writeAndFlush(hc);
                         }
                         httpContentBuffer.clear();
+                        log.debug("回放 httpContent ....");
 
                         future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                                 .addListener(new ChannelFutureListener() {
@@ -121,6 +164,8 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                                     }
                                 });
                     } else {
+                        log.debug("链接代理商失败....");
+
                         String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
                         log.error(errorMsg);
                         // send error response
@@ -156,62 +201,6 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
     }
 
 
-    void sendProxyRequest(Channel uaChannel, String originalHost, String originalPort, Channel remoteChannel,
-                          HttpRequest httpRequest, Object msg) {
-        TunnelHttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
-            log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
-            uaChannel.close();
-            remoteChannelMap.remove(inactiveRemoteAddr);
-        };
-
-        log.info("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
-
-        Bootstrap bootstrap = new Bootstrap()
-                .group(uaChannel.eventLoop())
-                .channel(NioSocketChannel.class)
-//                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                .option(ChannelOption.AUTO_READ, false)
-                .handler(new TunnelHttpProxyChannelInitializer(proxyServerConfig, uaChannel, remoteAddr,
-                        proxySslContextFactory, cb));
-
-        // todo 改动 放开的话 这里会报出重复绑定的错误
-//                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
-        ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
-
-        remoteChannel = remoteConnectFuture.channel();
-        remoteChannel.attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
-        remoteChannelMap.put(remoteAddr, remoteChannel);
-
-        remoteConnectFuture.addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig);
-                future.channel().write(proxyRequest);
-
-                for (HttpContent hc : httpContentBuffer) {
-                    future.channel().writeAndFlush(hc);
-                }
-                httpContentBuffer.clear();
-
-                future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
-                        .addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) throws Exception {
-                                future.channel().read();
-                            }
-                        });
-            } else {
-                String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
-                log.error(errorMsg);
-                // send error response
-                HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
-                uaChannel.writeAndFlush(errorResponseMsg);
-                httpContentBuffer.clear();
-                future.channel().close();
-            }
-        });
-    }
-
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.debug("UA channel: " + " inactive");
@@ -229,16 +218,17 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error("TunnelProxyForwardHandler 出现异常: {}", cause.getMessage());
+        cause.printStackTrace();
+        log.error("TunnelProxyForwardHandler 出现异常: {}", cause.getCause().getMessage());
         ctx.close();
     }
 
-    private HttpRequest constructRequestForProxy(HttpRequest httpRequest,
-                                                 ProxyServerConfig proxyServerConfig) {
+    private HttpRequest constructRequestForProxy(HttpRequest httpRequest, boolean appleyRemoteRule,
+                                                 TunnelAllocateResult tunnelAllocateResult) {
 
         String uri = httpRequest.getUri();
 
-        if (!proxyServerConfig.isAppleyRemoteRule()) {
+        if (!appleyRemoteRule) {
             uri = this.getPartialUrl(uri);
         }
 
@@ -261,10 +251,11 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
         _httpRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
         // _httpRequest.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.IDENTITY);
 
-        if (StringUtils.isNotBlank(proxyServerConfig.getProxyUserName())
-                && StringUtils.isNotBlank(proxyServerConfig.getProxyPassword())) {
+        String username = tunnelAllocateResult.getUsername();
+        String password = tunnelAllocateResult.getPassword();
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
             //todo 优化
-            String proxyAuthorization = proxyServerConfig.getProxyUserName() + ":" + proxyServerConfig.getProxyPassword();
+            String proxyAuthorization = username + ":" + password;
             _httpRequest.headers().set("Proxy-Authorization",
                     "Basic " + Base64.encodeBase64String(proxyAuthorization.getBytes(StandardCharsets.UTF_8)));
 
@@ -272,7 +263,6 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
         return _httpRequest;
     }
-
     private String getPartialUrl(String fullUrl) {
         if (StringUtils.startsWith(fullUrl, HandlerCons.PROTOCOL_HTTP)) {
             int idx = StringUtils.indexOf(fullUrl, "/", 7);

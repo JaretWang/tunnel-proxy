@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.initializer;
 
+import com.dataeye.proxy.bean.TunnelAllocateResult;
 import com.dataeye.proxy.bean.TunnelProxyListenType;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -20,13 +21,12 @@ import javax.net.ssl.SSLEngine;
 public class TunnelClientChannelInitializer extends ChannelInitializer<SocketChannel> {
 
     private final Channel uaChannel;
-    private final ProxyServerConfig proxyServerConfig;
     private final ProxySslContextFactory proxySslContextFactory;
+    private final TunnelAllocateResult tunnelAllocateResult;
 
-    public TunnelClientChannelInitializer(ProxyServerConfig proxyServerConfig,
-                                          Channel uaChannel,
-                                          ProxySslContextFactory proxySslContextFactory) {
-        this.proxyServerConfig = proxyServerConfig;
+    public TunnelClientChannelInitializer(TunnelAllocateResult tunnelAllocateResult,
+                                          Channel uaChannel, ProxySslContextFactory proxySslContextFactory) {
+        this.tunnelAllocateResult = tunnelAllocateResult;
         this.uaChannel = uaChannel;
         this.proxySslContextFactory = proxySslContextFactory;
     }
@@ -39,19 +39,19 @@ public class TunnelClientChannelInitializer extends ChannelInitializer<SocketCha
 
         ChannelPipeline pipeline = channel.pipeline();
 
-
-        if (proxyServerConfig.getRemoteListenType() == TunnelProxyListenType.SSL) {
-            SSLEngine engine = proxySslContextFactory.createClientSslEnginForRemoteAddress(
-                    proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
+        if (tunnelAllocateResult.getTunnelProxyListenType() == TunnelProxyListenType.SSL) {
+            String ip = tunnelAllocateResult.getIp();
+            int port = tunnelAllocateResult.getPort();
+            SSLEngine engine = proxySslContextFactory.createClientSslEnginForRemoteAddress(ip, port);
             engine.setUseClientMode(true);
             pipeline.addLast("ssl", new SslHandler(engine));
         }
 
-        if (proxyServerConfig.getRemoteListenType() == TunnelProxyListenType.PLAIN) {
+        if (tunnelAllocateResult.getTunnelProxyListenType() == TunnelProxyListenType.PLAIN) {
             // TODO nothing to do
         }
 
-        String remoteAddress = proxyServerConfig.getRemote();
+        String remoteAddress = tunnelAllocateResult.getRemote();
         pipeline.addLast(new TunnelProxyRelayHandler(remoteAddress + " -----> UA", uaChannel));
 
     }

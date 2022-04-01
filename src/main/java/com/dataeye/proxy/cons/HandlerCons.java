@@ -1,7 +1,6 @@
 package com.dataeye.proxy.cons;
 
 import io.netty.util.AttributeKey;
-import org.apache.tomcat.util.http.parser.Authorization;
 
 /**
  * @author jaret
@@ -16,7 +15,7 @@ public interface HandlerCons {
     String LOCALHOST_IP = "127.0.0.1";
     String LOCALHOST_NAME = "localhost";
     String PROTOCOL_HTTP = "http";
-    AttributeKey<String> REQUST_URL_ATTRIBUTE_KEY = AttributeKey.valueOf("apnproxy.request_url");
+    AttributeKey<String> REQUST_URL_ATTRIBUTE_KEY = AttributeKey.valueOf("tunnel_proxy_request_url");
     String LOG4J_CONFIG_FILE = "conf/log4j.xml";
     String CONFIG_FILE = "conf/config.xml";
     String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml";
@@ -26,6 +25,13 @@ public interface HandlerCons {
 
     int connectTimeoutMillis = 1000;
     double loadFactor = 0.5;
+    String ip = "115.207.22.25";
+    int port = 4278;
+
+    String ZHIMA_IP = "10.1.2.201";
+    int ZHIMA_PORT = 8123;
+    String ZHIMA_SERVICE_REG_NAME = "tunnel-proxy";
+
 
 
 }

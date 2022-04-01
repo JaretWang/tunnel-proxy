@@ -54,9 +54,10 @@ public class TunnelProxyHandler1 extends ChannelInboundHandlerAdapter {
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                     .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                     .option(ChannelOption.AUTO_READ, false)
-                    .handler(new TunnelClientChannelInitializer(proxyServerConfig, uaChannel, proxySslContextFactory));
+                    .handler(new TunnelClientChannelInitializer(null, uaChannel, proxySslContextFactory));
 
-            log.warn("代理商地址:{}, 端口：{}, 监听类型：{}", proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort(), proxyServerConfig.getRemoteListenType());
+            log.warn("代理商地址:{}, 端口：{}, 监听类型：{}", proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort(),
+                    proxyServerConfig.getTunnelProxyListenType());
             String remoteHost = proxyServerConfig.getRemoteHost();
             int remotePort = proxyServerConfig.getRemotePort();
             bootstrap.connect(remoteHost,remotePort)

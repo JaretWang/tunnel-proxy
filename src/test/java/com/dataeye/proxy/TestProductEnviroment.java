@@ -125,7 +125,7 @@ public class TestProductEnviroment {
         BufferedReader reader = null;
         try {
             URL urlClient = new URL(pageUrl);
-            System.out.println("请求的URL========：" + urlClient);
+            log.debug("请求的URL========：" + urlClient);
             // 创建代理
             Proxy proxy1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
             // 设置代理

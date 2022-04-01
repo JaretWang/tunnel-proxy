@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author jaret
@@ -21,6 +21,9 @@ public class IpTimer {
 
     private String ip;
     private int port;
+    private String username;
+    private String password;
+    private AtomicInteger referenceCount = new AtomicInteger(0);
     private TimeCountDown timeCountDown;
 
 }

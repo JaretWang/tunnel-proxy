@@ -2,6 +2,7 @@ package com.dataeye.proxy.bean;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
 
 /**
  * @author jaret
@@ -10,8 +11,17 @@ import lombok.Data;
  */
 @Builder
 @Data
+@ToString
 public class TunnelAllocateResult {
 
+    /**
+     * 代理监听类型
+     */
+    private TunnelProxyListenType tunnelProxyListenType;
+    /**
+     * 代理类型：直连 独享 隧道 专享隧道
+     */
+    private ProxyType proxyType;
     /**
      * 代理ip
      */

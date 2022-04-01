@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
@@ -24,10 +25,7 @@ public class TunnelProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        if (log.isDebugEnabled()) {
-            log.debug(tag + " channel active");
-        }
-
+        log.debug("{} channel active", tag);
         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
             ctx.read();
         }
@@ -35,15 +33,14 @@ public class TunnelProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (log.isDebugEnabled()) {
-            log.debug(tag + " : " + msg);
-        }
+        log.info("{} : {}", tag, msg);
 
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
+                    Boolean option = ctx.channel().config().getOption(ChannelOption.AUTO_READ);
+                    if (!option) {
                         ctx.read();
                     }
                 }
@@ -63,6 +60,7 @@ public class TunnelProxyRelayHandler extends ChannelInboundHandlerAdapter {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(
                     ChannelFutureListener.CLOSE);
         }
+//        SocksServerUtils.closeOnFlush(relayChannel);
         ctx.fireChannelInactive();
     }
 

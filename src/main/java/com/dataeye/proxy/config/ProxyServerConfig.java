@@ -1,10 +1,8 @@
 package com.dataeye.proxy.config;
 
-import com.dataeye.proxy.bean.ProxyListenType;
 import com.dataeye.proxy.bean.TunnelProxyListenType;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 /**
@@ -46,33 +44,6 @@ public class ProxyServerConfig {
      */
     private String tunnelIpAccessLink;
     /**
-     * 隧道代理厂商地址
-     */
-    private String tunnelProxyManufacturerUrl;
-    /**
-     * 隧道代理用户名
-     */
-    private String tunnelProxyUsername;
-    /**
-     * 隧道代理密码
-     */
-    private String tunnelProxyPassword;
-    /**
-     * 隧道代理服务器地址
-     */
-    private String tunnelProxyServerIp;
-    /**
-     * 隧道代理服务器端口
-     */
-    private int tunnelProxyServerPort;
-
-    // ---------------------------------------
-
-    /**
-     * 代理监听类型
-     */
-    private TunnelProxyListenType tunnelProxyListenType;
-    /**
      * 是否使用信任证书
      */
     private boolean useTrustStore = false;
@@ -95,7 +66,7 @@ public class ProxyServerConfig {
     /**
      * 隧道代理：监听类型
      */
-    private TunnelProxyListenType remoteListenType;
+    private TunnelProxyListenType tunnelProxyListenType;
     /**
      * 代理商ip
      */

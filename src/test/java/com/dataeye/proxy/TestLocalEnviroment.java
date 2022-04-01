@@ -44,9 +44,12 @@ public class TestLocalEnviroment {
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
+        long begin = System.currentTimeMillis();
 //        sendByHttpClient(proxyPort+"_sendHttpsByHttpClient_repsonse.html",true);
         sendByOkHttp(proxyPort + "_sendByOkHttp_repsonse.html", true);
 //        sendByOriginal("sendByOriginal_repsonse.html");
+        long end = System.currentTimeMillis();
+        log.warn("耗时：{} ms", end - begin);
     }
 
     public static void sendByHttpClient(String saveFileName, boolean isHttps) throws IOException {
@@ -72,7 +75,7 @@ public class TestLocalEnviroment {
             credsProvider.setCredentials(new AuthScope(proxyIp, proxyPort), new UsernamePasswordCredentials(username, password));
             clientBuilder.setDefaultCredentialsProvider(credsProvider);
             configBuilder.setProxy(new HttpHost(proxyIp, proxyPort));
-            httpget.addHeader("Proxy-Authorization", Credentials.basic("dataeye", "dataeye++123"));
+            httpget.addHeader("Proxy-Authorization", Credentials.basic(username, password));
         }
 
         RequestConfig config = configBuilder.build();
@@ -96,6 +99,7 @@ public class TestLocalEnviroment {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
         if (isHttps) {
+//            Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("114.99.23.249",4213));
             Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
             Authenticator authenticator = (route, response) -> {
                 String credential = Credentials.basic(username, password);
@@ -110,12 +114,13 @@ public class TestLocalEnviroment {
         Request request = new Request.Builder()
                 .url(pageUrl)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
-                .addHeader("Connection", "close")
+                .addHeader("Connection", "Keep-Alive")
                 .build();
 
         OkHttpClient client = clientBuilder.build();
 
         Response response = client.newCall(request).execute();
+        log.info("响应状态码：{}", response.code());
         String content = Objects.requireNonNull(response.body()).string();
         FileUtils.writeStringToFile(new File(saveFile), content, StandardCharsets.UTF_8, false);
     }
@@ -131,7 +136,7 @@ public class TestLocalEnviroment {
         BufferedReader reader = null;
         try {
             URL urlClient = new URL(pageUrl);
-            System.out.println("请求的URL========：" + urlClient);
+            log.debug("请求的URL========：" + urlClient);
             // 创建代理
             Proxy proxy1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
             // 设置代理

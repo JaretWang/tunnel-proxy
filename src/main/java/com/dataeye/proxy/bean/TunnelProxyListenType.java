@@ -1,6 +1,5 @@
 package com.dataeye.proxy.bean;
 
-import ch.qos.logback.core.net.ssl.SSL;
 import com.dataeye.proxy.exception.TunnelProxyConfigException;
 import org.apache.commons.lang3.StringUtils;
 

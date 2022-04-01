@@ -1,10 +1,5 @@
 package com.dataeye.proxy.bean;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 /**
  * @author jaret
  * @date 2022/3/29 11:35
@@ -12,8 +7,21 @@ import java.util.Map;
  */
 public enum ProxyType {
 
+    /**
+     * 芝麻代理：直连ip
+     */
     direct,
+    /**
+     * 芝麻代理：独享ip
+     */
     exclusive,
-    tuunel;
+    /**
+     * 芝麻代理：隧道ip
+     */
+    tuunel,
+    /**
+     * 快代理：隧道代理
+     */
+    exclusiveTunnel;
 
 }

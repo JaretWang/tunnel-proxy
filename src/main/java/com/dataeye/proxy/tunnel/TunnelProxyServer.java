@@ -1,10 +1,11 @@
 package com.dataeye.proxy.tunnel;
 
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.config.TunnelManageConfig;
 import com.dataeye.proxy.service.ITunnelDistributeService;
+import com.dataeye.proxy.service.ProxyService;
 import com.dataeye.proxy.tunnel.initializer.TunnelProxyServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -43,12 +44,14 @@ public class TunnelProxyServer {
     private ProxyServerConfig proxyServerConfig;
     @Autowired
     private ProxySslContextFactory proxySslContextFactory;
+    @Autowired
+    private IpSelector ipSelector;
+    @Autowired
+    private ProxyService proxyService;
     @Resource(name = "ioThreadPool")
     private ThreadPoolTaskExecutor ioThreadPool;
     @Autowired
     private ITunnelDistributeService tunnelDistributeService;
-    @Autowired
-    private TunnelManageConfig tunnelManageConfig;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
@@ -57,19 +60,23 @@ public class TunnelProxyServer {
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         int size = tunnelInstances.size();
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = tunnelThreadpool(size);
-        for (TunnelInstance t : tunnelInstances) {
-            threadPoolTaskExecutor.submit(new CreateProxyServerTask(t));
-        }
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size);
+        tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
         log.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
     }
 
-    public ThreadPoolTaskExecutor tunnelThreadpool(int threadSize) {
+    /**
+     * 根据隧道实例个数初始化线程池
+     *
+     * @param instanceSize proxy server 实例个数
+     * @return
+     */
+    public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
-        pool.setCorePoolSize(threadSize);
-        pool.setMaxPoolSize(threadSize + 5);
-        pool.setQueueCapacity(50);
-        pool.setKeepAliveSeconds(600);
+        pool.setCorePoolSize(instanceSize);
+        pool.setMaxPoolSize(instanceSize + 1);
+        pool.setQueueCapacity(2 * instanceSize);
+        pool.setKeepAliveSeconds(60);
         pool.setWaitForTasksToCompleteOnShutdown(true);
         pool.setThreadNamePrefix("tunnel_create");
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
@@ -105,7 +112,7 @@ public class TunnelProxyServer {
                     .channel(NioServerSocketChannel.class)
 //                    .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-                            ioThreadPool, tunnelDistributeService, tunnelManageConfig, tunnelInstance))
+                            tunnelDistributeService, tunnelInstance, ipSelector, proxyService))
                     .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
             try {
                 ChannelFuture future = serverBootstrap.bind().sync();
@@ -136,7 +143,7 @@ public class TunnelProxyServer {
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-                        ioThreadPool, tunnelDistributeService, tunnelManageConfig, null))
+                        tunnelDistributeService, null, ipSelector, proxyService))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
@@ -158,6 +165,5 @@ public class TunnelProxyServer {
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }
-
 
 }

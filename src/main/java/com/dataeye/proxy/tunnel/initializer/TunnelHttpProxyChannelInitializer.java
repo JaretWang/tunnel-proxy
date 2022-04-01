@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.initializer;
 
+import com.dataeye.proxy.bean.TunnelAllocateResult;
 import com.dataeye.proxy.bean.TunnelProxyListenType;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -21,18 +22,15 @@ import javax.net.ssl.SSLEngine;
  */
 public class TunnelHttpProxyChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-    private ProxyServerConfig proxyServerConfig;
-    private Channel uaChannel;
-    private String remoteAddr;
-    private ProxySslContextFactory proxySslContextFactory;
-    private TunnelHttpProxyHandler.RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    private final Channel uaChannel;
+    private final TunnelHttpProxyHandler.RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    private final ProxySslContextFactory proxySslContextFactory;
+    private final TunnelAllocateResult tunnelAllocateResult;
 
-    public TunnelHttpProxyChannelInitializer(ProxyServerConfig proxyServerConfig, Channel uaChannel,
-                                             String remoteAddr,ProxySslContextFactory proxySslContextFactory,
+    public TunnelHttpProxyChannelInitializer(TunnelAllocateResult tunnelAllocateResult, Channel uaChannel, ProxySslContextFactory proxySslContextFactory,
                                              TunnelHttpProxyHandler.RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
-        this.proxyServerConfig = proxyServerConfig;
+        this.tunnelAllocateResult = tunnelAllocateResult;
         this.uaChannel = uaChannel;
-        this.remoteAddr = remoteAddr;
         this.proxySslContextFactory = proxySslContextFactory;
         this.remoteChannelInactiveCallback = remoteChannelInactiveCallback;
     }
@@ -42,9 +40,10 @@ public class TunnelHttpProxyChannelInitializer extends ChannelInitializer<Socket
 
         ChannelPipeline pipeline = channel.pipeline();
 
-        String remoteHost = proxyServerConfig.getRemoteHost();
-        int remotePort = proxyServerConfig.getRemotePort();
-        if (proxyServerConfig.getRemoteListenType() == TunnelProxyListenType.SSL) {
+        String remoteAddr = tunnelAllocateResult.getRemote();
+        String remoteHost = tunnelAllocateResult.getIp();
+        int remotePort = tunnelAllocateResult.getPort();
+        if (tunnelAllocateResult.getTunnelProxyListenType() == TunnelProxyListenType.SSL) {
             SSLEngine engine = proxySslContextFactory.createClientSslEnginForRemoteAddress(remoteHost, remotePort);
             engine.setUseClientMode(true);
             pipeline.addLast("ssl", new SslHandler(engine));
@@ -52,6 +51,7 @@ public class TunnelHttpProxyChannelInitializer extends ChannelInitializer<Socket
 
         pipeline.addLast("codec", new HttpClientCodec());
         pipeline.addLast(TunnelHttpProxyHandler.HANDLER_NAME, new TunnelHttpProxyHandler(uaChannel, remoteAddr, remoteChannelInactiveCallback));
+        // todo 后续仔细看看这个缓存
 //        pipeline.addLast(TunnelCacheSaveHandler.HANDLER_NAME, new TunnelCacheSaveHandler());
     }
 }

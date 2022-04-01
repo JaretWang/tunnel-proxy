@@ -19,11 +19,11 @@ public class TunnelHttpProxyHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "tunnel_proxy_http_proxy";
 
-    private Channel uaChannel;
+    private final Channel uaChannel;
 
-    private String remoteAddr;
+    private final String remoteAddr;
 
-    private RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
 
     public TunnelHttpProxyHandler(Channel uaChannel, String remoteAddr,
                             RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
