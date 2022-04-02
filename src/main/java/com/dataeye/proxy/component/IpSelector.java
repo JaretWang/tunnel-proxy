@@ -181,8 +181,10 @@ public class IpSelector {
         for (String item : randomProxyIpList) {
             String[] split = item.split(":");
             if (split.length == 2) {
-                String ip2 = split[0];
-                int port2 = Integer.parseInt(split[1]);
+                String ip2 = split[0].trim();
+                String portStr = split[1].trim();
+                log.info("ip={}, port={}", ip2, portStr);
+                int port2 = Integer.parseInt(portStr);
                 TimeCountDown timeCountDown = new TimeCountDown(proxyServerConfig.getTimerDuration());
                 IpTimer ipTimer2 = IpTimer.builder().ip(ip2).port(port2)
                         .referenceCount(new AtomicInteger(0)).timeCountDown(timeCountDown).build();
