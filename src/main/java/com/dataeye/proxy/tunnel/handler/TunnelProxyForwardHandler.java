@@ -74,6 +74,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
             // 隧道分配结果
             TunnelAllocateResult allocateResult = tunnelDistributeService.getDistributeParams(httpRequest, tunnelInstance);
+            log.debug("IP 分配结果：" + allocateResult.toString());
 
 //            TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
 //                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
@@ -94,17 +95,15 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 //                    .ip(proxyServerConfig.getRemoteHost()).port(proxyServerConfig.getRemotePort())
 //                    .username(proxyServerConfig.getProxyUserName()).password(proxyServerConfig.getProxyPassword()).build();
 
-            // todo 暂时写死。后续需要根据请求类型，加上监听类型
-            allocateResult.setTunnelProxyListenType(TunnelProxyListenType.PLAIN);
 
+            log.info("通道复用检查");
             remoteAddr = allocateResult.getRemote();
             Channel remoteChannel = remoteChannelMap.get(remoteAddr);
-
-            // 复用远程连接
+            // 复用远程通道
             if (remoteChannel != null && remoteChannel.isActive()) {
                 log.debug("Use old remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
                 HttpRequest request = constructRequestForProxy(httpRequest, proxyServerConfig.isAppleyRemoteRule(), allocateResult);
-                remoteChannel.attr(ProxyConstants.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
+                remoteChannel.attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
                 remoteChannel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
@@ -114,14 +113,13 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             }
             // 发起代理转发请求
             else {
-                log.debug("发起代理转发请求.....");
                 TunnelHttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
                     log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
                     uaChannel.close();
                     remoteChannelMap.remove(inactiveRemoteAddr);
                 };
 
-                log.info("Create new remote channel to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
+                log.info("创建新的远程通道 to: " + remoteAddr + " for: " + originalHost + ":" + originalPort);
 
                 // 向代理商发送请求
                 Bootstrap bootstrap = new Bootstrap()
@@ -132,13 +130,10 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                         .option(ChannelOption.AUTO_READ, false)
                         .handler(new TunnelHttpProxyChannelInitializer(allocateResult, uaChannel, proxySslContextFactory, cb));
 
+                log.debug("开始连接代理ip");
                 // todo 改动 放开的话 这里会报出重复绑定的错误
 //                bootstrap.localAddress(new InetSocketAddress(proxyServerConfig.getHost(), proxyServerConfig.getPort()));
-//                ChannelFuture remoteConnectFuture = bootstrap.connect(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort());
                 ChannelFuture remoteConnectFuture = bootstrap.connect(allocateResult.getIp(), allocateResult.getPort());
-
-                log.debug("分配结果：" + allocateResult.toString());
-                log.debug("链接代理商...");
 
                 remoteChannel = remoteConnectFuture.channel();
                 remoteChannel.attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).set(httpRequest.getUri());
@@ -146,7 +141,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
                 remoteConnectFuture.addListener((ChannelFutureListener) future -> {
                     if (future.isSuccess()) {
-                        log.debug("链接代理商成功....");
+                        log.info("连接代理ip成功");
                         HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig.isAppleyRemoteRule(), allocateResult);
                         future.channel().write(proxyRequest);
 
@@ -154,7 +149,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                             future.channel().writeAndFlush(hc);
                         }
                         httpContentBuffer.clear();
-                        log.debug("回放 httpContent ....");
+                        log.info("回放 httpContent");
 
                         future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                                 .addListener(new ChannelFutureListener() {
@@ -164,8 +159,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                                     }
                                 });
                     } else {
-                        log.debug("链接代理商失败....");
-
+                        log.error("链接代理ip失败");
                         String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
                         log.error(errorMsg);
                         // send error response
@@ -178,7 +172,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
             }
             ReferenceCountUtil.release(msg);
         } else {
-
+            log.info("缓存 httpContent, 消息类型：{}", msg.getClass());
             HttpContent hc = ((HttpContent) msg);
             //hc.retain();
 
@@ -226,6 +220,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
     private HttpRequest constructRequestForProxy(HttpRequest httpRequest, boolean appleyRemoteRule,
                                                  TunnelAllocateResult tunnelAllocateResult) {
 
+        log.info("为代理ip构造请求");
         String uri = httpRequest.getUri();
 
         if (!appleyRemoteRule) {
@@ -263,6 +258,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
         return _httpRequest;
     }
+
     private String getPartialUrl(String fullUrl) {
         if (StringUtils.startsWith(fullUrl, HandlerCons.PROTOCOL_HTTP)) {
             int idx = StringUtils.indexOf(fullUrl, "/", 7);

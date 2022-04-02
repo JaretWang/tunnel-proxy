@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
+ * 云代理ip获取
+ *
  * @author hongjunhao
  * @date 2022/2/15 9:54
  */

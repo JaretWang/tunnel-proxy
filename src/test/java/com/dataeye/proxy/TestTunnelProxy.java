@@ -54,8 +54,8 @@ public class TestTunnelProxy {
 
     @Test
     public void test() throws IOException, InterruptedException {
-        new Thread(() -> tunnelProxyServer.start()).start();
-        Thread.sleep(5000);
+//        new Thread(() -> tunnelProxyServer.start()).start();
+//        Thread.sleep(5000);
 
         // JDK 8u111版本后，目标页面为HTTPS协议，启用proxy用户密码鉴权
         System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
@@ -98,7 +98,7 @@ public class TestTunnelProxy {
             // 关闭资源
             response.close();
             httpclient.close();
-            tunnelProxyServer.shutdown();
+//            tunnelProxyServer.shutdown();
         }
     }
 

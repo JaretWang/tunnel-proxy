@@ -35,9 +35,9 @@ public class TunnelProxyHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
 
         if (msg instanceof HttpRequest) {
-            log.debug("测试 connect 转发..............");
+            log.info("转发 connect 类型请求");
             final FullHttpRequest httpRequest = (FullHttpRequest) msg;
-            log.debug("TunnelProxyHandler 接收到请求内容: {}", httpRequest.toString());
+            log.info("TunnelProxyHandler 接收到请求 header: {}", httpRequest.headers().toString());
             tunnelDistributeService.sendTunnelProxyRequest(ctx, httpRequest, tunnelInstance, proxyService);
         }
         ReferenceCountUtil.release(msg);

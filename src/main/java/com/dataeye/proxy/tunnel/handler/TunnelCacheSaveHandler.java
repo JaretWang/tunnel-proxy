@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.proxy.cons.ProxyConstants;
 import com.dataeye.proxy.utils.SHA256Utils;
 import io.netty.buffer.ByteBuf;
@@ -41,7 +42,7 @@ public class TunnelCacheSaveHandler extends ChannelInboundHandlerAdapter {
 
         HttpObject ho = (HttpObject) msg;
 
-        String url = ctx.channel().attr(ProxyConstants.REQUST_URL_ATTRIBUTE_KEY).get();
+        String url = ctx.channel().attr(HandlerCons.REQUST_URL_ATTRIBUTE_KEY).get();
         File cacheDir = new File(ProxyConstants.CACHE_DIR + "/" + SHA256Utils.hash(url));
         File cacheDataDir = new File(cacheDir, ProxyConstants.CACHE_DATA_DIR);
 

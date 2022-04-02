@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -48,8 +50,6 @@ public class TunnelProxyServer {
     private IpSelector ipSelector;
     @Autowired
     private ProxyService proxyService;
-    @Resource(name = "ioThreadPool")
-    private ThreadPoolTaskExecutor ioThreadPool;
     @Autowired
     private ITunnelDistributeService tunnelDistributeService;
     private EventLoopGroup bossGroup;
@@ -98,72 +98,42 @@ public class TunnelProxyServer {
 
         @Override
         public void run() {
-            String alias = tunnelInstance.getAlias();
-            String host = tunnelInstance.getIp();
-            int port = tunnelInstance.getPort();
-            int bossThreadSize = tunnelInstance.getBossThreadSize();
-            int workerThreadSize = tunnelInstance.getWorkerThreadSize();
-
-            EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
-            EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
-            ServerBootstrap serverBootstrap = new ServerBootstrap()
-                    .group(bossGroup, workerGroup)
-                    .localAddress(host, port)
-                    .channel(NioServerSocketChannel.class)
-//                    .handler(new LoggingHandler(LogLevel.INFO))
-                    .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-                            tunnelDistributeService, tunnelInstance, ipSelector, proxyService))
-                    .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
-            try {
-                ChannelFuture future = serverBootstrap.bind().sync();
-                log.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
-                future.channel().closeFuture().sync();
-            } catch (Exception e) {
-                log.error("启动代理服务器时，出现异常：{}", e.getMessage());
-                e.printStackTrace();
-            } finally {
-                bossGroup.shutdownGracefully();
-                workerGroup.shutdownGracefully();
-            }
+            startProxyServer(tunnelInstance);
         }
     }
 
     /**
-     * 启动一个代理服务器
+     * 启动一个 proxy server
+     *
+     * @param tunnelInstance 隧道实例
      */
-    public void start() {
-        String host = proxyServerConfig.getHost();
-        int port = proxyServerConfig.getPort();
-        bossGroup = new NioEventLoopGroup(proxyServerConfig.getBossThreadCount());
-        workerGroup = new NioEventLoopGroup(proxyServerConfig.getWorkerThreadCount());
+    private void startProxyServer(TunnelInstance tunnelInstance) {
+        String alias = tunnelInstance.getAlias();
+        String host = tunnelInstance.getIp();
+        int port = tunnelInstance.getPort();
+        int bossThreadSize = tunnelInstance.getBossThreadSize();
+        int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
+        EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
+        EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .localAddress(host, port)
                 .channel(NioServerSocketChannel.class)
-                .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-                        tunnelDistributeService, null, ipSelector, proxyService))
+                        tunnelDistributeService, tunnelInstance, ipSelector, proxyService))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            log.info("代理服务器启动成功, ip: {}, port: {}", host, port);
+            log.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             log.error("启动代理服务器时，出现异常：{}", e.getMessage());
             e.printStackTrace();
         } finally {
-            shutdown();
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
         }
-    }
-
-    /**
-     * 关闭线程池
-     */
-    public void shutdown() {
-        log.warn("关闭代理服务器相关线程池");
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
     }
 
 }

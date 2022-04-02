@@ -16,6 +16,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
@@ -61,18 +62,18 @@ public class IpSelector {
     public void scheduleUpdateIpPool() {
         int timerDuration = proxyServerConfig.getTimerDuration();
         long time = timerDuration * 1000;
-//        long time = 5 * 60 * 1000;
 
-        log.info("定时更新ip池，定时时间：{} s", time / 1000);
+        log.info("定时更新ip池，定时时间：{} s", timerDuration);
         String ipAccessLink = proxyServerConfig.getDirectIpAccessLink();
         executorService.submit((Runnable) () -> {
             while (true) {
-                log.warn("循环检查ip池");
+                log.warn("循环检查ip池，每 {}s 更新", timerDuration);
                 try {
                     List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
                     for (TunnelInstance tunnelInstance : tunnelInstanceList) {
 
-//                        IpTimer ipTimer = new IpTimer(HandlerCons.ip, HandlerCons.port,null,null, null, null);
+//                        IpTimer ipTimer = new IpTimer(HandlerCons.ip, HandlerCons.port,null,null,
+//                                new AtomicInteger(0), new TimeCountDown(proxyServerConfig.getTimerDuration()));
 //                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
 
 //                        ProxyCfg proxyCfg = proxyService.getOne().get();
@@ -81,22 +82,22 @@ public class IpSelector {
 //                                proxyCfg.getUserName(), proxyCfg.getPassword(), null, null);
 //                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
 
-                        changeIpForZhiMa(tunnelInstance);
+//                        changeIpForZhiMa(tunnelInstance);
 
-//                        // 因为对方接口限流
-//                        Thread.sleep(1200L);
-//                        initIpForSingleProxyServer(tunnelInstance.toString(), ipAccessLink);
+                        // 因为对方接口限流
+                        Thread.sleep(1200L);
+                        initIpForSingleProxyServer(tunnelInstance, ipAccessLink);
                     }
                     Thread.sleep(time);
                 } catch (Throwable e) {
-                    e.printStackTrace();
                     log.error("定时更新ip池出现异常，原因：{}", e.getCause().getMessage());
                 }
             }
         });
     }
 
-    public void changeIpForZhiMa(TunnelInstance tunnelInstance) throws IOException {
+    @Deprecated
+    public void changeIpForZhiMa(TunnelInstance tunnelInstance) {
         String id = tunnelInstance.toString();
 
         ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
@@ -109,11 +110,11 @@ public class IpSelector {
         scheduleProxyIpPool.put(id, proxyIpList);
     }
 
-
     /**
      * 为单个 proxy server 初始化ip
      */
-    public void initIpForSingleProxyServer(String id, String ipAccessLink) throws IOException {
+    public void initIpForSingleProxyServer(TunnelInstance tunnelInstance, String ipAccessLink) throws IOException {
+        String id = tunnelInstance.toString();
         List<IpTimer> proxyIpList;
         if (scheduleProxyIpPool.containsKey(id)) {
             proxyIpList = scheduleProxyIpPool.get(id);
@@ -122,7 +123,9 @@ public class IpSelector {
         }
         checkAndUpdateIpList(proxyIpList, ipAccessLink);
         scheduleProxyIpPool.put(id, proxyIpList);
-        log.info("每 5 分钟更新 ip 池, server: {}, pool: {}", JSON.toJSONString(id), JSON.toJSONString(proxyIpList));
+        String server = tunnelInstance.getIp() + ":" + tunnelInstance.getPort() +
+                "(" + tunnelInstance.getAlias() + ")";
+        log.info("ip池更新完成, server: {}, pool: {}", server, JSON.toJSONString(proxyIpList));
     }
 
     /**
@@ -139,6 +142,8 @@ public class IpSelector {
             return;
         }
         for (IpTimer ipTimer : proxyIpList) {
+            // 检查每个ip是否过期
+            // todo 失效检查有待改进，使用别人返回的有效时间检测，而不用自己去维护
             TimeCountDown timeCountDown = ipTimer.getTimeCountDown();
             if (!timeCountDown.isEffective()) {
                 log.warn("存在失效ip {}，移除并重新插入", ipTimer.getIp());
@@ -156,8 +161,7 @@ public class IpSelector {
      * @throws IOException
      */
     public void initIpList(List<IpTimer> proxyIpList, String ipAccessLink) throws IOException {
-        List<String> randomProxyIpList = Arrays.asList("10.10.10.10:9200", "10.10.10.11:9100");
-//        List<String> randomProxyIpList = getRandomProxyIpList(ipAccessLink);
+        List<String> randomProxyIpList = getRandomProxyIpList(ipAccessLink);
         if (ObjectUtils.isEmpty(randomProxyIpList)) {
             log.error("从代理商获取代理ip的结果为空，请检查");
             return;

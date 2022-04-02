@@ -56,7 +56,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     private ProxyServerConfig proxyServerConfig;
     @Autowired
     private ProxySslContextFactory proxySslContextFactory;
-    @Resource(name = "ioThreadPool")
+    @Resource(name = "cpuThreadPool")
     private ThreadPoolTaskExecutor ioThreadPool;
     @Resource
     TunnelInitMapper tunnelInitMapper;
@@ -64,8 +64,6 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     TunnelProxyServer tunnelProxyServer;
     @Resource
     IpSelector ipSelector;
-    @Autowired
-    private ProxyService proxyService;
 
     /**
      * 初始化隧道实例
@@ -79,16 +77,16 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
         tunnelProxyServer.startByConfig(tunnelInstances);
     }
 
-    @Override
-    public TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
-        log.info("开始分配代理IP（暂时使用芝麻代理）");
+    //    @Override
+    public TunnelAllocateResult getDistributeParams1(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
+        log.info("开始分配代理IP（暂时使用芝麻代理已经写好的服务）");
         String proxyServer = tunnelInstance.toString();
         // 分配ip
         List<IpTimer> ipTimers = ipSelector.getScheduleProxyIpPool().get(proxyServer);
         if (ObjectUtils.isEmpty(ipTimers)) {
             log.warn("实例 {} 对应的代理IP列表为空，需要重新加载", tunnelInstance.getAlias());
             ipSelector.changeIpForZhiMa(tunnelInstance);
-            return getDistributeParams(httpRequest, tunnelInstance);
+            return getDistributeParams1(httpRequest, tunnelInstance);
         }
         // 分配ip
         IpTimer ipTimer = ipTimers.get(0);
@@ -104,18 +102,17 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
      * @param httpRequest 源请求
      * @return
      */
-//    @Override
-    public TunnelAllocateResult getDistributeParams1(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
+    @Override
+    public TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
         log.info("开始分配代理IP");
         String ipAccessLink = proxyServerConfig.getDirectIpAccessLink();
-//        double loadFactor = tunnelManageConfig.getLoadFactor();
         String proxyServer = tunnelInstance.toString();
         // 分配ip
         List<IpTimer> ipTimers = ipSelector.getScheduleProxyIpPool().get(proxyServer);
         if (ObjectUtils.isEmpty(ipTimers)) {
             log.warn("实例 {} 对应的代理IP列表为空，需要重新加载", tunnelInstance.getAlias());
-            ipSelector.initIpForSingleProxyServer(proxyServer, ipAccessLink);
-            return getDistributeParams1(httpRequest, tunnelInstance);
+            ipSelector.initIpForSingleProxyServer(tunnelInstance, ipAccessLink);
+            return getDistributeParams(httpRequest, tunnelInstance);
         }
 
         for (IpTimer ipTimer : ipTimers) {
@@ -128,16 +125,19 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                 // 设置引用计数
                 int referenceCount = ipTimer.getReferenceCount().incrementAndGet();
                 log.info("代理IP分配结果, ip={},port={}, 引用次数={}", ip, port, referenceCount);
-                return TunnelAllocateResult.builder().ip(ip).port(port).build();
+                return TunnelAllocateResult.builder().ip(ip).port(port)
+                        .tunnelProxyListenType(TunnelProxyListenType.PLAIN).build();
             } else {
                 // 失效了,移除
-                log.warn("ip失效了,定时器时间：{}, 移除ip: {}", timeCountDown.getDuration(), ipTimer.getIp());
+                log.warn("ip[{}]失效了, 即将移除, 定时器时间：{}", ipTimer.getIp(), timeCountDown.getDuration());
                 ipTimers.remove(ipTimer);
             }
         }
-        log.warn("实例 [{}] 代理ip池全部失效, 重新初始化, 代理ip个数: {}", proxyServer, ipSelector.getScheduleProxyIpPool().get(proxyServer).size());
-        ipSelector.initIpForSingleProxyServer(proxyServer, ipAccessLink);
-        return getDistributeParams1(httpRequest, tunnelInstance);
+        if (ipTimers.isEmpty()) {
+            ipSelector.initIpForSingleProxyServer(tunnelInstance, ipAccessLink);
+            log.warn("实例 [{}] 的代理ip池全部失效, 重新初始化后代理ip的个数: {}", tunnelInstance.getAlias(), ipSelector.getScheduleProxyIpPool().get(proxyServer).size());
+        }
+        return getDistributeParams(httpRequest, tunnelInstance);
     }
 
     @Override
@@ -147,7 +147,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
 
     @Override
     public void sendTunnelProxyRequest(ChannelHandlerContext ctx, HttpRequest httpRequest,
-                                 TunnelInstance tunnelInstance,  ProxyService proxyService) throws IOException {
+                                       TunnelInstance tunnelInstance, ProxyService proxyService) throws IOException {
         // 隧道分配结果
         TunnelAllocateResult allocateResult = getDistributeParams(httpRequest, tunnelInstance);
 
@@ -173,7 +173,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
         // 提交代理请求任务
         ProxyRequestTask proxyRequestTask = new ProxyRequestTask(ctx, httpRequest, allocateResult);
         ioThreadPool.submit(proxyRequestTask);
-        log.info("提交了一个任务，参数：{}", allocateResult);
+        log.info("提交了一个转发任务给业务线程，IP 分配结果：{}", allocateResult);
     }
 
     /**
@@ -195,7 +195,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
         public void run() {
             String remoteHost = allocateResult.getIp();
             int remotePort = allocateResult.getPort();
-            log.warn("代理商地址:{}, 端口：{}, 监听类型：{}", remoteHost, remotePort, allocateResult.getTunnelProxyListenType());
+            log.info("请求转发, 代理ip:{}, 端口：{}, 监听类型：{}", remoteHost, remotePort, allocateResult.getTunnelProxyListenType());
 
             Channel uaChannel = ctx.channel();
             Bootstrap bootstrap = new Bootstrap()
@@ -205,7 +205,6 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                     .option(ChannelOption.AUTO_READ, false)
                     .handler(new TunnelClientChannelInitializer(allocateResult, uaChannel, proxySslContextFactory));
             // 发起连接
-            log.info("请求分发 -> 连接代理地址：{}:{}", remoteHost, remotePort);
             bootstrap.connect(remoteHost, remotePort)
                     .addListener((ChannelFutureListener) future1 -> {
                         if (future1.isSuccess()) {
@@ -213,10 +212,11 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                             log.info("业务线程连接成功，地址：{}:{}", remoteHost, remotePort);
                             doAfterConnectSuccess(ctx, future1, httpRequest, allocateResult);
                         } else {
-                            log.info("业务线程连接失败，地址：{}:{}", remoteHost, remotePort);
+                            log.error("业务线程连接失败，地址：{}:{}", remoteHost, remotePort);
                             SocksServerUtils.closeOnFlush(ctx.channel());
                         }
                     });
+            log.info("请求转发执行完毕, 业务线程结束");
         }
     }
 
@@ -228,9 +228,8 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
      * @param httpRequest
      */
     void doAfterConnectSuccess(ChannelHandlerContext ctx, ChannelFuture future1,
-                                HttpRequest httpRequest,TunnelAllocateResult allocateResult) {
+                               HttpRequest httpRequest, TunnelAllocateResult allocateResult) {
         if (proxyServerConfig.isAppleyRemoteRule()) {
-            log.info("开始转播数据");
             //todo 由于放在了一个线程里面，好像之前的handler不存在了
 //            ctx.pipeline().remove("codec");
 //            ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
@@ -243,18 +242,17 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
             ctx.pipeline().remove(TunnelProxyHandler.class);
 
             // add relay handler
+            log.info("业务线程开始转播数据");
             ctx.pipeline().addLast(new TunnelProxyRelayHandler("UA --> Remote", future1.channel()));
 
             String data = constructConnectRequestForProxy(httpRequest, allocateResult);
-            ByteBuf content = Unpooled.copiedBuffer(data, CharsetUtil.UTF_8);
             future1.channel()
-                    .writeAndFlush(content)
+                    .writeAndFlush(Unpooled.copiedBuffer(data, CharsetUtil.UTF_8))
                     .addListener((ChannelFutureListener) future2 -> {
                         if (!future2.channel().config().getOption(ChannelOption.AUTO_READ)) {
                             future2.channel().read();
                         }
                     });
-
         } else {
             log.warn("取消使用代理商地址访问");
             HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(
@@ -263,7 +261,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                     (ChannelFutureListener) future2 -> {
                         // remove handlers
                         ctx.pipeline().remove("codec");
-                        ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
+//                        ctx.pipeline().remove(TunnelProxyPreHandler.HANDLER_NAME);
                         ctx.pipeline().remove(TunnelProxyHandler.HANDLER_NAME);
 
                         // add relay handler
@@ -274,7 +272,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     }
 
     /**
-     * 构造代理链接请求
+     * 填充代理请求头
      *
      * @param httpRequest
      * @param allocateResult
@@ -283,6 +281,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     private String constructConnectRequestForProxy(HttpRequest httpRequest,
                                                    TunnelAllocateResult allocateResult) {
         System.out.println("constructConnectRequestForProxy....");
+        log.info("填充代理请求头");
         String CRLF = "\r\n";
         String url = httpRequest.getUri();
         StringBuilder sb = new StringBuilder();

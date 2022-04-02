@@ -23,6 +23,8 @@ public class IpTimer {
     private int port;
     private String username;
     private String password;
+//    private String validTime;
+//    private String deadline;
     private AtomicInteger referenceCount = new AtomicInteger(0);
     private TimeCountDown timeCountDown;
 

@@ -33,7 +33,7 @@ public class TunnelProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info("{} : {}", tag, msg);
+        log.debug("Relay Handler -> {} : {}", tag, msg);
 
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg).addListener(new ChannelFutureListener() {
@@ -60,7 +60,6 @@ public class TunnelProxyRelayHandler extends ChannelInboundHandlerAdapter {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(
                     ChannelFutureListener.CLOSE);
         }
-//        SocksServerUtils.closeOnFlush(relayChannel);
         ctx.fireChannelInactive();
     }
 

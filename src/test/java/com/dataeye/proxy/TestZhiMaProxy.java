@@ -35,12 +35,12 @@ public class TestZhiMaProxy {
         build(targetUrl, directIpAccessLink, proxyServerConfig);
         System.out.println("---------------------------------------");
 
-        String exclusiveIpAccessLink = proxyServerConfig.getExclusiveIpAccessLink();
-        build(targetUrl,exclusiveIpAccessLink,proxyServerConfig);
-        System.out.println("---------------------------------------");
-
-        String tunnelIpAccessLink = proxyServerConfig.getTunnelIpAccessLink();
-        build(targetUrl,tunnelIpAccessLink,proxyServerConfig);
+//        String exclusiveIpAccessLink = proxyServerConfig.getExclusiveIpAccessLink();
+//        build(targetUrl,exclusiveIpAccessLink,proxyServerConfig);
+//        System.out.println("---------------------------------------");
+//
+//        String tunnelIpAccessLink = proxyServerConfig.getTunnelIpAccessLink();
+//        build(targetUrl,tunnelIpAccessLink,proxyServerConfig);
     }
 
     void build(String targetUrl, String proxyAccessLink, ProxyServerConfig proxyServerConfig) throws IOException {

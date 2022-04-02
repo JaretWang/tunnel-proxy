@@ -42,7 +42,7 @@ public class TunnelHttpProxyHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
 
         HttpObject ho = (HttpObject) msg;
-        log.debug("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
+        log.debug("接收数据 From: " + remoteAddr + ", " + ho.getClass().getName());
 
         if (ho instanceof HttpResponse) {
             HttpResponse httpResponse = (HttpResponse) ho;

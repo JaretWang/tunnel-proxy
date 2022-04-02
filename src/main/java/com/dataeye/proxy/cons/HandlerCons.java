@@ -25,11 +25,9 @@ public interface HandlerCons {
 
     int connectTimeoutMillis = 1000;
     double loadFactor = 0.5;
-    String ip = "115.207.22.25";
-    int port = 4278;
+    String ip = "113.141.222.107";
+    int port = 4231;
 
-    String ZHIMA_IP = "10.1.2.201";
-    int ZHIMA_PORT = 8123;
     String ZHIMA_SERVICE_REG_NAME = "tunnel-proxy";
 
 

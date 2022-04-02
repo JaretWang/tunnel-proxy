@@ -26,7 +26,6 @@ public class ThreadPoolConfig {
      *
      * @return
      */
-    @Lazy
     @Bean("cpuThreadPool")
     public ThreadPoolTaskExecutor cpuThreadPool() {
         int processors = Runtime.getRuntime().availableProcessors();
@@ -41,28 +40,6 @@ public class ThreadPoolConfig {
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         pool.initialize();
         log.info("cpu 密集型线程池创建完成");
-        return pool;
-    }
-
-    /**
-     * IO 密集型：核心线程数量=cpu核心数量*2
-     *
-     * @return
-     */
-    @Bean("ioThreadPool")
-    public ThreadPoolTaskExecutor ioThreadpool() {
-        int processors = Runtime.getRuntime().availableProcessors();
-        int maxPoolSize = processors * 2;
-        ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
-        pool.setCorePoolSize(processors);
-        pool.setMaxPoolSize(maxPoolSize);
-        pool.setQueueCapacity(1000);
-        pool.setKeepAliveSeconds(1000);
-        pool.setWaitForTasksToCompleteOnShutdown(true);
-        pool.setThreadNamePrefix("io-asyn");
-        pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
-        pool.initialize();
-        log.info("io 密集型线程池创建完成");
         return pool;
     }
 

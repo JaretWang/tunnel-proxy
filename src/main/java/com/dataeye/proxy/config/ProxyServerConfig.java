@@ -36,14 +36,6 @@ public class ProxyServerConfig {
      */
     private String directIpAccessLink;
     /**
-     * 第三方代理平台：独享ip访问链接
-     */
-    private String exclusiveIpAccessLink;
-    /**
-     * 第三方代理平台：隧道ip访问链接
-     */
-    private String tunnelIpAccessLink;
-    /**
      * 是否使用信任证书
      */
     private boolean useTrustStore = false;

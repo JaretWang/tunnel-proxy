@@ -31,7 +31,7 @@ public interface ITunnelDistributeService {
     TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException;
 
     /**
-     * 发送connect类型请求
+     * 转发connect类型请求
      */
     void sendTunnelProxyRequest(ChannelHandlerContext ctx, HttpRequest httpRequest,
                                 TunnelInstance tunnelInstance,  ProxyService proxyService) throws IOException;
