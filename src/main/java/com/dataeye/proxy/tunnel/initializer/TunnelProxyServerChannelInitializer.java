@@ -70,7 +70,7 @@ public class TunnelProxyServerChannelInitializer extends ChannelInitializer<Sock
         // 编码解码 http: HttpRequestDecoder 和 HttpResponseEncoder 的组合
         pipeline.addLast("codec", new HttpServerCodec());
         pipeline.addLast("object_agg", new HttpObjectAggregator(1024 * 64));
-        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
+//        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
         // 前置处理
 //        pipeline.addLast(TunnelProxyPreHandler.HANDLER_NAME, new TunnelProxyPreHandler(proxyServerConfig));
         // 检查认证信息

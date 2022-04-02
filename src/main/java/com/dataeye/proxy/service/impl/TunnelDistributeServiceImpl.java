@@ -237,7 +237,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
 
             ctx.pipeline().remove(HttpServerCodec.class);
             ctx.pipeline().remove(HttpObjectAggregator.class);
-            ctx.pipeline().remove(ChunkedWriteHandler.class);
+//            ctx.pipeline().remove(ChunkedWriteHandler.class);
 //            ctx.pipeline().remove(TunnelProxyPreHandler.class);
             ctx.pipeline().remove(TunnelProxyHandler.class);
 
