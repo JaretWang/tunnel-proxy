@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -140,10 +141,18 @@ public class IpPoolScheduleService {
     void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
         // todo 先检查，获取的可能已经过期
         for (int i = 0; i < proxyServerConfig.getFailureIpGetCount(); i++) {
-            ProxyCfg newProxyCfg = zhiMaProxyService.getOne().get();
-            if (!checkExpireTime(newProxyCfg)) {
-                queue.add(newProxyCfg);
-                break;
+            System.out.println("zhiMaProxyService 为空？"+zhiMaProxyService);
+            System.out.println("zhiMaProxyService.getOne() 为空？"+zhiMaProxyService);
+
+            Optional<ProxyCfg> one = zhiMaProxyService.getOne();
+            if (one.isPresent()) {
+                ProxyCfg newProxyCfg = one.get();
+                if (!checkExpireTime(newProxyCfg)) {
+                    queue.add(newProxyCfg);
+                    break;
+                }
+            } else {
+                log.error("芝麻代理服务获取ip结果为空");
             }
         }
     }
