@@ -42,6 +42,11 @@ public class TestLocalEnviroment {
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
 
+//    private static final String proxyIp = "tps582.kdlapi.com";
+//    private static final int proxyPort = 15818;
+//    private static final String username = "t14480740933876";
+//    private static final String password = "wnwx5oeo";
+
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
@@ -123,7 +128,8 @@ public class TestLocalEnviroment {
         Response response = client.newCall(request).execute();
         log.info("响应状态码：{}", response.code());
         String content = Objects.requireNonNull(response.body()).string();
-        FileUtils.writeStringToFile(new File(saveFile), content, StandardCharsets.UTF_8, false);
+        System.out.println(content);
+//        FileUtils.writeStringToFile(new File(saveFile), content, StandardCharsets.UTF_8, false);
     }
 
     public static void sendByOriginal(String saveFileName) {

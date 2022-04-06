@@ -1,5 +1,6 @@
 package com.dataeye.proxy.service.impl;
 
+import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.ProxyType;
 import com.dataeye.proxy.bean.TunnelAllocateResult;
@@ -9,24 +10,21 @@ import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.component.TimeCountDown;
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ITunnelDistributeService;
+import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.ProxyService;
 import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import com.dataeye.proxy.tunnel.handler.TunnelProxyHandler;
-import com.dataeye.proxy.tunnel.handler.TunnelProxyPreHandler;
 import com.dataeye.proxy.tunnel.handler.TunnelProxyRelayHandler;
 import com.dataeye.proxy.tunnel.initializer.TunnelClientChannelInitializer;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
@@ -41,7 +39,10 @@ import javax.annotation.Resource;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * @author jaret
@@ -64,6 +65,8 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     TunnelProxyServer tunnelProxyServer;
     @Resource
     IpSelector ipSelector;
+    @Resource
+    IpPoolScheduleService ipPoolScheduleService;
 
     /**
      * 初始化隧道实例
@@ -77,7 +80,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
         tunnelProxyServer.startByConfig(tunnelInstances);
     }
 
-    //    @Override
+    @Deprecated
     public TunnelAllocateResult getDistributeParams1(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
         log.info("开始分配代理IP（暂时使用芝麻代理已经写好的服务）");
         String proxyServer = tunnelInstance.toString();
@@ -96,14 +99,8 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                 .ip(ip).port(port).build();
     }
 
-    /**
-     * 分配代理IP,port，username，password
-     *
-     * @param httpRequest 源请求
-     * @return
-     */
-    @Override
-    public TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
+    @Deprecated
+    public TunnelAllocateResult getDistributeParams2(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
         log.info("开始分配代理IP");
         String ipAccessLink = proxyServerConfig.getDirectIpAccessLink();
         String proxyServer = tunnelInstance.toString();
@@ -138,6 +135,38 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
             log.warn("实例 [{}] 的代理ip池全部失效, 重新初始化后代理ip的个数: {}", tunnelInstance.getAlias(), ipSelector.getScheduleProxyIpPool().get(proxyServer).size());
         }
         return getDistributeParams(httpRequest, tunnelInstance);
+    }
+
+    /**
+     * 分配代理IP,port，username，password
+     *
+     * @param httpRequest 源请求
+     * @return
+     */
+    @Override
+    public TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
+        log.info("开始分配代理IP");
+        String proxyServer = tunnelInstance.toString();
+        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+        ConcurrentLinkedQueue<ProxyCfg> proxyCfgsQueue = proxyIpPool.get(proxyServer);
+        if (proxyCfgsQueue == null || proxyCfgsQueue.isEmpty()) {
+            log.warn("实例 {} 对应的代理IP列表为空，需要重新加载", tunnelInstance.getAlias());
+            ipPoolScheduleService.init();
+//            return getDistributeParams(httpRequest, tunnelInstance);
+        }
+
+        ProxyCfg poll = proxyCfgsQueue.poll();
+        if (Objects.nonNull(poll)) {
+            log.info("从队列中获取代理ip的结果：{}", poll);
+            proxyCfgsQueue.offer(poll);
+            return TunnelAllocateResult.builder().ip(poll.getHost())
+                    .port(poll.getPort())
+                    .username(poll.getUserName())
+                    .password(poll.getPassword())
+                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN)
+                    .build();
+        }
+        throw new RuntimeException("从队列中 poll 出来的ip为空");
     }
 
     @Override
@@ -216,7 +245,6 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                             SocksServerUtils.closeOnFlush(ctx.channel());
                         }
                     });
-            log.info("请求转发执行完毕, 业务线程结束");
         }
     }
 
@@ -227,7 +255,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
      * @param future1
      * @param httpRequest
      */
-    void doAfterConnectSuccess(ChannelHandlerContext ctx, ChannelFuture future1,
+    private synchronized void doAfterConnectSuccess(ChannelHandlerContext ctx, ChannelFuture future1,
                                HttpRequest httpRequest, TunnelAllocateResult allocateResult) {
         if (proxyServerConfig.isAppleyRemoteRule()) {
             //todo 由于放在了一个线程里面，好像之前的handler不存在了
@@ -246,6 +274,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
             ctx.pipeline().addLast(new TunnelProxyRelayHandler("UA --> Remote", future1.channel()));
 
             String data = constructConnectRequestForProxy(httpRequest, allocateResult);
+            log.warn("构造 Connect Request: " + data);
             future1.channel()
                     .writeAndFlush(Unpooled.copiedBuffer(data, CharsetUtil.UTF_8))
                     .addListener((ChannelFutureListener) future2 -> {
@@ -272,7 +301,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     }
 
     /**
-     * 填充代理请求头
+     * 重新为代理ip构造 CONNECT 请求
      *
      * @param httpRequest
      * @param allocateResult
@@ -280,8 +309,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
      */
     private String constructConnectRequestForProxy(HttpRequest httpRequest,
                                                    TunnelAllocateResult allocateResult) {
-        System.out.println("constructConnectRequestForProxy....");
-        log.info("填充代理请求头");
+        log.info("重新为代理ip构造 CONNECT 请求");
         String CRLF = "\r\n";
         String url = httpRequest.getUri();
         StringBuilder sb = new StringBuilder();

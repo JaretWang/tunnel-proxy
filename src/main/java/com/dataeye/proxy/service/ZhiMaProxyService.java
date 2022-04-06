@@ -5,12 +5,13 @@ import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.ProxyResponseDto;
 import com.dataeye.proxy.config.BizConfig;
-import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.common.CommonHttpClient;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -51,6 +52,8 @@ public class ZhiMaProxyService implements InitializingBean {
 
     @Resource
     private CommonHttpClient commonHttpClient;
+    @Value("${spring.profiles.active}")
+    private String profiles;
 
     @Override
     public void afterPropertiesSet() {
@@ -65,13 +68,18 @@ public class ZhiMaProxyService implements InitializingBean {
     }
 
     public void refresh() {
-//        String host = HandlerCons.ZHIMA_IP;
-//        String host = getEth0Inet4InnerIp();
-//        if (StrUtil.isBlank(host)) {
-//            LOG.error("host null!");
-//        }
+        String host = getEth0Inet4InnerIp();
+        if (StringUtils.isBlank(host)) {
+            LOG.error("host null!");
+        }
 
-        String params = "channel=1&protocolType=0&productLine=ADX&businessType=TUNNEL&serviceName=" + HandlerCons.ZHIMA_SERVICE_REG_NAME + "&instanceId=172.18.211.168";
+//        String params = "channel=1&protocolType=0&productLine=ADX&businessType=TUNNEL&serviceName=" + HandlerCons.ZHIMA_SERVICE_REG_NAME + "&instanceId=172.18.211.168";
+        String params;
+        if ("local".equalsIgnoreCase(profiles)) {
+            params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=172.18.211.168";
+        } else {
+            params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=" + host;
+        }
 
         HttpClientResponse response = commonHttpClient.doPost(bizConfig.getProxyUrl(), new HashMap<>(), params, ResponseEntityType.STRING_UTF8, null);
         if (!response.codeIs200() || Objects.isNull(response.getResponseContent())) {

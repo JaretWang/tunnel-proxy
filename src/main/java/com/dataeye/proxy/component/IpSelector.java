@@ -3,6 +3,7 @@ package com.dataeye.proxy.component;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -11,20 +12,20 @@ import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ProxyService;
 import com.dataeye.proxy.service.ZhiMaProxyService;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,9 +34,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @description 代理ip选择器
  */
 @Data
-@Slf4j
+//@Slf4j
 @Component
 public class IpSelector {
+
+    private static final Logger log = LogbackRollingFileUtil.getLogger("IpSelector");
 
     @Resource
     private ProxyServerConfig proxyServerConfig;
@@ -58,7 +61,7 @@ public class IpSelector {
      * 定时更新ip池
      * 每个 proxy server 使用一个ip池
      */
-    @PostConstruct
+//    @PostConstruct
     public void scheduleUpdateIpPool() {
         int timerDuration = proxyServerConfig.getTimerDuration();
         long time = timerDuration * 1000;
@@ -72,21 +75,27 @@ public class IpSelector {
                     List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
                     for (TunnelInstance tunnelInstance : tunnelInstanceList) {
 
-//                        IpTimer ipTimer = new IpTimer(HandlerCons.ip, HandlerCons.port,null,null,
-//                                new AtomicInteger(0), new TimeCountDown(proxyServerConfig.getTimerDuration()));
-//                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
+                        IpTimer ipTimer = new IpTimer(HandlerCons.ip, HandlerCons.port,null,null,
+                                new AtomicInteger(0), new TimeCountDown(proxyServerConfig.getTimerDuration()));
+                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
 
-//                        ProxyCfg proxyCfg = proxyService.getOne().get();
 //                        log.warn("暂时使用云代理， {}", proxyCfg);
+//                        ProxyCfg proxyCfg = proxyService.getOne().get();
 //                        IpTimer ipTimer = new IpTimer(proxyCfg.getHost(), proxyCfg.getPort(),
 //                                proxyCfg.getUserName(), proxyCfg.getPassword(), null, null);
 //                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
 
+//                        log.warn("暂时使用隧道快代理");
+//                        IpTimer ipTimer = new IpTimer(proxyServerConfig.getRemoteHost(), proxyServerConfig.getRemotePort(),
+//                                proxyServerConfig.getProxyUserName(), proxyServerConfig.getProxyPassword(), new AtomicInteger(0),
+//                                new TimeCountDown(900));
+//                        scheduleProxyIpPool.put(tunnelInstance.toString(), Collections.singletonList(ipTimer));
+
 //                        changeIpForZhiMa(tunnelInstance);
 
-                        // 因为对方接口限流
-                        Thread.sleep(1200L);
-                        initIpForSingleProxyServer(tunnelInstance, ipAccessLink);
+//                        // 因为对方接口限流
+//                        Thread.sleep(1200L);
+//                        initIpForSingleProxyServer(tunnelInstance, ipAccessLink);
                     }
                     Thread.sleep(time);
                 } catch (Throwable e) {
