@@ -141,9 +141,6 @@ public class IpPoolScheduleService {
     void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
         // todo 先检查，获取的可能已经过期
         for (int i = 0; i < proxyServerConfig.getFailureIpGetCount(); i++) {
-            System.out.println("zhiMaProxyService 为空？"+zhiMaProxyService);
-            System.out.println("zhiMaProxyService.getOne() 为空？"+zhiMaProxyService);
-
             Optional<ProxyCfg> one = zhiMaProxyService.getOne();
             if (one.isPresent()) {
                 ProxyCfg newProxyCfg = one.get();
