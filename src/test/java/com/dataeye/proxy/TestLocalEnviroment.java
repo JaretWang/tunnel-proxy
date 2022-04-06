@@ -32,8 +32,8 @@ import java.util.Objects;
 @Slf4j
 public class TestLocalEnviroment {
 
-    private static final String pageUrl = "https://www.baidu.com";
-//    private static final String pageUrl = "http://www.zhihu.com";
+//    private static final String pageUrl = "https://www.baidu.com";
+    private static final String pageUrl = "http://www.zhihu.com";
 
 //    private static final String proxyIp = "127.0.0.1";
     private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
@@ -120,7 +120,8 @@ public class TestLocalEnviroment {
         Request request = new Request.Builder()
                 .url(pageUrl)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
-                .addHeader("Connection", "Keep-Alive")
+//                .addHeader("Connection", "Keep-Alive")
+//                .addHeader("Connection", "close")
                 .build();
 
         OkHttpClient client = clientBuilder.build();

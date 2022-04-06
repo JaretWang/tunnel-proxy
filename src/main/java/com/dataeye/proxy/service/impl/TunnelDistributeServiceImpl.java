@@ -193,6 +193,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
                                        TunnelInstance tunnelInstance, ProxyService proxyService) throws IOException {
         // 隧道分配结果
         TunnelAllocateResult allocateResult = getDistributeParams(httpRequest, tunnelInstance);
+        log.info("IP 分配结果：{}", allocateResult.toString());
 
 //        TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
 //                .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
@@ -243,7 +244,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
             Channel uaChannel = ctx.channel();
             Bootstrap bootstrap = new Bootstrap()
                     .group(uaChannel.eventLoop()).channel(NioSocketChannel.class)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServerConfig.getBootstrapConnectTimeoutMillis())
                     .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                     .option(ChannelOption.AUTO_READ, false)
                     .handler(new TunnelClientChannelInitializer(allocateResult, uaChannel, proxySslContextFactory));

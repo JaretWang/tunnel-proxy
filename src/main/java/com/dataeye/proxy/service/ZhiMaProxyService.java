@@ -89,7 +89,6 @@ public class ZhiMaProxyService implements InitializingBean {
 
 
         String content = (String) response.getResponseContent();
-        System.out.println("ZhiMaProxyService 响应结果:"+content);
         ProxyResponseDto responseDto = JSON.parseObject(content, ProxyResponseDto.class);
         if (!responseDto.getSuccess()) {
             LOG.error("代理请求响应失败");

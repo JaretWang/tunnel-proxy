@@ -74,7 +74,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
             // 隧道分配结果
             TunnelAllocateResult allocateResult = tunnelDistributeService.getDistributeParams(httpRequest, tunnelInstance);
-            log.debug("IP 分配结果：" + allocateResult.toString());
+            log.info("IP 分配结果：{}", allocateResult.toString());
 
 //            TunnelAllocateResult allocateResult = TunnelAllocateResult.builder()
 //                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN).proxyType(ProxyType.exclusiveTunnel)
@@ -125,7 +125,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 Bootstrap bootstrap = new Bootstrap()
                         .group(uaChannel.eventLoop())
                         .channel(NioSocketChannel.class)
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServerConfig.getBootstrapConnectTimeoutMillis())
                         .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                         .option(ChannelOption.AUTO_READ, false)
                         .handler(new TunnelHttpProxyChannelInitializer(allocateResult, uaChannel, proxySslContextFactory, cb));
@@ -159,7 +159,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                                     }
                                 });
                     } else {
-                        log.error("链接代理ip失败");
+                        log.error("连接代理ip失败");
                         String errorMsg = "remote connect to " + remoteAddr + " fail, 原因:" + future.cause().toString();
                         log.error(errorMsg);
                         // send error response

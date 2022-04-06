@@ -106,5 +106,9 @@ public class ProxyServerConfig {
      * 提前判定ip为失效状态的最小时间间隔
      */
     private int judgeFailMinTimeSeconds;
+    /**
+     * netty 客户端连接超时时间
+     */
+    private int bootstrapConnectTimeoutMillis;
 
 }
