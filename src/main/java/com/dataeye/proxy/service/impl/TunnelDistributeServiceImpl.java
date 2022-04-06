@@ -14,6 +14,7 @@ import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ITunnelDistributeService;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.ProxyService;
+import com.dataeye.proxy.service.ZhiMaProxyService;
 import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import com.dataeye.proxy.tunnel.handler.TunnelProxyHandler;
 import com.dataeye.proxy.tunnel.handler.TunnelProxyRelayHandler;
@@ -67,6 +68,8 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     IpSelector ipSelector;
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
+    @Resource
+    ZhiMaProxyService zhiMaProxyService;
 
     /**
      * 初始化隧道实例
@@ -146,27 +149,38 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     @Override
     public TunnelAllocateResult getDistributeParams(HttpRequest httpRequest, TunnelInstance tunnelInstance) throws IOException {
         log.info("开始分配代理IP");
-        String proxyServer = tunnelInstance.toString();
+        //todo暂时使用这个别名作为id
+//        String proxyServer = tunnelInstance.toString();
+        String proxyServer = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         ConcurrentLinkedQueue<ProxyCfg> proxyCfgsQueue = proxyIpPool.get(proxyServer);
         if (proxyCfgsQueue == null || proxyCfgsQueue.isEmpty()) {
-            log.warn("实例 {} 对应的代理IP列表为空，需要重新加载", tunnelInstance.getAlias());
-            ipPoolScheduleService.init();
+            log.error("实例 {} 对应的代理IP列表为空，需要重新加载", proxyServer);
+            ipPoolScheduleService.checkAndUpdateIp();
 //            return getDistributeParams(httpRequest, tunnelInstance);
+            return null;
+        } else {
+            ProxyCfg poll = proxyCfgsQueue.poll();
+            if (Objects.nonNull(poll)) {
+                log.info("从队列中获取代理ip的结果：{}", poll);
+                proxyCfgsQueue.offer(poll);
+                return TunnelAllocateResult.builder().ip(poll.getHost())
+                        .port(poll.getPort())
+                        .username(poll.getUserName())
+                        .password(poll.getPassword())
+                        .tunnelProxyListenType(TunnelProxyListenType.PLAIN)
+                        .build();
+            }
+            throw new RuntimeException("从队列中 poll 出来的ip为空");
         }
-
-        ProxyCfg poll = proxyCfgsQueue.poll();
-        if (Objects.nonNull(poll)) {
-            log.info("从队列中获取代理ip的结果：{}", poll);
-            proxyCfgsQueue.offer(poll);
-            return TunnelAllocateResult.builder().ip(poll.getHost())
-                    .port(poll.getPort())
-                    .username(poll.getUserName())
-                    .password(poll.getPassword())
-                    .tunnelProxyListenType(TunnelProxyListenType.PLAIN)
-                    .build();
-        }
-        throw new RuntimeException("从队列中 poll 出来的ip为空");
+//        log.warn("立即生成一个ip");
+//        ProxyCfg newProxyCfg = zhiMaProxyService.getOne().get();
+//        return TunnelAllocateResult.builder().ip(newProxyCfg.getHost())
+//                .port(newProxyCfg.getPort())
+//                .username(newProxyCfg.getUserName())
+//                .password(newProxyCfg.getPassword())
+//                .tunnelProxyListenType(TunnelProxyListenType.PLAIN)
+//                .build();
     }
 
     @Override
