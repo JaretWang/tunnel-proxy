@@ -1,12 +1,34 @@
-package com.dataeye.proxy.tunnel;
+/*
+ * Copyright (c) 2014 The APN-PROXY Project
+ *
+ * The APN-PROXY Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
+package com.dataeye.proxy.apn;
+
+import com.dataeye.proxy.TunnelProxyApplication;
+import com.dataeye.proxy.apn.config.ApnProxyConfig;
+import com.dataeye.proxy.apn.config.ApnProxyConfigReader;
+import com.dataeye.proxy.apn.config.ApnProxyRemoteRulesConfigReader;
+import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
+import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ITunnelDistributeService;
 import com.dataeye.proxy.service.ProxyService;
-import com.dataeye.proxy.tunnel.initializer.TunnelProxyServerChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -14,46 +36,61 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * @author jaret
- * @date 2022/3/17 21:52
- * @description 隧道代理服务
+ * @author xmx
+ * @version $Id: com.dataeye.proxy.apn.ApnProxyServer 14-1-8 16:13 (xmx) Exp $
  */
-@Slf4j
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Component
-public class TunnelProxyServer {
+public class ApnProxyServer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ApnProxyServer.class);
 
     @Autowired
-    private ProxyServerConfig proxyServerConfig;
+    ApnProxyRemoteChooser apnProxyRemoteChooser;
     @Autowired
-    private ProxySslContextFactory proxySslContextFactory;
+    ProxyServerConfig proxyServerConfig;
     @Autowired
-    private IpSelector ipSelector;
+    ProxySslContextFactory proxySslContextFactory;
     @Autowired
-    private ProxyService proxyService;
+    IpSelector ipSelector;
     @Autowired
-    private ITunnelDistributeService tunnelDistributeService;
-    private EventLoopGroup bossGroup;
-    private EventLoopGroup workerGroup;
+    ProxyService proxyService;
+    @Autowired
+    ITunnelDistributeService tunnelDistributeService;
+    @Resource
+    TunnelInitMapper tunnelInitMapper;
+//    EventLoopGroup bossGroup;
+//    EventLoopGroup workerGroup;
+
+    /**
+     * 初始化隧道实例
+     */
+    @PostConstruct
+    public void initMultiTunnel() {
+        ApnProxyConfigReader apnProxyConfigReader = new ApnProxyConfigReader();
+        apnProxyConfigReader.read(TunnelProxyApplication.class
+                .getResourceAsStream("/plain-proxy-config.xml"));
+
+        ApnProxyRemoteRulesConfigReader apnProxyRemoteRulesConfigReader = new ApnProxyRemoteRulesConfigReader();
+        apnProxyRemoteRulesConfigReader.read(TunnelProxyApplication.class
+                .getResourceAsStream("/plain-proxy-config.xml"));
+
+        // 获取初始化参数
+        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+        // 创建实例
+        startByConfig(tunnelInstances);
+    }
 
     /**
      * 根据配置参数启动
@@ -62,7 +99,7 @@ public class TunnelProxyServer {
         int size = tunnelInstances.size();
         ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size);
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
-        log.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
+        LOG.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
     }
 
     /**
@@ -81,7 +118,7 @@ public class TunnelProxyServer {
         pool.setThreadNamePrefix("tunnel_create");
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         pool.initialize();
-        log.info("隧道初始化线程池创建完成");
+        LOG.info("隧道初始化线程池创建完成");
         return pool;
     }
 
@@ -120,17 +157,14 @@ public class TunnelProxyServer {
                 .group(bossGroup, workerGroup)
                 .localAddress(host, port)
                 .channel(NioServerSocketChannel.class)
-//                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-//                        tunnelDistributeService, tunnelInstance, ipSelector, proxyService))
-                .childHandler(new TunnelProxyServerChannelInitializer(proxyServerConfig, proxySslContextFactory,
-                        tunnelDistributeService, tunnelInstance, ipSelector, proxyService))
+                .childHandler(new ApnProxyServerChannelInitializer(apnProxyRemoteChooser, tunnelInstance))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            log.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
+            LOG.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
-            log.error("启动代理服务器时，出现异常：{}", e.getMessage());
+            LOG.error("启动代理服务器时，出现异常：{}", e.getMessage());
             e.printStackTrace();
         } finally {
             bossGroup.shutdownGracefully();

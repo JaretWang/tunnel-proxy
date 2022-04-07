@@ -1,6 +1,7 @@
 package com.dataeye.proxy.service.impl;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.ApnProxyServer;
 import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.ProxyType;
 import com.dataeye.proxy.bean.TunnelAllocateResult;
@@ -35,7 +36,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -68,13 +68,11 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
     IpSelector ipSelector;
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
-    @Resource
-    ZhiMaProxyService zhiMaProxyService;
 
     /**
      * 初始化隧道实例
      */
-    @PostConstruct
+//    @PostConstruct
     @Override
     public void initMultiTunnel() {
         // 获取初始化参数

@@ -23,6 +23,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jaret
@@ -32,13 +33,14 @@ import java.util.Objects;
 @Slf4j
 public class TestLocalEnviroment {
 
-//    private static final String pageUrl = "https://www.baidu.com";
-    private static final String pageUrl = "http://www.zhihu.com";
+    private static final String pageUrl = "https://www.baidu.com";
+//    private static final String pageUrl = "http://www.zhihu.com";
 
-//    private static final String proxyIp = "127.0.0.1";
-    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+    private static final String proxyIp = "127.0.0.1";
+//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
 
     private static final int proxyPort = 8124;
+//    private static final int proxyPort = 6666;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
 
@@ -114,6 +116,8 @@ public class TestLocalEnviroment {
                         .build();
             };
             clientBuilder.proxy(proxy);
+            clientBuilder.connectTimeout(60, TimeUnit.SECONDS);
+            clientBuilder.callTimeout(60, TimeUnit.SECONDS);
             clientBuilder.proxyAuthenticator(authenticator);
         }
 

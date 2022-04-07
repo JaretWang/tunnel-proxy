@@ -4,6 +4,7 @@ import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.service.ZhiMaProxyService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,15 +23,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-/**
- * @author caiguanghui
- */
 @Slf4j
 @Data
 @Service
 public class IpPoolScheduleService {
-
-//    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
 
     @Autowired
     ZhiMaProxyService zhiMaProxyService;
@@ -43,23 +39,6 @@ public class IpPoolScheduleService {
      * ip池
      */
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = new ConcurrentHashMap<>();
-//    /**
-//     * 线程循环检查ip是否有效的时间，单位：秒
-//     */
-////    int cycleCheckTime = 5 * 60;
-//    int cycleCheckTime = 60;
-//    /**
-//     * 每个实例server对应的ip池中的ip数量
-//     */
-//    int ipSizeEachPool = 3;
-//    /**
-//     * 获取的ip是失效ip的次数
-//     */
-//    int failureIpGetCount = 5;
-//    /**
-//     * 提前判定ip为失效状态的最小时间间隔
-//     */
-//    int judgeFailMinTimeSeconds = 60;
 
     @PostConstruct
     public void init() {
@@ -139,7 +118,7 @@ public class IpPoolScheduleService {
     }
 
     void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
-        // todo 先检查，获取的可能已经过期
+        // 先检查，从芝麻拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getFailureIpGetCount(); i++) {
             Optional<ProxyCfg> one = zhiMaProxyService.getOne();
             if (one.isPresent()) {

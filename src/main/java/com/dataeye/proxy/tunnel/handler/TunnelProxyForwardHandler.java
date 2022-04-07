@@ -143,6 +143,8 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                     if (future.isSuccess()) {
                         log.info("连接代理ip成功");
                         HttpRequest proxyRequest = constructRequestForProxy((HttpRequest) msg, proxyServerConfig.isAppleyRemoteRule(), allocateResult);
+
+
                         future.channel().write(proxyRequest);
 
                         for (HttpContent hc : httpContentBuffer) {
