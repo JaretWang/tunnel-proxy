@@ -10,6 +10,7 @@ import com.dataeye.proxy.service.ZhiMaProxyService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,8 @@ import java.util.stream.Collectors;
 @Service
 public class IpPoolScheduleService {
 
-    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
+//    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
+    private static final Logger log = LoggerFactory.getLogger(IpPoolScheduleService.class);
 
     @Autowired
     ZhiMaProxyService zhiMaProxyService;
@@ -77,12 +79,10 @@ public class IpPoolScheduleService {
      * @throws IOException
      */
     public void checkAndUpdateIp() throws IOException {
-//        List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
-//        for (TunnelInstance tunnelInstance : tunnelInstanceList) {
-//            initSingleServer(tunnelInstance);
-//        }
-        //todo 本地测试用
-        initSingleServer(Global.TUNNEL_INSTANCE);
+        List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
+        for (TunnelInstance tunnelInstance : tunnelInstanceList) {
+            initSingleServer(tunnelInstance);
+        }
     }
 
     /**

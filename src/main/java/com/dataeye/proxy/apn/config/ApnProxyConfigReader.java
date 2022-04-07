@@ -33,7 +33,7 @@ import java.util.List;
 public class ApnProxyConfigReader extends ApnProxyAbstractXmlConfigReader {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyConfigReader");
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     @Override
     protected void realReadProcess(Element rootElement) {

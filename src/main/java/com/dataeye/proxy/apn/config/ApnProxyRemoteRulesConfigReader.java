@@ -32,9 +32,6 @@ import java.util.List;
  */
 public class ApnProxyRemoteRulesConfigReader extends ApnProxyAbstractXmlConfigReader {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyRemoteRulesConfigReader");
-
-
     @Override
     protected void realReadProcess(Element rootElement) {
         Element remoteRulesElement = rootElement;

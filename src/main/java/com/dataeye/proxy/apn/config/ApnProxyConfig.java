@@ -30,7 +30,7 @@ import java.util.List;
 public class ApnProxyConfig {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyConfig");
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     private static ApnProxyConfig config = new ApnProxyConfig();
 

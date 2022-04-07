@@ -27,13 +27,10 @@ public class TunnelInstance implements Serializable {
     private int workerThreadSize;
     private int businessThreadSize;
     private int proxyIpPoolSize;
-    private int singleIpTtl;
-    private String updateIpPoolCronExpress;
     private int maxNetBandwidthSize;
     private String lastModified;
     private String createTime;
     private String description;
-    // 新增
     private int connectTimeoutMillis;
 
 }

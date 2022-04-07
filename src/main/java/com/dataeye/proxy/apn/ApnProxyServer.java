@@ -16,11 +16,8 @@
 
 package com.dataeye.proxy.apn;
 
-import com.dataeye.proxy.TunnelProxyApplication;
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.config.ApnProxyConfig;
-import com.dataeye.proxy.apn.config.ApnProxyConfigReader;
-import com.dataeye.proxy.apn.config.ApnProxyRemoteRulesConfigReader;
 import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
@@ -47,8 +44,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -60,6 +55,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Component
 public class ApnProxyServer {
 
+    //    private static final Logger LOG = LogbackRollingFileUtil.getLogger("ApnProxyServer");
     private static final Logger LOG = LoggerFactory.getLogger(ApnProxyServer.class);
 
     @Autowired
@@ -84,22 +80,10 @@ public class ApnProxyServer {
      */
     @PostConstruct
     public void initMultiTunnel() {
-//        ApnProxyConfigReader apnProxyConfigReader = new ApnProxyConfigReader();
-//        apnProxyConfigReader.read(TunnelProxyApplication.class
-//                .getResourceAsStream("/plain-proxy-config.xml--"));
-//
-//        ApnProxyRemoteRulesConfigReader apnProxyRemoteRulesConfigReader = new ApnProxyRemoteRulesConfigReader();
-//        apnProxyRemoteRulesConfigReader.read(TunnelProxyApplication.class
-//                .getResourceAsStream("/plain-proxy-config.xml--"));
-
+        // 获取初始化参数
+        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         // 创建实例
-        //TODO 先使用本地,测试一些参数,后续转移到mysql
-        startByConfig(Collections.singletonList(Global.TUNNEL_INSTANCE));
-
-//        // 获取初始化参数
-//        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
-//        // 创建实例
-//        startByConfig(tunnelInstances);
+        startByConfig(tunnelInstances);
     }
 
     /**
@@ -107,7 +91,7 @@ public class ApnProxyServer {
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         int size = tunnelInstances.size();
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size);
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
         LOG.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
     }
@@ -118,14 +102,14 @@ public class ApnProxyServer {
      * @param instanceSize proxy server 实例个数
      * @return
      */
-    public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize) {
+    public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize, String threadNamePrefix) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
         pool.setCorePoolSize(instanceSize);
         pool.setMaxPoolSize(instanceSize + 1);
         pool.setQueueCapacity(2 * instanceSize);
         pool.setKeepAliveSeconds(60);
         pool.setWaitForTasksToCompleteOnShutdown(true);
-        pool.setThreadNamePrefix("tunnel_create");
+        pool.setThreadNamePrefix(threadNamePrefix);
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         pool.initialize();
         LOG.info("隧道初始化线程池创建完成");
@@ -161,10 +145,15 @@ public class ApnProxyServer {
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
+        // 初始化业务线程池
+        ThreadPoolTaskExecutor businessThreadPool = getTunnelThreadpool(tunnelInstance.getBusinessThreadSize(),
+                "tunnel_" + tunnelInstance.getAlias());
+
         ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
                 .apnProxyRemoteChooser(apnProxyRemoteChooser)
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)
+                .ioThreadPool(businessThreadPool)
                 .build();
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);

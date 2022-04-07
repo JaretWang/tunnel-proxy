@@ -2,10 +2,8 @@ package com.dataeye.proxy.apn.service;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.cons.ApnProxyConstants;
-import com.dataeye.proxy.apn.handler.ApnProxyPreHandler;
 import com.dataeye.proxy.apn.handler.ApnProxyRelayHandler;
 import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
 import com.dataeye.proxy.apn.handler.HttpProxyHandler;
@@ -18,12 +16,7 @@ import com.dataeye.proxy.apn.utils.Base64;
 import com.dataeye.proxy.apn.utils.HostNamePortUtil;
 import com.dataeye.proxy.apn.utils.HttpErrorUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
-import com.dataeye.proxy.component.ProxySslContextFactory;
-import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.IpPoolScheduleService;
-import com.dataeye.proxy.tunnel.TunnelProxyServer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -31,11 +24,9 @@ import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -58,10 +49,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Service
 public class RequestDistributeService {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("RequestDistributeService");
+//    private static final Logger logger = LogbackRollingFileUtil.getLogger("RequestDistributeService");
+    private static final Logger logger = LoggerFactory.getLogger(RequestDistributeService.class);
 
-    @Resource(name = "cpuThreadPool")
-    private ThreadPoolTaskExecutor ioThreadPool;
+//    @Resource(name = "cpuThreadPool")
+//    private ThreadPoolTaskExecutor ioThreadPool;
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
 
@@ -107,7 +99,7 @@ public class RequestDistributeService {
      * @param apnProxyRemote
      * @param tunnelInstance
      */
-    public void sendRequestByTunnel(final ChannelHandlerContext ctx, HttpRequest httpRequest, ApnProxyRemote apnProxyRemote, TunnelInstance tunnelInstance) {
+    public void sendRequestByTunnel(ThreadPoolTaskExecutor ioThreadPool, final ChannelHandlerContext ctx, HttpRequest httpRequest, ApnProxyRemote apnProxyRemote, TunnelInstance tunnelInstance) {
         // 隧道分配结果
         ApnProxyRemote proxyConfig = getProxyConfig(tunnelInstance);
         logger.info("IP 分配结果：{}", JSON.toJSONString(proxyConfig));
@@ -128,7 +120,7 @@ public class RequestDistributeService {
      * @param remoteChannelMap
      * @param msg
      */
-    public void sendRequestByForward(final Channel uaChannel, Channel remoteChannel,
+    public void sendRequestByForward(ThreadPoolTaskExecutor ioThreadPool, final Channel uaChannel, Channel remoteChannel,
                                      HttpRequest httpRequest, ApnProxyRemote apnProxyRemote,
                                      TunnelInstance tunnelInstance, List<HttpContent> httpContentBuffer,
                                      Map<String, Channel> remoteChannelMap, Object msg) {
@@ -173,9 +165,6 @@ public class RequestDistributeService {
         @Override
         public void run() {
             logger.info("业务线程开始转发请求");
-            String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
-            String originalHost = HostNamePortUtil.getHostName(originalHostHeader);
-            int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
             remoteAddr = apnProxyRemote.getRemote();
 
             HttpProxyHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
@@ -270,11 +259,6 @@ public class RequestDistributeService {
                     .handler(new ApnProxyTunnelChannelInitializer(apnProxyRemote, uaChannel));
 
             // set local address
-//            if (StringUtils.isNotBlank(ApnProxyLocalAddressChooser.choose(apnProxyRemote
-//                    .getRemoteHost()))) {
-//                bootstrap.localAddress(new InetSocketAddress((ApnProxyLocalAddressChooser
-//                        .choose(apnProxyRemote.getRemoteHost())), 0));
-//            }
             String remoteHost = apnProxyRemote.getRemoteHost();
             String ip = ApnProxyLocalAddressChooser.choose(remoteHost);
             if (StringUtils.isNotBlank(ip)) {
@@ -293,7 +277,7 @@ public class RequestDistributeService {
                             if (apnProxyRemote.isAppleyRemoteRule()) {
                                 logger.info("tunnel_handler 使用代理ip转发");
                                 ctx.pipeline().remove("codec");
-                                ctx.pipeline().remove(ApnProxyPreHandler.HANDLER_NAME);
+//                                ctx.pipeline().remove(ApnProxyPreHandler.HANDLER_NAME);
                                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
 
                                 // add relay handler
@@ -318,7 +302,7 @@ public class RequestDistributeService {
                                                 (ChannelFutureListener) future2 -> {
                                                     // remove handlers
                                                     ctx.pipeline().remove("codec");
-                                                    ctx.pipeline().remove(ApnProxyPreHandler.HANDLER_NAME);
+//                                                    ctx.pipeline().remove(ApnProxyPreHandler.HANDLER_NAME);
                                                     ctx.pipeline().remove(
                                                             ApnProxyTunnelHandler.HANDLER_NAME);
 

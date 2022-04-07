@@ -43,22 +43,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ApnProxyRemoteChooser {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyRemoteChooser");
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 //    private static final Logger remoteChooseLogger = LoggerFactory.getLogger("REMOTE_CHOOSE_LOGGER");
 
     @Autowired
     IpPoolScheduleService ipPoolScheduleService;
     private final AtomicInteger errorCount = new AtomicInteger(3);
-
-//    public static String PROXY_IP = "tps582.kdlapi.com";
-//    public static int PROXY_PORT = 15818;
-//    public static String USERNAME = "t14480740933876";
-//    public static String PASSWORD = "wnwx5oeo";
-
-//    public static String PROXY_IP = "183.165.192.150";
-//    public static int PROXY_PORT = 4215;
-//    public static String USERNAME = "";
-//    public static String PASSWORD = "";
 
     /**
      * 从代理ip池获取ip
@@ -99,31 +89,5 @@ public class ApnProxyRemoteChooser {
             throw new RuntimeException("从队列中 poll 出来的ip为空");
         }
     }
-
-//    public static ApnProxyRemote chooseRemoteAddr(String originalHost, int originalPort) {
-//        ApnProxyRemote apPlainRemote = new ApnProxyPlainRemote();
-//        apPlainRemote.setAppleyRemoteRule(true);
-////            apPlainRemote.setRemoteListenType(ApnProxyListenType.SSL);
-//        apPlainRemote.setRemoteListenType(ApnProxyListenType.PLAIN);
-//        apPlainRemote.setRemoteHost(PROXY_IP);
-//        apPlainRemote.setRemotePort(PROXY_PORT);
-//        apPlainRemote.setProxyUserName(USERNAME);
-//        apPlainRemote.setProxyPassword(PASSWORD);
-//        System.out.println("真实代理ip配置：" + apPlainRemote.toString());
-//        return apPlainRemote;
-//    }
-//
-//    private static ApnProxyRemoteRule getApplyRemoteRule(String host) {
-//        for (ApnProxyRemoteRule remoteRule : ApnProxyConfig.getConfig().getRemoteRuleList()) {
-//            for (String originalHost : remoteRule.getOriginalHostList()) {
-//                if (StringUtils.equals(originalHost, host)
-//                        || StringUtils.endsWith(host, "." + originalHost)) {
-//                    return remoteRule;
-//                }
-//            }
-//        }
-//
-//        return null;
-//    }
 
 }

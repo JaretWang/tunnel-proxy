@@ -32,7 +32,7 @@ import java.io.*;
  */
 public abstract class ApnProxyAbstractXmlConfigReader {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyAbstractXmlConfigReader");
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     public final void read(InputStream xmlConfigFileInputStream) {
         Document doc = null;

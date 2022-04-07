@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.handler;
 
+import com.dataeye.proxy.apn.ApnProxyServer;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -28,7 +29,8 @@ import org.slf4j.LoggerFactory;
  */
 public class IdleHandler extends ChannelDuplexHandler {
 
-    private static Logger logger = LoggerFactory.getLogger(IdleHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(IdleHandler.class);
+
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {

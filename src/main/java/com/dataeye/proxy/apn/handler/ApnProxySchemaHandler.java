@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory;
  */
 public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
+//    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
+    private static final Logger logger = LoggerFactory.getLogger(ApnProxySchemaHandler.class);
 
     public static final String HANDLER_NAME = "apnproxy.schema";
 

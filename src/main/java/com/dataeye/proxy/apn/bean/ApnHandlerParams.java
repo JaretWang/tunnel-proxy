@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * @author jaret
@@ -22,5 +23,6 @@ public class ApnHandlerParams {
     ApnProxyRemoteChooser apnProxyRemoteChooser;
     TunnelInstance tunnelInstance;
     RequestDistributeService requestDistributeService;
+    ThreadPoolTaskExecutor ioThreadPool;
 
 }

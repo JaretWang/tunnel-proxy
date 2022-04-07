@@ -31,7 +31,7 @@ import java.security.KeyStore;
  */
 public class ApnProxySSLContextFactory {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxySSLContextFactory");
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     public static SSLEngine createClientSSLEnginForRemoteAddress(String host, int port) {
         try {

@@ -31,7 +31,6 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author xmx
@@ -39,18 +38,13 @@ import org.slf4j.LoggerFactory;
  */
 public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
 
-    public static final String HANDLER_NAME = "apnproxy.pre";
-
     private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyPreHandler");
 
-    private static final Logger httpRestLogger = LoggerFactory.getLogger("HTTP_REST_LOGGER");
-
-    private static String[] forbiddenIps = new String[]{"10.", "172.16.", "172.17.",
+    public static final String HANDLER_NAME = "apnproxy.pre";
+    private static final String[] FORBIDDEN_IPS = new String[]{"10.", "172.16.", "172.17.",
             "172.18.", "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
             "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.", "192.168."};
-
-    private static int[] forbiddenPorts = new int[]{20, 21, 22};
-
+    private static final int[] FORBIDDEN_PORTS = new int[]{20, 21, 22};
     private boolean isPacRequest = false;
 
     @Override
@@ -69,8 +63,8 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
             String originalHost = HostNamePortUtil.getHostName(hostHeader);
 
             // http rest log
-            if (httpRestLogger.isInfoEnabled()) {
-                httpRestLogger.info(ctx.channel().remoteAddress() + " "
+            if (logger.isInfoEnabled()) {
+                logger.info(ctx.channel().remoteAddress() + " "
                         + httpRequest.getMethod().name() + " " + httpRequest.getUri()
                         + " " + httpRequest.getProtocolVersion().text() + ", "
                         + hostHeader + ", "
@@ -102,7 +96,7 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
             }
 
             // forbid request to proxy server internal network
-            for (String forbiddenIp : forbiddenIps) {
+            for (String forbiddenIp : FORBIDDEN_IPS) {
                 if (StringUtils.startsWith(originalHost, forbiddenIp)) {
                     String errorMsg = "Forbidden";
                     ctx.write(HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
@@ -113,8 +107,7 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
             }
 
             // forbid request to proxy server local
-            if (StringUtils.equals(originalHost, "127.0.0.1")
-                    || StringUtils.equals(originalHost, "localhost")) {
+            if (StringUtils.equals(originalHost, "127.0.0.1") || StringUtils.equals(originalHost, "localhost")) {
                 String errorMsg = "Forbidden";
                 ctx.write(HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
                         errorMsg));
@@ -124,7 +117,7 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
 
             // forbid reqeust to some port
             int originalPort = HostNamePortUtil.getPort(hostHeader, -1);
-            for (int fobiddenPort : forbiddenPorts) {
+            for (int fobiddenPort : FORBIDDEN_PORTS) {
                 if (originalPort == fobiddenPort) {
                     String errorMsg = "Forbidden";
                     ctx.write(HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN,
@@ -139,7 +132,6 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
                 if (msg instanceof LastHttpContent) {
                     isPacRequest = false;
                 }
-
                 return false;
             }
         }
