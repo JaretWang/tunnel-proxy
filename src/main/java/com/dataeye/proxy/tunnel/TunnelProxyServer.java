@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
@@ -20,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,13 +37,13 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @date 2022/3/17 21:52
  * @description 隧道代理服务
  */
-@Slf4j
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Component
 public class TunnelProxyServer {
-
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxyServer");
     @Autowired
     private ProxyServerConfig proxyServerConfig;
     @Autowired

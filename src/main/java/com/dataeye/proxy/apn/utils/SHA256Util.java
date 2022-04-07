@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.utils;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
  * @version $Id: com.dataeye.proxy.apn.utils.SHA256Util 14-1-8 16:13 (xmx) Exp $
  */
 public class SHA256Util {
-    private static final Logger logger = LoggerFactory.getLogger(SHA256Util.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("SHA256Util");
 
     /**
      * @param strSrc

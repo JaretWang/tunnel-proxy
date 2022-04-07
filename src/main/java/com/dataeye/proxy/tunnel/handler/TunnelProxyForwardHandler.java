@@ -1,6 +1,7 @@
 package com.dataeye.proxy.tunnel.handler;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.ProxyType;
 import com.dataeye.proxy.bean.TunnelAllocateResult;
 import com.dataeye.proxy.bean.TunnelProxyListenType;
@@ -25,6 +26,7 @@ import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -35,8 +37,10 @@ import java.util.*;
  * @date 2022/3/25 19:11
  * @description
  */
-@Slf4j
+
 public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
+
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxyForwardHandler");
 
     public static final String HANDLER_NAME = "tunnel_proxy_forward";
     public String remoteAddr;

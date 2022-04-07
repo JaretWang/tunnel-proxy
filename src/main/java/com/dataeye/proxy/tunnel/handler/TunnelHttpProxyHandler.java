@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.HttpContent;
@@ -8,15 +9,16 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 /**
  * @author jaret
  * @date 2022/3/25 19:28
  * @description
  */
-@Slf4j
-public class TunnelHttpProxyHandler extends ChannelInboundHandlerAdapter {
 
+public class TunnelHttpProxyHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelHttpProxyHandler");
     public static final String HANDLER_NAME = "tunnel_proxy_http_proxy";
 
     private final Channel uaChannel;

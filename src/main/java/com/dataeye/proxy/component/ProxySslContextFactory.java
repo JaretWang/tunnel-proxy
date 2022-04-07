@@ -1,7 +1,9 @@
 package com.dataeye.proxy.component;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.aop.framework.ProxyConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,9 +17,11 @@ import java.security.KeyStore;
  * @date 2022/3/25 17:51
  * @description
  */
-@Slf4j
+
 @Component
 public class ProxySslContextFactory {
+
+    private static final Logger log = LogbackRollingFileUtil.getLogger("ProxySslContextFactory");
 
     @Autowired
     private ProxyServerConfig proxyServerConfig;

@@ -30,7 +30,7 @@ public class ApnProxyConstants {
 
     public static final String CONFIG_FILE = "conf/config.xml";
 
-    public static final String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml";
+    public static final String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml--";
 
     public static final String CACHE_DIR = "cache";
 

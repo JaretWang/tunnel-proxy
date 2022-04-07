@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpMethod;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyForwardHandler.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
 
     public static final String HANDLER_NAME = "apnproxy.schema";
 
@@ -40,7 +41,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             HttpRequest httpRequest = (HttpRequest) msg;
 
             if (httpRequest.getMethod().equals(HttpMethod.CONNECT)) {
-                ctx.pipeline().remove(CacheFindHandler.HANDLER_NAME);
+//                ctx.pipeline().remove(CacheFindHandler.HANDLER_NAME);
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             }
 

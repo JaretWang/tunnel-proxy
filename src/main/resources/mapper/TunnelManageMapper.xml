@@ -7,6 +7,7 @@
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
         <result column="ip" jdbcType="INTEGER" property="ip"/>
         <result column="port" jdbcType="INTEGER" property="port"/>
+        <result column="concurrency" jdbcType="INTEGER" property="concurrency"/>
         <result column="proxy_username" jdbcType="VARCHAR" property="proxyUsername"/>
         <result column="proxy_password" jdbcType="VARCHAR" property="proxyPassword"/>
         <result column="boss_thread_size" jdbcType="INTEGER" property="bossThreadSize"/>
@@ -15,8 +16,6 @@
         <result column="proxy_ip_pool_size" jdbcType="INTEGER" property="proxyIpPoolSize"/>
         <result column="single_ip_ttl" jdbcType="INTEGER" property="singleIpTtl"/>
         <result column="update_ip_pool_cron_express" jdbcType="VARCHAR" property="updateIpPoolCronExpress"/>
-        <result column="max_cpu_size" jdbcType="INTEGER" property="maxCpuSize"/>
-        <result column="max_ram_size" jdbcType="INTEGER" property="maxRamSize"/>
         <result column="max_net_bandwidth_size" jdbcType="INTEGER" property="maxNetBandwidthSize"/>
         <result column="last_modified" jdbcType="TIMESTAMP" property="lastModified"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>

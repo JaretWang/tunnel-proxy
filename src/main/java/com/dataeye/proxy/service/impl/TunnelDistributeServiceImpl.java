@@ -1,6 +1,7 @@
 package com.dataeye.proxy.service.impl;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.ApnProxyServer;
 import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.ProxyType;
@@ -31,6 +32,7 @@ import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -50,10 +52,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @date 2022/3/29 11:31
  * @description 隧道分发服务
  */
-@Slf4j
+
 @Service
 public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
-
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelDistributeServiceImpl");
     @Autowired
     private ProxyServerConfig proxyServerConfig;
     @Autowired

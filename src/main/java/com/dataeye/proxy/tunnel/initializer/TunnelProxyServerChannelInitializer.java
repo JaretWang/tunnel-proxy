@@ -26,7 +26,7 @@ import javax.net.ssl.SSLEngine;
  * @date 2022/3/25 17:41
  * @description 初始化通道处理器链
  */
-@Slf4j
+
 public class TunnelProxyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
     private final ProxyServerConfig proxyServerConfig;

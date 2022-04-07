@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.config.ApnProxyRemoteRule;
@@ -40,7 +41,7 @@ public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.pre";
 
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyPreHandler.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyPreHandler");
 
     private static final Logger httpRestLogger = LoggerFactory.getLogger("HTTP_REST_LOGGER");
 

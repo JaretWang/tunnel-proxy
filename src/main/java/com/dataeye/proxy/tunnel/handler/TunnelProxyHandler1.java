@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.component.ProxySslContextFactory;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.tunnel.initializer.TunnelClientChannelInitializer;
@@ -15,6 +16,7 @@ import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Set;
@@ -25,9 +27,9 @@ import java.util.Set;
  * @description
  */
 @Deprecated
-@Slf4j
-public class TunnelProxyHandler1 extends ChannelInboundHandlerAdapter {
 
+public class TunnelProxyHandler1 extends ChannelInboundHandlerAdapter {
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxyHandler1");
     public static final String HANDLER_NAME = "tunnel_proxy";
 
     private final ProxyServerConfig proxyServerConfig;

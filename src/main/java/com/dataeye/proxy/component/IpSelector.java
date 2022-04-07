@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @description 代理ip选择器
  */
 @Data
-//@Slf4j
+//
 @Component
 public class IpSelector {
 

@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.config;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.exception.ApnProxyConfigException;
 import nu.xom.Element;
 import nu.xom.Elements;
@@ -32,7 +33,7 @@ import java.util.List;
 public class ApnProxyConfigReader extends ApnProxyAbstractXmlConfigReader {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyConfigReader.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyConfigReader");
 
     @Override
     protected void realReadProcess(Element rootElement) {

@@ -16,10 +16,9 @@
 
 package com.dataeye.proxy.apn.initializer;
 
-import com.dataeye.proxy.apn.handler.CacheSaveHandler;
+import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.HttpProxyHandler;
 import com.dataeye.proxy.apn.handler.HttpProxyHandler.RemoteChannelInactiveCallback;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxySslRemote;
 import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
@@ -72,6 +71,6 @@ public class HttpProxyChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast(HttpProxyHandler.HANDLER_NAME, new HttpProxyHandler(uaChannel, remoteAddr,
                 remoteChannelInactiveCallback));
 
-        pipeline.addLast(CacheSaveHandler.HANDLER_NAME, new CacheSaveHandler());
+//        pipeline.addLast(CacheSaveHandler.HANDLER_NAME, new CacheSaveHandler());
     }
 }

@@ -16,10 +16,12 @@
 
 package com.dataeye.proxy.apn.initializer;
 
+import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.*;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
+import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import io.netty.channel.ChannelInitializer;
@@ -40,11 +42,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-    private final ApnProxyRemoteChooser apnProxyRemoteChooser;
-    private final TunnelInstance tunnelInstance;
-    public ApnProxyServerChannelInitializer(ApnProxyRemoteChooser apnProxyRemoteChooser, TunnelInstance tunnelInstance){
-        this.apnProxyRemoteChooser = apnProxyRemoteChooser;
-        this.tunnelInstance = tunnelInstance;
+    private final ApnHandlerParams apnHandlerParams;
+
+    public ApnProxyServerChannelInitializer(ApnHandlerParams apnHandlerParams) {
+        this.apnHandlerParams = apnHandlerParams;
     }
 
     @Override
@@ -62,8 +63,8 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
         pipeline.addLast("codec", new HttpServerCodec());
         pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler());
-        pipeline.addLast(CacheFindHandler.HANDLER_NAME, new CacheFindHandler());
-        pipeline.addLast(ApnProxyForwardHandler.HANDLER_NAME, new ApnProxyForwardHandler(apnProxyRemoteChooser, tunnelInstance));
-        pipeline.addLast(ApnProxyTunnelHandler.HANDLER_NAME, new ApnProxyTunnelHandler(apnProxyRemoteChooser, tunnelInstance));
+//        pipeline.addLast(CacheFindHandler.HANDLER_NAME, new CacheFindHandler());
+        pipeline.addLast(ApnProxyForwardHandler.HANDLER_NAME, new ApnProxyForwardHandler(apnHandlerParams));
+        pipeline.addLast(ApnProxyTunnelHandler.HANDLER_NAME, new ApnProxyTunnelHandler(apnHandlerParams));
     }
 }

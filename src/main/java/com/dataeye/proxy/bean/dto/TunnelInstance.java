@@ -22,17 +22,18 @@ public class TunnelInstance implements Serializable {
     private int port;
     private String proxyUsername;
     private String proxyPassword;
+    private int concurrency;
     private int bossThreadSize;
     private int workerThreadSize;
     private int businessThreadSize;
     private int proxyIpPoolSize;
     private int singleIpTtl;
     private String updateIpPoolCronExpress;
-    private int maxCpuSize;
-    private int maxRamSize;
     private int maxNetBandwidthSize;
     private String lastModified;
     private String createTime;
     private String description;
+    // 新增
+    private int connectTimeoutMillis;
 
 }

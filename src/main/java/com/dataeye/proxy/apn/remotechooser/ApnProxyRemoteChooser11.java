@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.remotechooser;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.config.ApnProxyRemoteRule;
@@ -32,7 +33,7 @@ import org.springframework.stereotype.Component;
 public class ApnProxyRemoteChooser11 {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyRemoteChooser11.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyRemoteChooser11");
 
     private static final Logger remoteChooseLogger = LoggerFactory.getLogger("REMOTE_CHOOSE_LOGGER");
 

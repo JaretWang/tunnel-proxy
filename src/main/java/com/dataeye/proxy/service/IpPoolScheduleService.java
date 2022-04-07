@@ -1,12 +1,15 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ZhiMaProxyService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,10 +26,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Data
 @Service
 public class IpPoolScheduleService {
+
+    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
 
     @Autowired
     ZhiMaProxyService zhiMaProxyService;
@@ -73,47 +77,58 @@ public class IpPoolScheduleService {
      * @throws IOException
      */
     public void checkAndUpdateIp() throws IOException {
-        List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
-        for (TunnelInstance tunnelInstance : tunnelInstanceList) {
-            //todo id暂时换成name
+//        List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
+//        for (TunnelInstance tunnelInstance : tunnelInstanceList) {
+//            initSingleServer(tunnelInstance);
+//        }
+        //todo 本地测试用
+        initSingleServer(Global.TUNNEL_INSTANCE);
+    }
+
+    /**
+     * 初始化单个server
+     *
+     * @param tunnelInstance
+     */
+    public void initSingleServer(TunnelInstance tunnelInstance) {
+        //todo id暂时换成name
 //            String id = tunnelInstance.toString();
-            String id = tunnelInstance.getAlias();
-            if (proxyIpPool.containsKey(id)) {
-                log.info("存在实例 {} 对应的ip池", tunnelInstance.getAlias());
-                ConcurrentLinkedQueue<ProxyCfg> queue = proxyIpPool.get(id);
-                if (queue == null || queue.isEmpty()) {
-                    log.warn("id存在，但是ip循环队列为空");
-                    for (int i = 0; i < proxyServerConfig.getIpSizeEachPool(); i++) {
-//                        ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
-//                        queue.add(proxyCfg);
-
-                        checkBeforeUpdate(queue);
-                    }
-                    proxyIpPool.put(id, queue);
-                    continue;
-                }
-                log.info("逐个检查ip的过期时间");
-                for (ProxyCfg next : queue) {
-                    if (next == null || checkExpireTime(next)) {
-                        queue.remove(next);
-                        // todo 直接放入
-//                        ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
-//                        queue.add(proxyCfg);
-
-                        checkBeforeUpdate(queue);
-                    }
-                }
-            } else {
-                log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
-                ConcurrentLinkedQueue<ProxyCfg> queue = new ConcurrentLinkedQueue<>();
+        String id = tunnelInstance.getAlias();
+        if (proxyIpPool.containsKey(id)) {
+            log.info("存在实例 {} 对应的ip池", tunnelInstance.getAlias());
+            ConcurrentLinkedQueue<ProxyCfg> queue = proxyIpPool.get(id);
+            if (queue == null || queue.isEmpty()) {
+                log.warn("id存在，但是ip循环队列为空");
                 for (int i = 0; i < proxyServerConfig.getIpSizeEachPool(); i++) {
-//                    ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
-//                    queue.add(proxyCfg);
+//                        ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
+//                        queue.add(proxyCfg);
 
                     checkBeforeUpdate(queue);
                 }
                 proxyIpPool.put(id, queue);
+                return;
             }
+            log.info("逐个检查ip的过期时间");
+            for (ProxyCfg next : queue) {
+                if (next == null || checkExpireTime(next)) {
+                    queue.remove(next);
+                    // todo 直接放入
+//                        ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
+//                        queue.add(proxyCfg);
+
+                    checkBeforeUpdate(queue);
+                }
+            }
+        } else {
+            log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
+            ConcurrentLinkedQueue<ProxyCfg> queue = new ConcurrentLinkedQueue<>();
+            for (int i = 0; i < proxyServerConfig.getIpSizeEachPool(); i++) {
+//                    ProxyCfg proxyCfg = zhiMaProxyService.getOne().get();
+//                    queue.add(proxyCfg);
+
+                checkBeforeUpdate(queue);
+            }
+            proxyIpPool.put(id, queue);
         }
     }
 

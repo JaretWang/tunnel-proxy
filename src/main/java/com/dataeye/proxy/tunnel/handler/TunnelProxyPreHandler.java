@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.TunnelProxyListenType;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.cons.HandlerCons;
@@ -14,15 +15,16 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 /**
  * @author jaret
  * @date 2022/3/25 18:03
  * @description 检查请求的黑白名单,包括请求的ip，port，类型
  */
-@Slf4j
-public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
 
+public class TunnelProxyPreHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxyPreHandler");
     public static final String HANDLER_NAME = "tunnel_proxy_pre";
 
     private static String[] forbiddenIps = new String[]{"10.", "172.16.", "172.17.",

@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.config;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Element;
@@ -31,7 +32,7 @@ import java.io.*;
  */
 public abstract class ApnProxyAbstractXmlConfigReader {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyAbstractXmlConfigReader.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyAbstractXmlConfigReader");
 
     public final void read(InputStream xmlConfigFileInputStream) {
         Document doc = null;

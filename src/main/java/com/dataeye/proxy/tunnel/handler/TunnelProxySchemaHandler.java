@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
@@ -14,6 +15,7 @@ import io.netty.handler.codec.http.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import java.util.List;
 
@@ -22,8 +24,10 @@ import java.util.List;
  * @date 2022/3/25 19:10
  * @description
  */
-@Slf4j
+
 public class TunnelProxySchemaHandler extends ChannelInboundHandlerAdapter {
+
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxySchemaHandler");
 
     public static final String HANDLER_NAME = "tunnel_proxy_schema";
 

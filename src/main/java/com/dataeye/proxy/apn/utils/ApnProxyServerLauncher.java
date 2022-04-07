@@ -34,7 +34,7 @@
 // */
 //public class ApnProxyServerLauncher {
 //
-//    private static final Logger logger = LoggerFactory.getLogger(ApnProxyServerLauncher.class);
+//    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyServerLauncher.class);
 //
 //    static {
 //        File log4jConfigFile = new File(com.dataeye.proxy.apn.cons.ApnProxyConstants.LOG4J_CONFIG_FILE);
@@ -63,7 +63,7 @@
 //            ApnProxyRemoteRulesConfigReader reader = new ApnProxyRemoteRulesConfigReader();
 //            reader.read(new File(com.dataeye.proxy.apn.cons.ApnProxyConstants.REMOTE_RULES_CONFIG_FILE));
 //        } catch (FileNotFoundException e) {
-//            logger.warn("The config file conf/remote-rules.xml not exists, no remote rules configured!");
+//            logger.warn("The config file conf/remote-rules.xml-- not exists, no remote rules configured!");
 //        }
 //
 //        if (ApnProxyConfig.getConfig().isUseIpV6()) {

@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.cons.ApnProxyConstants;
 import com.dataeye.proxy.apn.utils.SHA256Util;
 import io.netty.buffer.ByteBuf;
@@ -41,7 +42,7 @@ import java.util.Properties;
  */
 public class CacheFindHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(CacheSaveHandler.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("CacheSaveHandler");
 
     private static final Logger cacheLogger = LoggerFactory.getLogger("CACHE_LOGGER");
 

@@ -17,11 +17,14 @@
 package com.dataeye.proxy.apn;
 
 import com.dataeye.proxy.TunnelProxyApplication;
+import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyConfigReader;
 import com.dataeye.proxy.apn.config.ApnProxyRemoteRulesConfigReader;
+import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
+import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.component.ProxySslContextFactory;
@@ -44,6 +47,9 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -68,28 +74,32 @@ public class ApnProxyServer {
     ProxyService proxyService;
     @Autowired
     ITunnelDistributeService tunnelDistributeService;
+    @Autowired
+    RequestDistributeService requestDistributeService;
     @Resource
     TunnelInitMapper tunnelInitMapper;
-//    EventLoopGroup bossGroup;
-//    EventLoopGroup workerGroup;
 
     /**
      * 初始化隧道实例
      */
     @PostConstruct
     public void initMultiTunnel() {
-        ApnProxyConfigReader apnProxyConfigReader = new ApnProxyConfigReader();
-        apnProxyConfigReader.read(TunnelProxyApplication.class
-                .getResourceAsStream("/plain-proxy-config.xml"));
+//        ApnProxyConfigReader apnProxyConfigReader = new ApnProxyConfigReader();
+//        apnProxyConfigReader.read(TunnelProxyApplication.class
+//                .getResourceAsStream("/plain-proxy-config.xml--"));
+//
+//        ApnProxyRemoteRulesConfigReader apnProxyRemoteRulesConfigReader = new ApnProxyRemoteRulesConfigReader();
+//        apnProxyRemoteRulesConfigReader.read(TunnelProxyApplication.class
+//                .getResourceAsStream("/plain-proxy-config.xml--"));
 
-        ApnProxyRemoteRulesConfigReader apnProxyRemoteRulesConfigReader = new ApnProxyRemoteRulesConfigReader();
-        apnProxyRemoteRulesConfigReader.read(TunnelProxyApplication.class
-                .getResourceAsStream("/plain-proxy-config.xml"));
-
-        // 获取初始化参数
-        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         // 创建实例
-        startByConfig(tunnelInstances);
+        //TODO 先使用本地,测试一些参数,后续转移到mysql
+        startByConfig(Collections.singletonList(Global.TUNNEL_INSTANCE));
+
+//        // 获取初始化参数
+//        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+//        // 创建实例
+//        startByConfig(tunnelInstances);
     }
 
     /**
@@ -151,13 +161,19 @@ public class ApnProxyServer {
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
+        ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
+                .apnProxyRemoteChooser(apnProxyRemoteChooser)
+                .tunnelInstance(tunnelInstance)
+                .requestDistributeService(requestDistributeService)
+                .build();
+
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
         EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .localAddress(host, port)
                 .channel(NioServerSocketChannel.class)
-                .childHandler(new ApnProxyServerChannelInitializer(apnProxyRemoteChooser, tunnelInstance))
+                .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();

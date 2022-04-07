@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.proxy.cons.ProxyConstants;
 import com.dataeye.proxy.utils.SHA256Utils;
@@ -29,7 +30,7 @@ import java.util.Properties;
  */
 public class TunnelCacheSaveHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(TunnelCacheSaveHandler.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("TunnelCacheSaveHandler");
 
     public static final String HANDLER_NAME = "tunnel_proxy_cache_save";
 

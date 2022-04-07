@@ -47,6 +47,7 @@ IP隧道服务，用于公司内部爬虫服务的请求代理IP的管理，分�
 部署路径：/usr/local/htdocs/tunnel-proxy
 日志路径：/data0/logs/tunnel-proxy
 启动参数：-Dspring.profiles.active=product -Dserver.port=21330
+端口使用：21330~21339   #这10个端口是规划给 tunnel-proxy 这个服务的
 ```
 
 # 其他
@@ -64,4 +65,7 @@ win10 杀死端口占用的进程
 ## 问题
 1.根据MySQL初始化不同的隧道列表，每条隧道对应都有一个代理ip环形队列作为ip池（注意：芝麻代理的每个ip获取都是根据你的本机器的ip来计算的，
 不同的机器ip请求获取的时候，代理IP的可用个数会对应减1，相同的ip获取的时候，只会当作一个）
-2.
+
+
+# AB测试
+ab -n 1000 -c 1 http://13.209.21.196:8080/trade-server/test/order/testQueue

@@ -1,5 +1,6 @@
 package com.dataeye.proxy.tunnel.handler;
 
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.ITunnelDistributeService;
 import com.dataeye.proxy.service.ProxyService;
@@ -8,6 +9,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 /**
  * @author jaret
@@ -15,9 +17,9 @@ import lombok.extern.slf4j.Slf4j;
  * @description
  */
 @Deprecated
-@Slf4j
-public class TunnelProxyHandler2 extends ChannelInboundHandlerAdapter {
 
+public class TunnelProxyHandler2 extends ChannelInboundHandlerAdapter {
+    private static final Logger log = LogbackRollingFileUtil.getLogger("TunnelProxyHandler2");
     public static final String HANDLER_NAME = "tunnel_proxy";
     private final ITunnelDistributeService tunnelDistributeService;
     private final TunnelInstance tunnelInstance;
