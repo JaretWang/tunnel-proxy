@@ -26,12 +26,6 @@ public class ApnProxyConstants {
 
     public static final AttributeKey<String> REQUST_URL_ATTRIBUTE_KEY = AttributeKey.valueOf("apnproxy.request_url");
 
-    public static final String LOG4J_CONFIG_FILE = "conf/log4j.xml";
-
-    public static final String CONFIG_FILE = "conf/config.xml";
-
-    public static final String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml--";
-
     public static final String CACHE_DIR = "cache";
 
     public static final String CACHE_DATA_DIR = "data";

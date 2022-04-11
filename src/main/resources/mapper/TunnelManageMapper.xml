@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.dataeye.proxy.dao.TunnelInitMapper">
+
     <!--column不做限制，可以为任意表的字段，而property须为type 定义的pojo属性-->
     <resultMap id="select_all" type="com.dataeye.proxy.bean.dto.TunnelInstance">
         <id column="id" jdbcType="INTEGER" property="id" />
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
         <result column="ip" jdbcType="INTEGER" property="ip"/>
         <result column="port" jdbcType="INTEGER" property="port"/>
-        <result column="concurrency" jdbcType="INTEGER" property="concurrency"/>
-        <result column="proxy_username" jdbcType="VARCHAR" property="proxyUsername"/>
-        <result column="proxy_password" jdbcType="VARCHAR" property="proxyPassword"/>
+        <result column="username" jdbcType="VARCHAR" property="username"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
         <result column="boss_thread_size" jdbcType="INTEGER" property="bossThreadSize"/>
         <result column="worker_thread_size" jdbcType="INTEGER" property="workerThreadSize"/>
         <result column="business_thread_size" jdbcType="INTEGER" property="businessThreadSize"/>
-        <result column="proxy_ip_pool_size" jdbcType="INTEGER" property="proxyIpPoolSize"/>
-        <result column="single_ip_ttl" jdbcType="INTEGER" property="singleIpTtl"/>
-        <result column="update_ip_pool_cron_express" jdbcType="VARCHAR" property="updateIpPoolCronExpress"/>
-        <result column="max_net_bandwidth_size" jdbcType="INTEGER" property="maxNetBandwidthSize"/>
+        <result column="concurrency" jdbcType="INTEGER" property="concurrency"/>
+        <result column="max_net_bandwidth" jdbcType="INTEGER" property="maxNetBandwidth"/>
+        <result column="max_slow_req_size" jdbcType="INTEGER" property="maxSlowReqSize"/>
+        <result column="fixed_ip_pool_size" jdbcType="INTEGER" property="fixedIpPoolSize"/>
+        <result column="check_ip_pool_interval_seconds" jdbcType="INTEGER" property="checkIpPoolIntervalSeconds"/>
+        <result column="pull_ip_size_once" jdbcType="INTEGER" property="pullIpSizeOnce"/>
+        <result column="connect_timeout_millis" jdbcType="INTEGER" property="connectTimeoutMillis"/>
+        <result column="retry_count" jdbcType="INTEGER" property="retryCount"/>
         <result column="last_modified" jdbcType="TIMESTAMP" property="lastModified"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
         <result column="description" jdbcType="VARCHAR" property="description"/>

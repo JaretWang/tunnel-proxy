@@ -93,22 +93,17 @@ public class ProxyServerConfig {
 
     // ---------------- 定时任务 -------------------
 
+    /**
+     * 循环检查ip池的时间间隔
+     */
     private int cycleCheckTime;
     /**
-     * 每个实例server对应的ip池中的ip数量
+     * 获取的ip是失效ip的重试次数
      */
-    private int ipSizeEachPool;
-    /**
-     * 获取的ip是失效ip的次数
-     */
-    private int failureIpGetCount;
+    private int expiredIpRetryCount;
     /**
      * 提前判定ip为失效状态的最小时间间隔
      */
-    private int judgeFailMinTimeSeconds;
-    /**
-     * netty 客户端连接超时时间
-     */
-    private int bootstrapConnectTimeoutMillis;
+    private int judgeExpiredIpMinSeconds;
 
 }

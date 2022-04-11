@@ -12,6 +12,7 @@ import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.ProxyService;
 import com.dataeye.proxy.service.ZhiMaProxyService;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
@@ -34,11 +35,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @description 代理ip选择器
  */
 @Data
-//
+@Slf4j
 @Component
 public class IpSelector {
 
-    private static final Logger log = LogbackRollingFileUtil.getLogger("IpSelector");
+//    private static final Logger log = LogbackRollingFileUtil.getLogger("IpSelector");
 
     @Resource
     private ProxyServerConfig proxyServerConfig;

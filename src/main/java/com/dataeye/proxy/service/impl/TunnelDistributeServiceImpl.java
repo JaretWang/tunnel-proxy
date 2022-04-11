@@ -244,7 +244,7 @@ public class TunnelDistributeServiceImpl implements ITunnelDistributeService {
             Channel uaChannel = ctx.channel();
             Bootstrap bootstrap = new Bootstrap()
                     .group(uaChannel.eventLoop()).channel(NioSocketChannel.class)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServerConfig.getBootstrapConnectTimeoutMillis())
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                     .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                     .option(ChannelOption.AUTO_READ, false)
                     .handler(new TunnelClientChannelInitializer(allocateResult, uaChannel, proxySslContextFactory));

@@ -18,7 +18,6 @@ public interface HandlerCons {
     AttributeKey<String> REQUST_URL_ATTRIBUTE_KEY = AttributeKey.valueOf("tunnel_proxy_request_url");
     String LOG4J_CONFIG_FILE = "conf/log4j.xml";
     String CONFIG_FILE = "conf/config.xml";
-    String REMOTE_RULES_CONFIG_FILE = "conf/remote-rules.xml--";
     String CACHE_DIR = "cache";
     String CACHE_DATA_DIR = "data";
     String HEADER_PROXY_AUTHORIZATION = "Proxy-Authorization";

@@ -17,19 +17,18 @@
 package com.dataeye.proxy.apn.remotechooser;
 
 import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.logback.LogbackRollingFileUtil;
-import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.config.ApnProxyRemoteRule;
+import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
+import com.dataeye.proxy.utils.Md5Utils;
+import io.netty.handler.codec.http.HttpRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -42,13 +41,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class ApnProxyRemoteChooser {
 
-    @SuppressWarnings("unused")
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
-//    private static final Logger remoteChooseLogger = LoggerFactory.getLogger("REMOTE_CHOOSE_LOGGER");
-
+    //    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    private static final Logger logger = LoggerFactory.getLogger(ApnProxyRemoteChooser.class);
+    private final AtomicInteger errorCount = new AtomicInteger(3);
     @Autowired
     IpPoolScheduleService ipPoolScheduleService;
-    private final AtomicInteger errorCount = new AtomicInteger(3);
 
     /**
      * 从代理ip池获取ip
@@ -56,20 +53,32 @@ public class ApnProxyRemoteChooser {
      * @param tunnelInstance
      * @return
      */
-    public ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance) {
+    public ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance, HttpRequest httpRequest) {
         String proxyServer = tunnelInstance.getAlias();
+        // todo 使用attribute改造
+//        String method = httpRequest.method().name();
+//        String protocolName = httpRequest.protocolVersion().protocolName();
+//        String uri = httpRequest.uri();
+//        String requestCombine = proxyServer + method + protocolName + uri;
+//        String requestId = Md5Utils.md5Encode(requestCombine);
+//        ApnProxyRemote apnProxyRemote = Global.REQUEST_IP_USE_RELATIONS.get(requestId);
+//        if (Objects.nonNull(apnProxyRemote)) {
+//            logger.info("存在该请求使用的ip缓存");
+//            return apnProxyRemote;
+//        }
+
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         ConcurrentLinkedQueue<ProxyCfg> proxyCfgsQueue = proxyIpPool.get(proxyServer);
         if (proxyCfgsQueue == null || proxyCfgsQueue.isEmpty()) {
-            logger.error("实例 {} 对应的代理IP列表为空，需要重新加载", proxyServer);
-//            ipPoolScheduleService.checkAndUpdateIp();
+            logger.error("实例 {} 对应的代理IP队列为空，需要重新加载", proxyServer);
             ipPoolScheduleService.initSingleServer(tunnelInstance);
             errorCount.decrementAndGet();
             if (errorCount.get() <= 0) {
                 logger.error("连续 3 次初始化ip池失败, errorCount: {}", errorCount.get());
-                return null;
+                throw new RuntimeException("实例 " + proxyServer + " 对应的代理IP队列为空，连续 3 次重试失败");
+//                return null;
             }
-            return getProxyConfig(tunnelInstance);
+            return getProxyConfig(tunnelInstance, httpRequest);
         } else {
             errorCount.set(3);
             ProxyCfg poll = proxyCfgsQueue.poll();
@@ -77,6 +86,7 @@ public class ApnProxyRemoteChooser {
                 logger.info("从队列中获取代理ip的结果：{}", poll);
                 // 取了需要再放进去
                 proxyCfgsQueue.offer(poll);
+
                 ApnProxyRemote apPlainRemote = new ApnProxyPlainRemote();
                 apPlainRemote.setAppleyRemoteRule(true);
                 apPlainRemote.setRemoteListenType(ApnProxyListenType.PLAIN);
@@ -84,9 +94,11 @@ public class ApnProxyRemoteChooser {
                 apPlainRemote.setRemotePort(poll.getPort());
                 apPlainRemote.setProxyUserName(poll.getUserName());
                 apPlainRemote.setProxyPassword(poll.getPassword());
+
+//                Global.REQUEST_IP_USE_RELATIONS.put(requestId, apPlainRemote);
                 return apPlainRemote;
             }
-            throw new RuntimeException("从队列中 poll 出来的ip为空");
+            throw new RuntimeException("从队列中poll出来的ip为空");
         }
     }
 

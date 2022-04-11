@@ -1,23 +1,20 @@
 package com.dataeye.proxy.tunnel.handler;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
-import com.dataeye.proxy.bean.IpTimer;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
-import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.cons.HandlerCons;
 import com.dataeye.proxy.utils.HttpErrorUtils;
 import com.dataeye.proxy.utils.SocksServerUtils;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.*;
-import lombok.extern.slf4j.Slf4j;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import okhttp3.Credentials;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-
-import java.util.List;
 
 /**
  * @author jaret
@@ -88,8 +85,8 @@ public class TunnelProxySchemaHandler extends ChannelInboundHandlerAdapter {
      * @return
      */
     private boolean checkAuth(TunnelInstance tunnelInstance, String authInfo) {
-        String proxyUsername = tunnelInstance.getProxyUsername();
-        String proxyPassword = tunnelInstance.getProxyPassword();
+        String proxyUsername = tunnelInstance.getUsername();
+        String proxyPassword = tunnelInstance.getPassword();
         String basic = Credentials.basic(proxyUsername, proxyPassword);
         return StringUtils.equals(basic, authInfo);
     }

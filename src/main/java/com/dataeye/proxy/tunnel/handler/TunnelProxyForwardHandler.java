@@ -129,7 +129,7 @@ public class TunnelProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 Bootstrap bootstrap = new Bootstrap()
                         .group(uaChannel.eventLoop())
                         .channel(NioSocketChannel.class)
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyServerConfig.getBootstrapConnectTimeoutMillis())
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                         .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                         .option(ChannelOption.AUTO_READ, false)
                         .handler(new TunnelHttpProxyChannelInitializer(allocateResult, uaChannel, proxySslContextFactory, cb));

@@ -27,8 +27,7 @@ public class TestMybatis {
     @Test
     public void test() {
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
-        String s = JSON.toJSONString(tunnelInstances);
-        System.out.println(s);
+        log.warn(JSON.toJSONString(tunnelInstances));
     }
 
 }

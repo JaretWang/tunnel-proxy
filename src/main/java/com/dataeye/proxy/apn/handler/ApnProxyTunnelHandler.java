@@ -64,11 +64,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof HttpRequest) {
             final HttpRequest httpRequest = (HttpRequest) msg;
             logger.info("ApnProxyTunnelHandler 接收请求, 类型 [{}]", httpRequest.method().name());
-            ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-            if (Objects.isNull(apnProxyRemote)) {
-                handleProxyIpIsEmpty(ctx);
-            }
-            requestDistributeService.sendRequestByTunnel(ioThreadPool, ctx, httpRequest, apnProxyRemote, tunnelInstance);
+            requestDistributeService.sendRequestByTunnel(ioThreadPool, ctx, httpRequest, tunnelInstance, apnProxyRemoteChooser);
         }
         ReferenceCountUtil.release(msg);
     }

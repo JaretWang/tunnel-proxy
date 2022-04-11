@@ -16,9 +16,7 @@
 
 package com.dataeye.proxy.apn;
 
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
@@ -44,7 +42,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -105,9 +102,9 @@ public class ApnProxyServer {
     public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize, String threadNamePrefix) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
         pool.setCorePoolSize(instanceSize);
-        pool.setMaxPoolSize(instanceSize + 1);
+        pool.setMaxPoolSize(instanceSize);
         pool.setQueueCapacity(2 * instanceSize);
-        pool.setKeepAliveSeconds(60);
+        pool.setKeepAliveSeconds(0);
         pool.setWaitForTasksToCompleteOnShutdown(true);
         pool.setThreadNamePrefix(threadNamePrefix);
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
