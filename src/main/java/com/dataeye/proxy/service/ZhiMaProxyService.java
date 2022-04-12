@@ -55,6 +55,30 @@ public class ZhiMaProxyService implements InitializingBean {
     @Value("${spring.profiles.active}")
     private String profiles;
 
+    private static String getEth0Inet4InnerIp() {
+        Enumeration<NetworkInterface> networkInterfaces;
+        try {
+            networkInterfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            return null;
+        }
+
+        NetworkInterface netInterface;
+        while (networkInterfaces.hasMoreElements()) {
+            netInterface = networkInterfaces.nextElement();
+            if (null != netInterface && "eth0".equals(netInterface.getName())) {
+                Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (address instanceof Inet4Address) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     @Override
     public void afterPropertiesSet() {
         try {
@@ -80,7 +104,7 @@ public class ZhiMaProxyService implements InitializingBean {
         } else {
             params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=" + host;
         }
-
+        LOG.info("调用 proxy-service 服务的请求参数：{}", params);
         HttpClientResponse response = commonHttpClient.doPost(bizConfig.getProxyUrl(), new HashMap<>(), params, ResponseEntityType.STRING_UTF8, null);
         if (!response.codeIs200() || Objects.isNull(response.getResponseContent())) {
             LOG.error("refresh proxy error,code:{}", response.getStatusCode());
@@ -133,31 +157,6 @@ public class ZhiMaProxyService implements InitializingBean {
         int index = INDEX.getAndIncrement();
         ProxyCfg proxyCfg = CONTAINER.get(index % CONTAINER.size());
         return Optional.of(proxyCfg);
-    }
-
-
-    private static String getEth0Inet4InnerIp() {
-        Enumeration<NetworkInterface> networkInterfaces;
-        try {
-            networkInterfaces = NetworkInterface.getNetworkInterfaces();
-        } catch (SocketException e) {
-            return null;
-        }
-
-        NetworkInterface netInterface;
-        while (networkInterfaces.hasMoreElements()) {
-            netInterface = networkInterfaces.nextElement();
-            if (null != netInterface && "eth0".equals(netInterface.getName())) {
-                Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress address = addresses.nextElement();
-                    if (address instanceof Inet4Address) {
-                        return address.getHostAddress();
-                    }
-                }
-            }
-        }
-        return null;
     }
 
 //    public String getPort() {
