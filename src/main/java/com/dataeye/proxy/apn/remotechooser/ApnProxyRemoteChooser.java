@@ -17,13 +17,12 @@
 package com.dataeye.proxy.apn.remotechooser;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
-import com.dataeye.proxy.utils.Md5Utils;
 import io.netty.handler.codec.http.HttpRequest;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class ApnProxyRemoteChooser {
 
-    //    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyRemoteChooser.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    //    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyRemoteChooser.class);
     private final AtomicInteger errorCount = new AtomicInteger(3);
     @Autowired
     IpPoolScheduleService ipPoolScheduleService;
@@ -53,7 +52,7 @@ public class ApnProxyRemoteChooser {
      * @param tunnelInstance
      * @return
      */
-    public ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance, HttpRequest httpRequest) {
+    public synchronized ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance, HttpRequest httpRequest) {
         String proxyServer = tunnelInstance.getAlias();
         // todo 使用attribute改造
 //        String method = httpRequest.method().name();
@@ -75,12 +74,14 @@ public class ApnProxyRemoteChooser {
             errorCount.decrementAndGet();
             if (errorCount.get() <= 0) {
                 logger.error("连续 3 次初始化ip池失败, errorCount: {}", errorCount.get());
+                errorCount.set(3);
                 throw new RuntimeException("实例 " + proxyServer + " 对应的代理IP队列为空，连续 3 次重试失败");
 //                return null;
             }
             return getProxyConfig(tunnelInstance, httpRequest);
         } else {
             errorCount.set(3);
+            // TODO 这里可能有多线程安全问题,一个取,一个拿
             ProxyCfg poll = proxyCfgsQueue.poll();
             if (Objects.nonNull(poll)) {
                 logger.info("从队列中获取代理ip的结果：{}", poll);

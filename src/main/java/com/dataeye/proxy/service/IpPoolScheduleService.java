@@ -1,6 +1,8 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.commonx.domain.ProxyCfg;
+
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -27,8 +29,8 @@ import java.util.stream.Collectors;
 @Service
 public class IpPoolScheduleService {
 
-    //    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
-    private static final Logger log = LoggerFactory.getLogger(IpPoolScheduleService.class);
+    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
+
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     /**
      * ip池

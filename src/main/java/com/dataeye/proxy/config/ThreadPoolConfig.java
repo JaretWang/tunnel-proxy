@@ -1,8 +1,10 @@
 package com.dataeye.proxy.config;
 
+
 import com.dataeye.logback.LogbackRollingFileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Configuration
 public class ThreadPoolConfig {
 
-    private static final Logger log = LogbackRollingFileUtil.getLogger("ThreadPoolConfig");
+    private static final Logger log = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     /**
      * cpu 密集型线程池：核心线程数量=cpu核心数量+1

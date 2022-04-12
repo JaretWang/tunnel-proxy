@@ -27,10 +27,12 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
 import javax.net.ssl.SSLEngine;
@@ -61,6 +63,8 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
         }
 //        pipeline.addLast("log", new LoggingHandler("BYTE_LOGGER", LogLevel.INFO));
         pipeline.addLast("codec", new HttpServerCodec());
+//        pipeline.addLast("object_agg", new HttpObjectAggregator(Integer.MAX_VALUE));
+//        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler());
 //        pipeline.addLast(CacheFindHandler.HANDLER_NAME, new CacheFindHandler());

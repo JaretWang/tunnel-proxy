@@ -29,7 +29,6 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -52,8 +51,7 @@ import java.util.stream.Collectors;
 @Service
 public class RequestDistributeService {
 
-        private static final Logger logger = LogbackRollingFileUtil.getLogger("RequestDistributeService");
-//    private static final Logger logger = LoggerFactory.getLogger(RequestDistributeService.class);
+    private static final Logger logger = LogbackRollingFileUtil.getLogger("RequestDistributeService");
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
@@ -342,6 +340,7 @@ public class RequestDistributeService {
                     // EMPTY_BUFFER 标识会让通道自动关闭
                     future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                             .addListener((ChannelFutureListener) future1 -> future1.channel().read());
+                    logger.info("forward_handler 响应成功, 即将关闭通道, 耗时：{} ms", took);
                 } else {
                     List<String> ipList = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.toString())
                             .stream()
@@ -396,13 +395,7 @@ public class RequestDistributeService {
                     .option(ChannelOption.AUTO_READ, false)
                     .handler(new ApnProxyTunnelChannelInitializer(apnProxyRemote, uaChannel));
 
-            // set local address
             String remoteHost = apnProxyRemote.getRemoteHost();
-            String ip = ApnProxyLocalAddressChooser.choose(remoteHost);
-            if (StringUtils.isNotBlank(ip)) {
-                logger.info("本地地址: {}", ip);
-                bootstrap.localAddress(new InetSocketAddress(ip, 0));
-            }
             int remotePort = apnProxyRemote.getRemotePort();
             logger.info("代理ip: {}:{}", remoteHost, remotePort);
 

@@ -16,17 +16,14 @@
 
 package com.dataeye.proxy.apn;
 
+
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
-import com.dataeye.proxy.component.ProxySslContextFactory;
-import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
-import com.dataeye.proxy.service.ITunnelDistributeService;
-import com.dataeye.proxy.service.ProxyService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -35,7 +32,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -52,21 +48,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Component
 public class ApnProxyServer {
 
-    //    private static final Logger LOG = LogbackRollingFileUtil.getLogger("ApnProxyServer");
-    private static final Logger LOG = LoggerFactory.getLogger(ApnProxyServer.class);
+    private static final Logger LOG = LogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;
-    @Autowired
-    ProxyServerConfig proxyServerConfig;
-    @Autowired
-    ProxySslContextFactory proxySslContextFactory;
-    @Autowired
-    IpSelector ipSelector;
-    @Autowired
-    ProxyService proxyService;
-    @Autowired
-    ITunnelDistributeService tunnelDistributeService;
     @Autowired
     RequestDistributeService requestDistributeService;
     @Resource
@@ -114,23 +99,6 @@ public class ApnProxyServer {
     }
 
     /**
-     * 创建proxy server
-     */
-    class CreateProxyServerTask implements Runnable {
-
-        private final TunnelInstance tunnelInstance;
-
-        public CreateProxyServerTask(TunnelInstance tunnelInstance) {
-            this.tunnelInstance = tunnelInstance;
-        }
-
-        @Override
-        public void run() {
-            startProxyServer(tunnelInstance);
-        }
-    }
-
-    /**
      * 启动一个 proxy server
      *
      * @param tunnelInstance 隧道实例
@@ -171,6 +139,23 @@ public class ApnProxyServer {
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
+        }
+    }
+
+    /**
+     * 创建proxy server
+     */
+    class CreateProxyServerTask implements Runnable {
+
+        private final TunnelInstance tunnelInstance;
+
+        public CreateProxyServerTask(TunnelInstance tunnelInstance) {
+            this.tunnelInstance = tunnelInstance;
+        }
+
+        @Override
+        public void run() {
+            startProxyServer(tunnelInstance);
         }
     }
 

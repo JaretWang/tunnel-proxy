@@ -16,11 +16,14 @@
 
 package com.dataeye.proxy.apn.handler;
 
+
+import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -44,8 +47,8 @@ import java.util.Map;
  */
 public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
-    //    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
-    private static final Logger logger = LoggerFactory.getLogger(ApnProxyForwardHandler.class);
+        private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
+//    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyForwardHandler.class);
 
     public static final String HANDLER_NAME = "apnproxy.forward";
 //    private final Map<String, Channel> remoteChannelMap = new HashMap<>();
@@ -69,7 +72,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
-            logger.info("ApnProxyForwardHandler 接收请求, 类型 [{}]", httpRequest.method().name());
+            logger.info("ApnProxyForwardHandler 接收请求, 请求内容: {}", httpRequest.toString());
 
 //            ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance,httpRequest);
 //            if (Objects.isNull(apnProxyRemote)) {
@@ -94,12 +97,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 //                requestDistributeService.sendRequestByForward(ioThreadPool, uaChannel, remoteChannel, httpRequest, apnProxyRemote,
 //                        tunnelInstance, httpContentBuffer, remoteChannelMap, msg);
 
-            requestDistributeService.sendRequestByForward(ioThreadPool,
-                    uaChannel,
-                    httpRequest,
-                    tunnelInstance, httpContentBuffer,
-//                    remoteChannelMap,
-                    ctx, msg, apnProxyRemoteChooser);
+            requestDistributeService.sendRequestByForward(ioThreadPool, uaChannel, httpRequest, tunnelInstance,
+                    httpContentBuffer, ctx, msg, apnProxyRemoteChooser);
 
 //            }
             ReferenceCountUtil.release(msg);
@@ -129,6 +128,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.debug("UA channel inactive");
+        SocksServerUtils.closeOnFlush(ctx.channel());
 //        for (Map.Entry<String, Channel> entry : remoteChannelMap.entrySet()) {
 //            final Channel remoteChannel = entry.getValue();
 //            remoteChannel.writeAndFlush(Unpooled.EMPTY_BUFFER)
@@ -139,8 +139,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error(cause.getMessage(), cause);
-//        SocksServerUtils.closeOnFlush(ctx.channel());
-        ctx.close();
+        SocksServerUtils.closeOnFlush(ctx.channel());
+//        ctx.close();
     }
 
 //    public void handleProxyIpIsEmpty(ChannelHandlerContext ctx){

@@ -16,7 +16,7 @@
 
 package com.dataeye.proxy.apn.config;
 
-import com.dataeye.logback.LogbackRollingFileUtil;
+
 import com.dataeye.proxy.apn.exception.ApnProxyConfigException;
 import nu.xom.Element;
 import nu.xom.Elements;

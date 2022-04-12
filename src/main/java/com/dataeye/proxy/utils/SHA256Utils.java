@@ -1,8 +1,10 @@
 package com.dataeye.proxy.utils;
 
+
 import com.dataeye.logback.LogbackRollingFileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -12,7 +14,6 @@ import java.security.NoSuchAlgorithmException;
  * @date 2022/3/25 19:15
  * @description
  */
-
 public class SHA256Utils {
     private static final Logger log = LogbackRollingFileUtil.getLogger("SHA256Utils");
 

@@ -52,6 +52,7 @@ public class ZhiMaProxyService implements InitializingBean {
 
     @Resource
     private CommonHttpClient commonHttpClient;
+
     @Value("${spring.profiles.active}")
     private String profiles;
 
@@ -105,6 +106,7 @@ public class ZhiMaProxyService implements InitializingBean {
             params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=" + host;
         }
         LOG.info("调用 proxy-service 服务的请求参数：{}", params);
+
         HttpClientResponse response = commonHttpClient.doPost(bizConfig.getProxyUrl(), new HashMap<>(), params, ResponseEntityType.STRING_UTF8, null);
         if (!response.codeIs200() || Objects.isNull(response.getResponseContent())) {
             LOG.error("refresh proxy error,code:{}", response.getStatusCode());
