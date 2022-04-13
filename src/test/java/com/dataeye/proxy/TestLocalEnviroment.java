@@ -34,7 +34,8 @@ import java.util.concurrent.TimeUnit;
 public class TestLocalEnviroment {
 
     private static final String pageUrl = "https://www.baidu.com";
-//    private static final String pageUrl = "http://www.taobao.com";
+//    private static final String pageUrl = "http://www.zhihu.com";
+//    private static final String pageUrl = "https://www.jd.com";
 
     private static final String proxyIp = "127.0.0.1";
 //    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";

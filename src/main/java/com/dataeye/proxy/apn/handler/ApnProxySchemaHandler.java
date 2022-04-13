@@ -31,9 +31,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
-//    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxySchemaHandler.class);
-
     public static final String HANDLER_NAME = "apnproxy.schema";
 
     @Override
@@ -41,14 +38,11 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
-
             if (httpRequest.getMethod().equals(HttpMethod.CONNECT)) {
 //                ctx.pipeline().remove(CacheFindHandler.HANDLER_NAME);
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             }
-
         }
-
         ctx.fireChannelRead(msg);
     }
 }

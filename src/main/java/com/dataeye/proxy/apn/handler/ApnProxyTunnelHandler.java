@@ -44,19 +44,14 @@ import java.util.Objects;
 public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyTunnelHandler");
-//    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyTunnelHandler.class);
 
     public static final String HANDLER_NAME = "apnproxy.tunnel";
-    private final ApnProxyRemoteChooser apnProxyRemoteChooser;
-    private final TunnelInstance tunnelInstance;
     private final RequestDistributeService requestDistributeService;
-    private final ThreadPoolTaskExecutor ioThreadPool;
+    private final ApnHandlerParams apnHandlerParams;
 
     public ApnProxyTunnelHandler(ApnHandlerParams apnHandlerParams) {
-        this.apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-        this.tunnelInstance = apnHandlerParams.getTunnelInstance();
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
-        this.ioThreadPool = apnHandlerParams.getIoThreadPool();
+        this.apnHandlerParams = apnHandlerParams;
     }
 
     @Override
@@ -65,7 +60,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof HttpRequest) {
             final HttpRequest httpRequest = (HttpRequest) msg;
             logger.info("ApnProxyTunnelHandler 接收请求, 请求内容: {}", httpRequest.toString());
-            requestDistributeService.sendRequestByTunnel(ioThreadPool, ctx, httpRequest, tunnelInstance, apnProxyRemoteChooser);
+            requestDistributeService.sendRequestByTunnel(apnHandlerParams, ctx, httpRequest);
         }
         ReferenceCountUtil.release(msg);
     }
@@ -75,16 +70,5 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         logger.error(cause.getMessage(), cause);
         ctx.close();
     }
-
-    public void handleProxyIpIsEmpty(ChannelHandlerContext ctx){
-        String errMsg = "获取代理IP为空，请30s后重试";
-        logger.error(errMsg);
-        ByteBuf content = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
-        FullHttpMessage errorResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, content);
-        ctx.channel().writeAndFlush(errorResponse);
-        SocksServerUtils.closeOnFlush(ctx.channel());
-    }
-
-
 
 }

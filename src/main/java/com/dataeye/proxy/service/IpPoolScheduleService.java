@@ -70,6 +70,7 @@ public class IpPoolScheduleService {
         if (proxyIpPool.containsKey(id)) {
             ConcurrentLinkedQueue<ProxyCfg> queue = proxyIpPool.get(id);
             if (queue == null || queue.isEmpty()) {
+                // todo 某个id对应的ip为空,会存在IP池所有的ip同时失效的情况
                 log.warn("id存在，但是ip循环队列为空");
                 for (int i = 0; i < tunnelInstance.getFixedIpPoolSize(); i++) {
                     checkBeforeUpdate(queue);
@@ -79,10 +80,6 @@ public class IpPoolScheduleService {
             }
             // 逐个检查ip的过期时间
             for (ProxyCfg next : queue) {
-                if (next == null) {
-                    queue.remove(next);
-                    continue;
-                }
                 if (isExpired(next)) {
                     queue.remove(next);
                     log.info("ip [{}] 即将过期或已经过期，移除", next.getHost());
