@@ -52,7 +52,7 @@ public class ApnProxyRemoteChooser {
      * @param tunnelInstance
      * @return
      */
-    public synchronized ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance, HttpRequest httpRequest) {
+    public synchronized ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance) {
         String proxyServer = tunnelInstance.getAlias();
         // todo 使用attribute改造
 //        String method = httpRequest.method().name();
@@ -78,7 +78,7 @@ public class ApnProxyRemoteChooser {
                 throw new RuntimeException("实例 " + proxyServer + " 对应的代理IP队列为空，连续 3 次重试失败");
 //                return null;
             }
-            return getProxyConfig(tunnelInstance, httpRequest);
+            return getProxyConfig(tunnelInstance);
         } else {
             errorCount.set(3);
             // TODO 这里可能有多线程安全问题,一个取,一个拿

@@ -2,6 +2,7 @@ package com.dataeye.proxy.apn.cons;
 
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import io.netty.util.AttributeKey;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,5 +25,7 @@ public class Global {
             .build();
 
     public static final ConcurrentHashMap<String, ApnProxyRemote> REQUEST_IP_USE_RELATIONS = new ConcurrentHashMap<>();
+
+    public static final AttributeKey<String> REQUST_IP_ATTRIBUTE_KEY = AttributeKey.valueOf("apnproxy.request_ip");
 
 }

@@ -38,8 +38,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
-            if (httpRequest.getMethod().equals(HttpMethod.CONNECT)) {
-//                ctx.pipeline().remove(CacheFindHandler.HANDLER_NAME);
+            if (httpRequest.method().equals(HttpMethod.CONNECT)) {
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             }
         }

@@ -97,13 +97,15 @@ public class RequestDistributeService {
      * @param ctx
      * @param httpRequest
      */
-    public void sendRequestByTunnel(ApnHandlerParams apnHandlerParams, final ChannelHandlerContext ctx, HttpRequest httpRequest) {
-        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+    public void sendRequestByTunnel(ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
+                                    final ChannelHandlerContext ctx,
+                                    HttpRequest httpRequest) {
+//        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
         TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
         ThreadPoolTaskExecutor ioThreadPool = apnHandlerParams.getIoThreadPool();
 
         // 隧道分配结果
-        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance, httpRequest);
+//        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
         logger.info("转发 connect 请求 -> IP 分配结果：{}", JSON.toJSONString(apnProxyRemote));
         if (Objects.isNull(apnProxyRemote)) {
             handleProxyIpIsEmpty(ctx);
@@ -123,17 +125,15 @@ public class RequestDistributeService {
      * @param ctx
      * @param msg
      */
-    public void sendRequestByForward(ApnHandlerParams apnHandlerParams,
+    public void sendRequestByForward(ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
                                      HttpRequest httpRequest,
                                      List<HttpContent> httpContentBuffer,
                                      ChannelHandlerContext ctx, Object msg) {
         final Channel uaChannel = ctx.channel();
-        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
         TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
         ThreadPoolTaskExecutor ioThreadPool = apnHandlerParams.getIoThreadPool();
 
         // 隧道分配结果
-        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance, httpRequest);
         logger.info("IP 分配结果：{}", JSON.toJSONString(apnProxyRemote));
         if (Objects.isNull(apnProxyRemote)) {
             handleProxyIpIsEmpty(ctx);
@@ -309,6 +309,7 @@ public class RequestDistributeService {
                         future.channel().writeAndFlush(hc);
                     }
                     httpContentBuffer.clear();
+                    logger.info("httpContentBuffer size: {}", httpContentBuffer.size());
 
                     // EMPTY_BUFFER 标识会让通道自动关闭
                     future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)

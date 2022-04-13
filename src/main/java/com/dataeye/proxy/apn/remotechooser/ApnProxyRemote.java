@@ -32,7 +32,7 @@ public abstract class ApnProxyRemote {
     private String proxyUserName;
     private String proxyPassword;
 
-    private boolean isAppleyRemoteRule = false;
+    private boolean appleyRemoteRule = false;
 
     private ApnProxyListenType remoteListenType;
 
@@ -53,11 +53,11 @@ public abstract class ApnProxyRemote {
     }
 
     public final boolean isAppleyRemoteRule() {
-        return isAppleyRemoteRule;
+        return appleyRemoteRule;
     }
 
-    public final void setAppleyRemoteRule(boolean isAppleyRemoteRule) {
-        this.isAppleyRemoteRule = isAppleyRemoteRule;
+    public final void setAppleyRemoteRule(boolean appleyRemoteRule) {
+        this.appleyRemoteRule = appleyRemoteRule;
     }
 
     public final String getRemote() {

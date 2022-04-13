@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.ApnProxyServer;
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
@@ -32,8 +33,6 @@ import org.slf4j.LoggerFactory;
 public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyRelayHandler");
-//    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyRelayHandler.class);
-
 
     public static final String HANDLER_NAME = "apnproxy.relay";
 
@@ -47,10 +46,7 @@ public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug(tag + " channel active");
-        }
-
+        logger.debug(tag + " channel active");
         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
             ctx.read();
         }
@@ -58,12 +54,11 @@ public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug(tag + " : " + msg);
-        }
+        logger.debug(tag + " : " + msg);
 
         if (relayChannel.isActive()) {
-            relayChannel.writeAndFlush(msg).addListener(new ChannelFutureListener() {
+            relayChannel.writeAndFlush(msg)
+                    .addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
@@ -79,14 +74,14 @@ public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug(tag + " channel inactive");
-        }
+        logger.debug(tag + " channel inactive");
         if (relayChannel != null && relayChannel.isActive()) {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(
                     ChannelFutureListener.CLOSE);
         }
         ctx.fireChannelInactive();
+        //todo 补充
+        ctx.close();
     }
 
     @Override
