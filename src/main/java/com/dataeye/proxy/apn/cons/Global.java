@@ -26,6 +26,6 @@ public class Global {
 
     public static final ConcurrentHashMap<String, ApnProxyRemote> REQUEST_IP_USE_RELATIONS = new ConcurrentHashMap<>();
 
-    public static final AttributeKey<String> REQUST_IP_ATTRIBUTE_KEY = AttributeKey.valueOf("apnproxy.request_ip");
+    public static final AttributeKey<ApnProxyRemote> REQUST_IP_ATTRIBUTE_KEY = AttributeKey.valueOf("apnproxy.request_ip");
 
 }

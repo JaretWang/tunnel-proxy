@@ -37,15 +37,25 @@ import javax.net.ssl.SSLEngine;
  */
 public class HttpProxyChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-    private ApnProxyRemote apnProxyRemote;
-
-    private Channel uaChannel;
-    private String remoteAddr;
-    private RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    /**
+     * 代理ip
+     */
+    private final ApnProxyRemote apnProxyRemote;
+    /**
+     * 跟被代理的请求建立的channel
+     */
+    private final Channel uaChannel;
+    /**
+     * 代理ip地址
+     */
+    private final String remoteAddr;
+    /**
+     * proxy client 跟远程代理IP建立的通道关闭后的回调策略
+     */
+    private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
 
     public HttpProxyChannelInitializer(ApnProxyRemote apnProxyRemote, Channel uaChannel,
-                                       String remtoeAddr,
-                                       RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
+                                       String remtoeAddr, RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
         this.apnProxyRemote = apnProxyRemote;
         this.uaChannel = uaChannel;
         this.remoteAddr = remtoeAddr;

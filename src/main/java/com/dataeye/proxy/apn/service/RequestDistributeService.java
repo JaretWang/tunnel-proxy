@@ -12,7 +12,6 @@ import com.dataeye.proxy.apn.initializer.ApnProxyTunnelChannelInitializer;
 import com.dataeye.proxy.apn.initializer.HttpProxyChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.utils.Base64;
 import com.dataeye.proxy.apn.utils.HostNamePortUtil;
 import com.dataeye.proxy.apn.utils.HttpErrorUtil;
@@ -105,7 +104,7 @@ public class RequestDistributeService {
 
         // 隧道分配结果
 //        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-        logger.info("转发 connect 请求 -> IP 分配结果：{}", JSON.toJSONString(apnProxyRemote));
+//        logger.info("转发 connect 请求 -> IP 分配结果：{}", JSON.toJSONString(apnProxyRemote));
         if (Objects.isNull(apnProxyRemote)) {
             handleProxyIpIsEmpty(ctx);
         }
@@ -163,28 +162,33 @@ public class RequestDistributeService {
 
         Set<String> headerNames = httpRequest.headers().names();
         for (String headerName : headerNames) {
-            // if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
-            // continue;
-            // }
-            //
-            // if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
-            // continue;
-            // }
+            // todo 放开请求，更改一下请求头
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+                continue;
+            }
 
             _httpRequest.headers().add(headerName, httpRequest.headers().getAll(headerName));
         }
 
-        _httpRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-        // _httpRequest.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.IDENTITY);
+        // todo 更改长连接为短链接
+        _httpRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+//        _httpRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+//         _httpRequest.headers().set(HttpHeaders.Names.ACCEPT_ENCODING, HttpHeaders.Values.IDENTITY);
 
         if (StringUtils.isNotBlank(apnProxyRemote.getProxyUserName())
                 && StringUtils.isNotBlank(apnProxyRemote.getProxyPassword())) {
-            String proxyAuthorization = apnProxyRemote.getProxyUserName() + ":"
-                    + apnProxyRemote.getProxyPassword();
+            String proxyAuthorization = apnProxyRemote.getProxyUserName() + ":" + apnProxyRemote.getProxyPassword();
             try {
                 _httpRequest.headers().set("Proxy-Authorization",
                         "Basic " + Base64.encodeBase64String(proxyAuthorization.getBytes("UTF-8")));
             } catch (UnsupportedEncodingException e) {
+                System.out.println(e.getCause().getMessage());
             }
 
         }
@@ -301,7 +305,10 @@ public class RequestDistributeService {
                 if (future.isSuccess()) {
                     long took = System.currentTimeMillis() - begin;
                     logger.info("forward_handler 连接代理IP成功, 耗时：{} ms", took);
-                    HttpRequest newRequest = constructRequestForProxyByForward((HttpRequest) msg, apnProxyRemote);
+                    HttpRequest oldRequest = (HttpRequest) msg;
+                    logger.info("forward_handler 重新构造请求之前：{}", oldRequest);
+                    HttpRequest newRequest = constructRequestForProxyByForward(oldRequest, apnProxyRemote);
+                    logger.info("forward_handler 重新构造请求：{}", newRequest);
                     future.channel().write(newRequest);
 
                     for (HttpContent hc : httpContentBuffer) {
@@ -314,8 +321,9 @@ public class RequestDistributeService {
                     future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                             .addListener((ChannelFutureListener) future1 -> future1.channel().read());
                     long took2 = System.currentTimeMillis() - begin;
-                    logger.info("forward_handler 写入缓存的一次http请求, 耗时：{} ms", took2);
+                    logger.info("forward_handler 写入缓存的http请求, 耗时：{} ms", took2);
                 } else {
+                    // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                     ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                     if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                         long took = System.currentTimeMillis() - begin;
@@ -339,6 +347,7 @@ public class RequestDistributeService {
                         HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                         uaChannel.writeAndFlush(errorResponseMsg);
                     }
+                    SocksServerUtils.closeOnFlush(uaChannel);
                     httpContentBuffer.clear();
                     future.channel().close();
                 }

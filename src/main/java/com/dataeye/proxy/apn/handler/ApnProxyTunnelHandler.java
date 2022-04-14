@@ -17,12 +17,9 @@
 package com.dataeye.proxy.apn.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.cons.Global;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
@@ -56,53 +53,53 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        if (!isAllocateIp.get()) {
-            logger.info("Tunnel 未分配ip，开始分配");
-            ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-            apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-            String ipJson = JSON.toJSONString(apnProxyRemote);
-            logger.info("Tunnel IP 分配结果(建立连接时)：{}", ipJson);
-            if (Objects.isNull(apnProxyRemote)) {
-                requestDistributeService.handleProxyIpIsEmpty(ctx);
-            }
-            ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(ipJson);
-            isAllocateIp.set(true);
-        } else {
-            String ip = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-            logger.info("Tunnel 已分配ip，再次提取，结果：{}", ip);
-        }
+        logger.info("Tunnel 建立连接");
+//        if (!isAllocateIp.get()) {
+//            ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+//            if (Objects.nonNull(cacheIpResult)) {
+//                logger.info("Tunnel channelActive 检测到缓存的ip: {}", JSON.toJSONString(cacheIpResult));
+//                return;
+//            }
+//
+//            logger.info("Tunnel 未分配ip，开始分配");
+//            ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+//            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+//            apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
+//            if (Objects.isNull(apnProxyRemote)) {
+//                requestDistributeService.handleProxyIpIsEmpty(ctx);
+//            }
+//            String ipJson = JSON.toJSONString(apnProxyRemote);
+//            logger.info("Tunnel IP 分配结果(建立连接时)：{}", ipJson);
+//            ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
+//            isAllocateIp.set(true);
+//        } else {
+//            ApnProxyRemote result = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+//            logger.info("Tunnel 已分配ip，再次提取，结果：{}", JSON.toJSONString(result));
+//        }
 
     }
 
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
+        logger.info("tunnel 读取数据");
 
         if (msg instanceof HttpRequest) {
             final HttpRequest httpRequest = (HttpRequest) msg;
             logger.info("ApnProxyTunnelHandler 接收请求, 请求内容: {}", httpRequest.toString());
-            if (apnProxyRemote == null) {
-                String ipJson = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-                JSONObject jsonObject = JSONObject.parseObject(ipJson);
-                Boolean appleyRemoteRule = jsonObject.getBoolean("appleyRemoteRule");
-                String proxyPassword = jsonObject.getString("proxyPassword");
-                String proxyUserName = jsonObject.getString("proxyUserName");
-                String remoteHost = jsonObject.getString("remoteHost");
-                String remoteListenType = jsonObject.getString("remoteListenType");
-                Integer remotePort = jsonObject.getInteger("remotePort");
-                ApnProxyRemote apPlainRemote = new ApnProxyPlainRemote();
-                apPlainRemote.setAppleyRemoteRule(appleyRemoteRule);
-                apPlainRemote.setRemoteListenType(ApnProxyListenType.valueOf(remoteListenType));
-                apPlainRemote.setRemoteHost(remoteHost);
-                apPlainRemote.setRemotePort(remotePort);
-                apPlainRemote.setProxyUserName(proxyUserName);
-                apPlainRemote.setProxyPassword(proxyPassword);
+            ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+            if (Objects.nonNull(cacheIpResult)) {
+                logger.info("tunnel 检测到缓存ip: {}", JSON.toJSONString(cacheIpResult));
 
-                logger.info("tunnel 分配ip结果为空，重新分配：{}", apPlainRemote.toString());
-                requestDistributeService.sendRequestByTunnel(apPlainRemote, apnHandlerParams, ctx, httpRequest);
+                requestDistributeService.sendRequestByTunnel(cacheIpResult, apnHandlerParams, ctx, httpRequest);
             } else {
-                requestDistributeService.sendRequestByTunnel(apnProxyRemote, apnHandlerParams, ctx, httpRequest);
+                ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+                ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
+                ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(proxyConfig);
+                logger.info("tunnel 获取缓存ip为空，重新分配：{}", JSON.toJSONString(proxyConfig));
+
+                requestDistributeService.sendRequestByTunnel(proxyConfig, apnHandlerParams, ctx, httpRequest);
             }
         }
         ReferenceCountUtil.release(msg);
@@ -110,8 +107,9 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        logger.info("tunnel 关闭连接");
         super.channelInactive(ctx);
-        ctx.close();
+//        ctx.close();
     }
 
     @Override

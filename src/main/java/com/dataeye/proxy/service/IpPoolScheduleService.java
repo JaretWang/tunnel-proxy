@@ -1,14 +1,12 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.commonx.domain.ProxyCfg;
-
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import lombok.Data;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -147,7 +145,7 @@ public class IpPoolScheduleService {
                 try {
                     checkAndUpdateIp();
                     proxyIpPool.forEach((instance, ipConfig) -> {
-                        List<String> collect = ipConfig.stream().map(item -> item.getHost() + "(" + item.getExpireTime() + ")").collect(Collectors.toList());
+                        List<String> collect = ipConfig.stream().map(item -> item.getHost() + ":" + item.getPort() + "(" + item.getExpireTime() + ")").collect(Collectors.toList());
                         log.info("实例 [{}], ip池数量 [{}], ip列表：{}", instance, ipConfig.size(), collect);
                     });
                     Thread.sleep(proxyServerConfig.getCycleCheckTime() * 1000L);

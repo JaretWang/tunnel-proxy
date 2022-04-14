@@ -52,12 +52,14 @@ public class TestLocalEnviroment {
     private static final String root = System.getProperty("user.dir") + File.separator + "proxy_result";
 
     public static void main(String[] args) throws IOException {
-        long begin = System.currentTimeMillis();
+        for (int i = 0; i < 1; i++) {
+            long begin = System.currentTimeMillis();
 //        sendByHttpClient(proxyPort+"_sendHttpsByHttpClient_repsonse.html",true);
-        sendByOkHttp(proxyPort + "_sendByOkHttp_repsonse.html", true);
+            sendByOkHttp(proxyPort + "_sendByOkHttp_repsonse.html", true);
 //        sendByOriginal("sendByOriginal_repsonse.html");
-        long end = System.currentTimeMillis();
-        log.warn("耗时：{} ms", end - begin);
+            long end = System.currentTimeMillis();
+            log.warn("耗时：{} ms", end - begin);
+        }
     }
 
     public static void sendByHttpClient(String saveFileName, boolean isHttps) throws IOException {

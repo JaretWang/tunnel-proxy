@@ -55,14 +55,11 @@ public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg)
-                    .addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
-                        ctx.read();
-                    }
-                }
-            });
+                    .addListener((ChannelFutureListener) future -> {
+                        if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
+                            ctx.read();
+                        }
+                    });
         } else {
             ReferenceCountUtil.release(msg);
         }

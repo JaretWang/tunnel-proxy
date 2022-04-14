@@ -32,7 +32,6 @@ import org.slf4j.Logger;
  */
 public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
-//    private static final Logger logger = LogbackRollingFileUtil.getLogger(HttpProxyHandler.class);
     private static final Logger logger = LogbackRollingFileUtil.getLogger("HttpProxyHandler");
 
     public static final String HANDLER_NAME = "apnproxy.proxy";
@@ -61,8 +60,12 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
         if (ho instanceof HttpResponse) {
             HttpResponse httpResponse = (HttpResponse) ho;
-            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
+//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
+
+            //todo 使用短连接
+            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
         }
 
         if (ho instanceof HttpContent) {
@@ -71,18 +74,18 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
 
         if (uaChannel.isActive()) {
-            uaChannel.writeAndFlush(ho).addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    if (future.isSuccess()) {
-                        ctx.read();
-                        ctx.fireChannelRead(msg);
-                    } else {
-                        ReferenceCountUtil.release(msg);
-                        ctx.close();
-                    }
-                }
-            });
+            uaChannel.writeAndFlush(ho)
+                    .addListener((ChannelFutureListener) future -> {
+                        if (future.isSuccess()) {
+                            ctx.read();
+                            ctx.fireChannelRead(msg);
+//                            // todo 临时补充
+//                            ctx.close();
+                        } else {
+                            ReferenceCountUtil.release(msg);
+                            ctx.close();
+                        }
+                    });
         }
     }
 
@@ -97,6 +100,8 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
             }
         });
         ctx.fireChannelInactive();
+//        ctx.close();
+        uaChannel.close();
     }
 
     @Override

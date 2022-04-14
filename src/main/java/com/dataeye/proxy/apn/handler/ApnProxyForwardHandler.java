@@ -48,8 +48,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     private final List<HttpContent> httpContentBuffer = new ArrayList<>();
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
-    private ApnProxyRemote apnProxyRemote = null;
     private final AtomicBoolean isAllocateIp = new AtomicBoolean(false);
+    private ApnProxyRemote apnProxyRemote = null;
 
     public ApnProxyForwardHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -58,44 +58,66 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        if (!isAllocateIp.get()) {
-            logger.info("Forward 未分配ip，开始分配");
-            ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-            apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-            String ipJson = JSON.toJSONString(apnProxyRemote);
-            logger.info("Forward IP 分配结果(建立连接时)：{}", ipJson);
-            if (Objects.isNull(apnProxyRemote)) {
-                requestDistributeService.handleProxyIpIsEmpty(ctx);
-            }
-            ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(ipJson);
-            isAllocateIp.set(true);
-        } else {
-            String ip = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-            logger.info("Forward 已分配ip，再次提取，结果：{}", ip);
-        }
+        logger.info("forward 建立连接");
+//        if (!isAllocateIp.get()) {
+//            ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+//            if (Objects.nonNull(cacheIpResult)) {
+//                logger.info("forward 检测到缓存的ip: {}",JSON.toJSONString(cacheIpResult));
+//                return;
+//            }
+//
+//            logger.info("Forward 未分配ip，开始分配");
+//            ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+//            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+//            this.apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
+//            if (Objects.isNull(this.apnProxyRemote)) {
+//                requestDistributeService.handleProxyIpIsEmpty(ctx);
+//            }
+//            logger.info("Forward IP 分配结果(建立连接时)：{}", JSON.toJSONString(this.apnProxyRemote));
+//
+//            ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(this.apnProxyRemote);
+//            isAllocateIp.compareAndSet(false, true);
+//        } else {
+//            ApnProxyRemote result = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+//            logger.info("Forward 已分配ip，再次提取，结果：{}", JSON.toJSONString(result));
+//        }
 
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) {
+        logger.info("forward 读取数据");
 
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
             logger.info("ApnProxyForwardHandler 接收请求, 请求内容: {}", httpRequest.toString());
-            requestDistributeService.sendRequestByForward(apnProxyRemote, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
+            ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+            if (Objects.nonNull(cacheIpResult)) {
+                logger.info("forward 检测到缓存的ip: {}", JSON.toJSONString(cacheIpResult));
+
+                requestDistributeService.sendRequestByForward(cacheIpResult, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
+            } else {
+                ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+                ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
+                ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(proxyConfig);
+                logger.info("forward 获取缓存ip为空，重新分配：{}", JSON.toJSONString(proxyConfig));
+
+                requestDistributeService.sendRequestByForward(proxyConfig, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
+            }
             ReferenceCountUtil.release(msg);
+
         } else {
             HttpContent hc = ((HttpContent) msg);
             httpContentBuffer.add(hc);
-            logger.info("缓存 HttpContent");
+            logger.info("缓存 HttpContent, msg 类型：{}", msg.getClass());
         }
 
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("UA channel inactive");
+        logger.info("forward 关闭连接");
         ctx.close();
     }
 

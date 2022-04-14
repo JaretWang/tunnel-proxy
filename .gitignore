@@ -33,3 +33,4 @@ build/
 tunnel-proxy-logs/
 proxy_result/
 *.log
+/logs

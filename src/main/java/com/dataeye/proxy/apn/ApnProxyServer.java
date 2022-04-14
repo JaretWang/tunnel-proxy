@@ -43,6 +43,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 代理服务器
+ *
  * @author jaret
  * @date 2022/4/7 10:30
  */
@@ -130,10 +131,13 @@ public class ApnProxyServer {
                 .channel(NioServerSocketChannel.class)
 //                // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
 //                .option(ChannelOption.SO_RCVBUF, 1024)
-//                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows为200，其他为128。
+                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows为200，其他为128。
 //                .option(ChannelOption.SO_BACKLOG, tunnelInstance.getConcurrency())
                 .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
+                // 有数据立即发送
+//                .childOption(ChannelOption.TCP_NODELAY, true)
+//                .childOption(ChannelOption.SO_KEEPALIVE, false);
 //                // TCP_NODELAY就是用于启用或关于Nagle算法。如果要求高实时性，有数据发送时就马上发送，就将该选项设置为true关闭Nagle算法；
 //                // 如果要减少发送次数减少网络交互，就设置为false等累积一定大小后再发送。默认为false。
 //                .childOption(ChannelOption.TCP_NODELAY, false);
