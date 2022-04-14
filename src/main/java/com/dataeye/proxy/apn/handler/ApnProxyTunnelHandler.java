@@ -16,7 +16,6 @@
 
 package com.dataeye.proxy.apn.handler;
 
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.logback.LogbackRollingFileUtil;
@@ -38,8 +37,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:41
  */
 public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 

@@ -2,9 +2,7 @@ package com.dataeye.proxy.utils;
 
 
 import com.dataeye.logback.LogbackRollingFileUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

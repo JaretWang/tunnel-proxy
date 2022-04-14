@@ -19,8 +19,8 @@ package com.dataeye.proxy.apn.cons;
 import io.netty.util.AttributeKey;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.cons.ApnProxyConstants 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:41
  */
 public class ApnProxyConstants {
 

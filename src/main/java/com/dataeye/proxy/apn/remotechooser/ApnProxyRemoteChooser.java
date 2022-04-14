@@ -17,14 +17,11 @@
 package com.dataeye.proxy.apn.remotechooser;
 
 import com.dataeye.commonx.domain.ProxyCfg;
-
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
-import io.netty.handler.codec.http.HttpRequest;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -34,17 +31,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:38
  */
 @Component
 public class ApnProxyRemoteChooser {
 
     private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
-    //    private static final Logger logger = LogbackRollingFileUtil.getLogger(ApnProxyRemoteChooser.class);
+
     private final AtomicInteger errorCount = new AtomicInteger(3);
-    @Autowired
-    IpPoolScheduleService ipPoolScheduleService;
+    @Autowired IpPoolScheduleService ipPoolScheduleService;
 
     /**
      * 从代理ip池获取ip

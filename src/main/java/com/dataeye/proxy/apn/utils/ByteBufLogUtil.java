@@ -19,8 +19,8 @@ package com.dataeye.proxy.apn.utils;
 import io.netty.buffer.ByteBuf;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.utils.ByteBufLogUtil 14-1-9 16:10 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class ByteBufLogUtil {
 

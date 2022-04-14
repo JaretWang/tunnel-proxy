@@ -8,10 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
- * @author harley
+ * @author jaret
+ * @date 2022/4/14 10:43
  */
-
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProxyResponseDto {

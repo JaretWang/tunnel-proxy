@@ -25,6 +25,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+/**
+ * @author jaret
+ * @date 2022/4/14 10:52
+ */
 @Data
 @Service
 public class IpPoolScheduleService {

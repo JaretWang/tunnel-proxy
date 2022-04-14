@@ -21,8 +21,8 @@ import com.dataeye.proxy.apn.config.ApnProxyLocalIpRule;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.remotechooser.ApnProxyLocalAddressChooser 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:38
  */
 public class ApnProxyLocalAddressChooser {
 

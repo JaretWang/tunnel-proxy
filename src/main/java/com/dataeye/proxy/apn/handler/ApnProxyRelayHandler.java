@@ -18,17 +18,14 @@ package com.dataeye.proxy.apn.handler;
 
 
 import com.dataeye.logback.LogbackRollingFileUtil;
-import com.dataeye.proxy.apn.ApnProxyServer;
-import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.handler.ApnProxyRelayHandler 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 

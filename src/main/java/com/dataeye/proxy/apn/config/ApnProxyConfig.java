@@ -19,14 +19,13 @@ package com.dataeye.proxy.apn.config;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.config.ApnProxyConfig 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:42
  */
 public class ApnProxyConfig {
 

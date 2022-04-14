@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
  * @author hongjunhao
  * @date 2022/2/15 9:53
  */
-
 @Data
 @Component
 @ConfigurationProperties(prefix = "service")

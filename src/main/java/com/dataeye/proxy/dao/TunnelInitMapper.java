@@ -14,10 +14,9 @@ import java.util.List;
 public interface TunnelInitMapper {
 
     /**
-     * 查询所有的IP隧道的配置参数
+     * 查询所有的隧道实例
      * @return
      */
-//    @Select("${select * from tunnel_manage}")
     List<TunnelInstance> queryAll();
 
 }

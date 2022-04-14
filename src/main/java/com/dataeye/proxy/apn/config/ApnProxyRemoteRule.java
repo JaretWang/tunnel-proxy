@@ -19,8 +19,8 @@ package com.dataeye.proxy.apn.config;
 import java.util.List;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.config.ApnProxyRemoteRule 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:42
  */
 public class ApnProxyRemoteRule {
     private String remoteHost;

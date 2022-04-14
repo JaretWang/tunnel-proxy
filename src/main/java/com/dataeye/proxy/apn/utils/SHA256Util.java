@@ -25,8 +25,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.utils.SHA256Util 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class SHA256Util {
 

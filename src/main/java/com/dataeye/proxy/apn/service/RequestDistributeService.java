@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
  * @date 2022/4/7 12:19
  * @description 请求分发
  */
-
 @Service
 public class RequestDistributeService {
 
@@ -314,7 +313,8 @@ public class RequestDistributeService {
                     // EMPTY_BUFFER 标识会让通道自动关闭
                     future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                             .addListener((ChannelFutureListener) future1 -> future1.channel().read());
-                    logger.info("forward_handler 写入缓存的一次http请求, 耗时：{} ms", took);
+                    long took2 = System.currentTimeMillis() - begin;
+                    logger.info("forward_handler 写入缓存的一次http请求, 耗时：{} ms", took2);
                 } else {
                     ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                     if (proxyCfgs == null || proxyCfgs.isEmpty()) {

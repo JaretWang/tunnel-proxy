@@ -22,8 +22,8 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.utils.HttpErrorUtil 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class HttpErrorUtil {
 

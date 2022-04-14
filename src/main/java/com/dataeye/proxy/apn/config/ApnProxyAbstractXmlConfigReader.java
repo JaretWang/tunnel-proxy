@@ -23,13 +23,12 @@ import nu.xom.Document;
 import nu.xom.Element;
 import nu.xom.ParsingException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.config.ApnProxyAbstractXmlConfigReader 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:42
  */
 public abstract class ApnProxyAbstractXmlConfigReader {
 

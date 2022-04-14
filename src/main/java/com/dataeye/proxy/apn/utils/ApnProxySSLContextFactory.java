@@ -27,8 +27,8 @@ import java.io.FileInputStream;
 import java.security.KeyStore;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.ApnProxySSLContextFactory 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class ApnProxySSLContextFactory {
 

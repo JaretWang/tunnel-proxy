@@ -20,8 +20,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.utils.Base64 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class Base64 {
 

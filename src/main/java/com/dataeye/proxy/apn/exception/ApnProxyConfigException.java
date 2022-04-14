@@ -17,8 +17,8 @@
 package com.dataeye.proxy.apn.exception;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.exception.ApnProxyConfigException 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:41
  */
 public class ApnProxyConfigException extends RuntimeException {
 

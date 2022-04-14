@@ -19,8 +19,8 @@ package com.dataeye.proxy.apn.utils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.utils.HostNamePortUtil 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class HostNamePortUtil {
 

@@ -17,8 +17,8 @@
 package com.dataeye.proxy.apn.remotechooser;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.remotechooser.ApnProxySslRemote 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:38
  */
 public class ApnProxySslRemote extends ApnProxyRemote {
 }

@@ -32,11 +32,10 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.handler.ApnProxyPreHandler 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/4/14 10:40
  */
 public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
 

@@ -42,8 +42,9 @@ import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.ApnProxyServer 14-1-8 16:13 (xmx) Exp $
+ * 代理服务器
+ * @author jaret
+ * @date 2022/4/7 10:30
  */
 @Component
 public class ApnProxyServer {
