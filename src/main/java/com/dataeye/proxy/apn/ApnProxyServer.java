@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
+import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
@@ -116,11 +117,14 @@ public class ApnProxyServer {
         ThreadPoolTaskExecutor businessThreadPool = getTunnelThreadpool(tunnelInstance.getBusinessThreadSize(),
                 "tunnel_" + tunnelInstance.getAlias());
 
+        RequestMonitor requestMonitor = new RequestMonitor();
+
         ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
                 .apnProxyRemoteChooser(apnProxyRemoteChooser)
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)
                 .ioThreadPool(businessThreadPool)
+                .requestMonitor(requestMonitor)
                 .build();
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);

@@ -109,8 +109,18 @@ public class RequestDistributeService {
             handleProxyIpIsEmpty(ctx);
         }
 
+        String remoteAddr = apnProxyRemote.getRemote();
+        String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
+        String originalHost = HostNamePortUtil.getHostName(originalHostHeader);
+        int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
+        String realAddr = originalHost + ":" + originalPort;
+        apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
+        apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
+        apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
+
         // 提交代理请求任务
-        TunnelRequestTask proxyRequestTask = new TunnelRequestTask(ctx, httpRequest, apnProxyRemote, tunnelInstance);
+        TunnelRequestTask proxyRequestTask = new TunnelRequestTask(apnHandlerParams, ctx, httpRequest, apnProxyRemote, tunnelInstance);
         ioThreadPool.submit(proxyRequestTask);
     }
 
@@ -141,10 +151,15 @@ public class RequestDistributeService {
         String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
         String originalHost = HostNamePortUtil.getHostName(originalHostHeader);
         int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
-        logger.info("转发普通请求 to {} for {}:{}", remoteAddr, originalHost, originalPort);
+        String realAddr = originalHost + ":" + originalPort;
+        logger.info("转发普通请求 to {} for {}", remoteAddr, realAddr);
+        apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
+        apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
+        apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
 
         // 提交代理请求任务
-        ForwardRequestTask proxyRequestTask = new ForwardRequestTask(uaChannel, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+        ForwardRequestTask proxyRequestTask = new ForwardRequestTask(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
         ioThreadPool.submit(proxyRequestTask);
     }
 
@@ -264,13 +279,16 @@ public class RequestDistributeService {
         private final Bootstrap bootstrap = new Bootstrap();
         private final List<HttpContent> httpContentBuffer;
         private final Object msg;
+        private final ApnHandlerParams apnHandlerParams;
 
         public ForwardRequestTask(final Channel uaChannel,
+                                  ApnHandlerParams apnHandlerParams,
                                   ApnProxyRemote apnProxyRemote,
                                   TunnelInstance tunnelInstance,
                                   List<HttpContent> httpContentBuffer,
                                   Object msg) {
             this.uaChannel = uaChannel;
+            this.apnHandlerParams = apnHandlerParams;
             this.apnProxyRemote = apnProxyRemote;
             this.tunnelInstance = tunnelInstance;
             this.httpContentBuffer = httpContentBuffer;
@@ -303,11 +321,14 @@ public class RequestDistributeService {
             remoteConnectFuture.addListener((ChannelFutureListener) future -> {
                 // 执行连接后操作，可能连接成功，也可能失败
                 if (future.isSuccess()) {
+                    apnHandlerParams.getRequestMonitor().setSuccess(true);
+
                     long took = System.currentTimeMillis() - begin;
                     logger.info("forward_handler 连接代理IP成功, 耗时：{} ms", took);
                     HttpRequest oldRequest = (HttpRequest) msg;
                     logger.info("forward_handler 重新构造请求之前：{}", oldRequest);
                     HttpRequest newRequest = constructRequestForProxyByForward(oldRequest, apnProxyRemote);
+
                     logger.info("forward_handler 重新构造请求：{}", newRequest);
                     future.channel().write(newRequest);
 
@@ -323,13 +344,19 @@ public class RequestDistributeService {
                     long took2 = System.currentTimeMillis() - begin;
                     logger.info("forward_handler 写入缓存的http请求, 耗时：{} ms", took2);
                 } else {
+                    apnHandlerParams.getRequestMonitor().setSuccess(false);
+
                     // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                     ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                     if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                         long took = System.currentTimeMillis() - begin;
                         String errorMsg = "forward_handler 连接代理IP [" + remoteAddr + "] 失败, " +
-                                "耗时：" + took + " ms, 具体原因: " + tunnelInstance.getAlias() + " 对应的ip池为空";
+                                "耗时：" + took + " ms";
                         logger.error(errorMsg);
+
+                        String failReason = tunnelInstance.getAlias() + "对应的ip池为空";
+                        apnHandlerParams.getRequestMonitor().setFailReason(failReason);
+
                         // send error response
                         HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                         uaChannel.writeAndFlush(errorResponseMsg);
@@ -343,6 +370,9 @@ public class RequestDistributeService {
                                 "耗时：" + took + " ms, " +
                                 "具体原因: " + errorMessage + ", 此时的ip池列表：" + ipList.toString();
                         logger.error(errorMsg);
+
+                        apnHandlerParams.getRequestMonitor().setFailReason(errorMessage);
+
                         // send error response
                         HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                         uaChannel.writeAndFlush(errorResponseMsg);
@@ -361,12 +391,15 @@ public class RequestDistributeService {
         private final HttpRequest httpRequest;
         private final ApnProxyRemote apnProxyRemote;
         private final TunnelInstance tunnelInstance;
+        private final ApnHandlerParams apnHandlerParams;
         private final Bootstrap bootstrap = new Bootstrap();
 
-        public TunnelRequestTask(final ChannelHandlerContext ctx,
+        public TunnelRequestTask(ApnHandlerParams apnHandlerParams,
+                                 final ChannelHandlerContext ctx,
                                  HttpRequest httpRequest,
                                  ApnProxyRemote apnProxyRemote,
                                  TunnelInstance tunnelInstance) {
+            this.apnHandlerParams = apnHandlerParams;
             this.ctx = ctx;
             this.httpRequest = httpRequest;
             this.apnProxyRemote = apnProxyRemote;
@@ -394,6 +427,8 @@ public class RequestDistributeService {
             bootstrap.connect(remoteHost, remotePort)
                     .addListener((ChannelFutureListener) future1 -> {
                         if (future1.isSuccess()) {
+                            apnHandlerParams.getRequestMonitor().setSuccess(true);
+
                             long took = System.currentTimeMillis() - begin;
                             // successfully connect to the original server
                             // send connect success msg to UA
@@ -432,6 +467,10 @@ public class RequestDistributeService {
                             }
 
                         } else {
+                            String errorMessage = future1.cause().getMessage();
+                            apnHandlerParams.getRequestMonitor().setSuccess(false);
+                            apnHandlerParams.getRequestMonitor().setFailReason(errorMessage);
+
                             long took = System.currentTimeMillis() - begin;
                             logger.info("tunnel_handler 连接代理IP失败，耗时: {} ms", took);
                             if (ctx.channel().isActive()) {

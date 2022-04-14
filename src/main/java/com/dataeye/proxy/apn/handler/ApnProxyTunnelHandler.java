@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn.handler;
 import com.alibaba.fastjson.JSON;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
+import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
@@ -107,7 +108,17 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("tunnel 关闭连接");
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        long cost2 = System.currentTimeMillis() - requestMonitor.getBegin();
+        requestMonitor.setCost(cost2);
+        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
+                requestMonitor.getCost(),
+                requestMonitor.isSuccess(),
+                requestMonitor.getTunnelName(),
+                requestMonitor.getProxyAddr(),
+                requestMonitor.getRequestType(),
+                requestMonitor.getTargetAddr(),
+                requestMonitor.getFailReason());
         super.channelInactive(ctx);
 //        ctx.close();
     }

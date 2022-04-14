@@ -20,11 +20,13 @@ package com.dataeye.proxy.apn.handler;
 import com.alibaba.fastjson.JSON;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
+import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpMethod;
@@ -45,7 +47,6 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     private final ApnHandlerParams apnHandlerParams;
     private final AtomicBoolean isAllocateIp = new AtomicBoolean(false);
     private long begin;
-    private ApnProxyRemote apnProxyRemote = null;
 
     public ApnProxySchemaHandler(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;
@@ -54,11 +55,11 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         begin = System.currentTimeMillis();
-        logger.info("ApnProxySchemaHandler 连接成功");
+
+//        ctx.channel().attr(Global.REQUST_MONITOR_ATTRIBUTE_KEY).set(requestMonitor);
 
         // 分配ip
         if (!isAllocateIp.get()) {
-            logger.info("Schema -> 未分配ip，开始分配");
             ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
             TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
             RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -66,7 +67,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             if (Objects.isNull(apnProxyRemote)) {
                 requestDistributeService.handleProxyIpIsEmpty(ctx);
             }
-            logger.info("Schema -> 新分配 IP 结果：{}", JSON.toJSONString(apnProxyRemote));
+//            logger.info("Schema -> 新分配 IP 结果：{}", JSON.toJSONString(apnProxyRemote));
             ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
             isAllocateIp.compareAndSet(false, true);
         } else {
@@ -78,8 +79,25 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        long cost = System.currentTimeMillis() - begin;
-        logger.info("ApnProxySchemaHandler 断开连接, 请求耗时 {} ms", cost);
+//        long cost = System.currentTimeMillis() - begin;
+//        ApnProxyRemote apnProxyRemote = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+//        String ip = apnProxyRemote.getRemoteHost()+":"+apnProxyRemote.getRemotePort();
+//        logger.info("ApnProxySchemaHandler 断开连接, 请求耗时 {} ms", cost);
+//        ctx.read();
+
+//        RequestMonitor requestMonitor = ctx.channel().attr(Global.REQUST_MONITOR_ATTRIBUTE_KEY).get();
+
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        long cost2 = System.currentTimeMillis() - requestMonitor.getBegin();
+        requestMonitor.setCost(cost2);
+        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
+                requestMonitor.getCost(),
+                requestMonitor.isSuccess(),
+                requestMonitor.getTunnelName(),
+                requestMonitor.getProxyAddr(),
+                requestMonitor.getRequestType(),
+                requestMonitor.getTargetAddr(),
+                requestMonitor.getFailReason());
         super.channelInactive(ctx);
     }
 
@@ -94,4 +112,11 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         ctx.fireChannelRead(msg);
     }
 
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        String message = cause.getCause().getMessage();
+        apnHandlerParams.getRequestMonitor().setFailReason(message);
+
+        super.exceptionCaught(ctx, cause);
+    }
 }

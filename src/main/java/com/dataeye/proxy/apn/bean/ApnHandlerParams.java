@@ -24,5 +24,6 @@ public class ApnHandlerParams {
     TunnelInstance tunnelInstance;
     RequestDistributeService requestDistributeService;
     ThreadPoolTaskExecutor ioThreadPool;
+    RequestMonitor requestMonitor;
 
 }
