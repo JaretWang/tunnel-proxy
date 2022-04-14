@@ -37,8 +37,8 @@ public class TestLocalEnviroment {
 //    private static final String pageUrl = "http://www.zhihu.com";
 //    private static final String pageUrl = "https://www.jd.com";
 
-    private static final String proxyIp = "127.0.0.1";
-//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+//    private static final String proxyIp = "127.0.0.1";
+    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final int proxyPort = 21331;
 //    private static final int proxyPort = 21332;
     private static final String username = "dataeye";
