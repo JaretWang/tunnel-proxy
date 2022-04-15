@@ -101,7 +101,8 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
         });
         ctx.fireChannelInactive();
         //todo 增加
-        ctx.channel().close();
+//        ctx.channel().close();
+        ctx.close();
         uaChannel.close();
     }
 
@@ -109,8 +110,8 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error(cause.getMessage(), cause);
         //todo 增加
-        ctx.channel().close();
-//        ctx.close();
+//        ctx.channel().close();
+        ctx.close();
     }
 
     public interface RemoteChannelInactiveCallback {
