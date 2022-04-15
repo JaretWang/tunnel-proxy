@@ -63,7 +63,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        }
 //        pipeline.addLast("log", new LoggingHandler("BYTE_LOGGER", LogLevel.INFO));
         pipeline.addLast("codec", new HttpServerCodec());
-//        pipeline.addLast("object_agg", new HttpObjectAggregator(Integer.MAX_VALUE));
+//        pipeline.addLast("request_object_agg", new HttpObjectAggregator(1024*1024));
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler(apnHandlerParams));

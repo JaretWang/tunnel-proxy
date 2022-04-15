@@ -86,16 +86,16 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
 //        RequestMonitor requestMonitor = ctx.channel().attr(Global.REQUST_MONITOR_ATTRIBUTE_KEY).get();
 
-        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
-                requestMonitor.getCost(),
-                requestMonitor.isSuccess(),
-                requestMonitor.getTunnelName(),
-                requestMonitor.getProxyAddr(),
-                requestMonitor.getRequestType(),
-                requestMonitor.getTargetAddr(),
-                requestMonitor.getFailReason());
+//        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+//        requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
+//        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
+//                requestMonitor.getCost(),
+//                requestMonitor.isSuccess(),
+//                requestMonitor.getTunnelName(),
+//                requestMonitor.getProxyAddr(),
+//                requestMonitor.getRequestType(),
+//                requestMonitor.getTargetAddr(),
+//                requestMonitor.getFailReason());
         super.channelInactive(ctx);
     }
 

@@ -316,7 +316,7 @@ public class RequestDistributeService {
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
                     .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                     .option(ChannelOption.AUTO_READ, false)
-                    .handler(new HttpProxyChannelInitializer(apnProxyRemote, uaChannel, remoteAddr, cb));
+                    .handler(new HttpProxyChannelInitializer(apnHandlerParams, apnProxyRemote, uaChannel, remoteAddr, cb));
 
             // set local address
             logger.info("代理ip: {}", apnProxyRemote.getRemote());

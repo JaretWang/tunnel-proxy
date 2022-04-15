@@ -16,6 +16,7 @@
 
 package com.dataeye.proxy.apn.initializer;
 
+import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.HttpProxyHandler;
 import com.dataeye.proxy.apn.handler.HttpProxyHandler.RemoteChannelInactiveCallback;
@@ -27,6 +28,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLEngine;
@@ -53,9 +55,11 @@ public class HttpProxyChannelInitializer extends ChannelInitializer<SocketChanne
      * proxy client 跟远程代理IP建立的通道关闭后的回调策略
      */
     private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    private final ApnHandlerParams apnHandlerParams;
 
-    public HttpProxyChannelInitializer(ApnProxyRemote apnProxyRemote, Channel uaChannel,
+    public HttpProxyChannelInitializer(ApnHandlerParams apnHandlerParams, ApnProxyRemote apnProxyRemote, Channel uaChannel,
                                        String remtoeAddr, RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
+        this.apnHandlerParams = apnHandlerParams;
         this.apnProxyRemote = apnProxyRemote;
         this.uaChannel = uaChannel;
         this.remoteAddr = remtoeAddr;
@@ -77,7 +81,8 @@ public class HttpProxyChannelInitializer extends ChannelInitializer<SocketChanne
         }
 
         pipeline.addLast("codec", new HttpClientCodec());
+        pipeline.addLast("http_proxy_agg", new HttpObjectAggregator(1024*1204));
 
-        pipeline.addLast(HttpProxyHandler.HANDLER_NAME, new HttpProxyHandler(uaChannel, remoteAddr, remoteChannelInactiveCallback));
+        pipeline.addLast(HttpProxyHandler.HANDLER_NAME, new HttpProxyHandler(apnHandlerParams, uaChannel, remoteAddr, remoteChannelInactiveCallback));
     }
 }
