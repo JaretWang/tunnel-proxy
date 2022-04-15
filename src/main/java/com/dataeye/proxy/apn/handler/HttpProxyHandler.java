@@ -105,12 +105,13 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse httpResponse = (FullHttpResponse) msg;
-            logger.info("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
-//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
-            //todo 使用短连接
-            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
-            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
+//            logger.info("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
+            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
+
+//            //todo 使用短连接
+//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
             httpResponse.retain();
 
             if (uaChannel.isActive()) {
@@ -155,8 +156,8 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
 //        //todo 增加
 ////        ctx.channel().close();
-        ctx.close();
-        uaChannel.close();
+//        ctx.close();
+//        uaChannel.close();
     }
 
     @Override
