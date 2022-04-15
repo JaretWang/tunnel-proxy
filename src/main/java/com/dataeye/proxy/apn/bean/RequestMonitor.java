@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * @author jaret
  * @date 2022/4/14 20:09
@@ -20,6 +22,7 @@ public class RequestMonitor {
     long cost;
     String tunnelName;
     String proxyAddr;
+    LocalDateTime expireTime;
     String requestType;
     String targetAddr;
     boolean success;

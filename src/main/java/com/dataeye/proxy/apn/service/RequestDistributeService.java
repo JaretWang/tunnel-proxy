@@ -18,6 +18,7 @@ import com.dataeye.proxy.apn.utils.HttpErrorUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.utils.SocksServerUtils;
+import com.dataeye.proxy.utils.TimeUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -115,7 +116,8 @@ public class RequestDistributeService {
         int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
         String realAddr = originalHost + ":" + originalPort;
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
-        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
+        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
         apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
         apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
 
@@ -154,7 +156,8 @@ public class RequestDistributeService {
         String realAddr = originalHost + ":" + originalPort;
         logger.info("转发普通请求 to {} for {}", remoteAddr, realAddr);
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
-        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
+        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
         apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
         apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
 
@@ -276,7 +279,7 @@ public class RequestDistributeService {
         private final Channel uaChannel;
         private final ApnProxyRemote apnProxyRemote;
         private final TunnelInstance tunnelInstance;
-        private final Bootstrap bootstrap = new Bootstrap();
+        //        private final Bootstrap bootstrap = new Bootstrap();
         private final List<HttpContent> httpContentBuffer;
         private final Object msg;
         private final ApnHandlerParams apnHandlerParams;
@@ -306,6 +309,7 @@ public class RequestDistributeService {
                 uaChannel.close();
             };
 
+            Bootstrap bootstrap = new Bootstrap();
             bootstrap
                     .group(uaChannel.eventLoop())
                     .channel(NioSocketChannel.class)
@@ -392,7 +396,7 @@ public class RequestDistributeService {
         private final ApnProxyRemote apnProxyRemote;
         private final TunnelInstance tunnelInstance;
         private final ApnHandlerParams apnHandlerParams;
-        private final Bootstrap bootstrap = new Bootstrap();
+//        private final Bootstrap bootstrap = new Bootstrap();
 
         public TunnelRequestTask(ApnHandlerParams apnHandlerParams,
                                  final ChannelHandlerContext ctx,
@@ -412,6 +416,7 @@ public class RequestDistributeService {
             Channel uaChannel = ctx.channel();
 
             // connect remote
+            Bootstrap bootstrap = new Bootstrap();
             bootstrap
                     .group(uaChannel.eventLoop())
                     .channel(NioSocketChannel.class)

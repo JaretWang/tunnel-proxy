@@ -20,6 +20,8 @@ import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * @author jaret
  * @date 2022/4/14 10:39
@@ -30,6 +32,7 @@ public abstract class ApnProxyRemote {
     private int remotePort;
     private String proxyUserName;
     private String proxyPassword;
+    private LocalDateTime expireTime;
     private boolean appleyRemoteRule = false;
     private ApnProxyListenType remoteListenType;
 

@@ -91,6 +91,7 @@ public class ApnProxyRemoteChooser {
                 apPlainRemote.setRemotePort(poll.getPort());
                 apPlainRemote.setProxyUserName(poll.getUserName());
                 apPlainRemote.setProxyPassword(poll.getPassword());
+                apPlainRemote.setExpireTime(poll.getExpireTime());
 
 //                Global.REQUEST_IP_USE_RELATIONS.put(requestId, apPlainRemote);
                 return apPlainRemote;

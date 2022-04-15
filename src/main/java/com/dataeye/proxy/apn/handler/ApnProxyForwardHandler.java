@@ -118,8 +118,6 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("forward 关闭连接");
-
-
         ctx.close();
     }
 
