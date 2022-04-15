@@ -56,7 +56,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         begin = System.currentTimeMillis();
 
-//        ctx.channel().attr(Global.REQUST_MONITOR_ATTRIBUTE_KEY).set(requestMonitor);
+        apnHandlerParams.getRequestMonitor().setBegin(System.currentTimeMillis());
 
         // 分配ip
         if (!isAllocateIp.get()) {
@@ -67,7 +67,6 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             if (Objects.isNull(apnProxyRemote)) {
                 requestDistributeService.handleProxyIpIsEmpty(ctx);
             }
-//            logger.info("Schema -> 新分配 IP 结果：{}", JSON.toJSONString(apnProxyRemote));
             ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
             isAllocateIp.compareAndSet(false, true);
         } else {
@@ -88,8 +87,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 //        RequestMonitor requestMonitor = ctx.channel().attr(Global.REQUST_MONITOR_ATTRIBUTE_KEY).get();
 
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        long cost2 = System.currentTimeMillis() - requestMonitor.getBegin();
-        requestMonitor.setCost(cost2);
+        requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
         logger.info("{} ms, {}, {}, {}, {}, {}, {}",
                 requestMonitor.getCost(),
                 requestMonitor.isSuccess(),
