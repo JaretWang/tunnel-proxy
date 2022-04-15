@@ -157,7 +157,7 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
 //        //todo 增加
 ////        ctx.channel().close();
-//        ctx.close();
+        ctx.close();
 //        uaChannel.close();
     }
 
