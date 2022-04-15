@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn.handler;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
@@ -32,7 +33,7 @@ import org.slf4j.Logger;
 public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.proxy";
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("HttpProxyHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("HttpProxyHandler");
     private final Channel uaChannel;
     private final String remoteAddr;
     private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;

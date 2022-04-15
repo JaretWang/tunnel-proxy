@@ -18,6 +18,7 @@ package com.dataeye.proxy.apn.config;
 
 
 import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ import java.util.List;
 public class ApnProxyConfig {
 
     @SuppressWarnings("unused")
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     private static ApnProxyConfig config = new ApnProxyConfig();
 

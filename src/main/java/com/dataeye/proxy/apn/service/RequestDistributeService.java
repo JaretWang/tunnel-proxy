@@ -17,6 +17,7 @@ import com.dataeye.proxy.apn.utils.HostNamePortUtil;
 import com.dataeye.proxy.apn.utils.HttpErrorUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import com.dataeye.proxy.utils.TimeUtils;
 import io.netty.bootstrap.Bootstrap;
@@ -49,7 +50,7 @@ import java.util.stream.Collectors;
 @Service
 public class RequestDistributeService {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("RequestDistributeService");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("RequestDistributeService");
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;

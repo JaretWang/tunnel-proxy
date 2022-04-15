@@ -25,6 +25,7 @@ import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -51,7 +52,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Component
 public class ApnProxyServer {
 
-    private static final Logger LOG = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;

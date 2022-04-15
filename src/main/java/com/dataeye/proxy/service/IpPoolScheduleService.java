@@ -5,6 +5,7 @@ import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class IpPoolScheduleService {
 
-    private static final Logger log = LogbackRollingFileUtil.getLogger("IpPoolScheduleService");
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpPoolScheduleService");
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     /**

@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn.utils;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ import java.security.KeyStore;
  */
 public class ApnProxySSLContextFactory {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     public static SSLEngine createClientSSLEnginForRemoteAddress(String host, int port) {
         try {

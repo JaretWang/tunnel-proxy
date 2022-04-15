@@ -18,6 +18,7 @@ package com.dataeye.proxy.apn.handler;
 
 
 import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
@@ -29,7 +30,7 @@ import org.slf4j.Logger;
  */
 public class ApnProxyRelayHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyRelayHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyRelayHandler");
 
     public static final String HANDLER_NAME = "apnproxy.relay";
 

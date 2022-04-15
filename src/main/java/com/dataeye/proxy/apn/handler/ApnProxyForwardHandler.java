@@ -25,6 +25,7 @@ import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpContent;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.forward";
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
     private final List<HttpContent> httpContentBuffer = new ArrayList<>();
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;

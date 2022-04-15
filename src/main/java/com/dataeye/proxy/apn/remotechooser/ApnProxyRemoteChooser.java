@@ -21,6 +21,7 @@ import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class ApnProxyRemoteChooser {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyServer");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     private final AtomicInteger errorCount = new AtomicInteger(3);
     @Autowired IpPoolScheduleService ipPoolScheduleService;

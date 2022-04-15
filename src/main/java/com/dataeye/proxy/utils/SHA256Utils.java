@@ -13,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
  * @description
  */
 public class SHA256Utils {
-    private static final Logger log = LogbackRollingFileUtil.getLogger("SHA256Utils");
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("SHA256Utils");
 
 
     /**

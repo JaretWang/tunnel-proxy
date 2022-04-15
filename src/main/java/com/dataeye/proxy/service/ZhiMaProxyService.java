@@ -5,6 +5,7 @@ import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.ProxyResponseDto;
 import com.dataeye.proxy.config.BizConfig;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.common.CommonHttpClient;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 @Service
 public class ZhiMaProxyService implements InitializingBean {
 
-    private static final Logger LOG = LogbackRollingFileUtil.getLogger("ZhiMaProxyService");
+    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ZhiMaProxyService");
 
     private static final ScheduledExecutorService REFRESH_EXECUTOR = Executors.newScheduledThreadPool(1);
 

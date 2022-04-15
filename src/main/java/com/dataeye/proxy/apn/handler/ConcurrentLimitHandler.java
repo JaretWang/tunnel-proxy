@@ -2,6 +2,7 @@ package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.*;
 import org.slf4j.Logger;
 
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.LongAdder;
 @ChannelHandler.Sharable
 public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ConnectionLimitHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ConnectionLimitHandler");
 
     private final int maxConcurrency;
     private final AtomicLong connections = new AtomicLong(0);

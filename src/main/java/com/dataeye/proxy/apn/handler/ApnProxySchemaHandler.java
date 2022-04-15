@@ -26,6 +26,7 @@ import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.sun.org.apache.bcel.internal.generic.NEW;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -43,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.schema";
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxySchemaHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxySchemaHandler");
     private final ApnHandlerParams apnHandlerParams;
     private final AtomicBoolean isAllocateIp = new AtomicBoolean(false);
     private long begin;

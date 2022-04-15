@@ -17,6 +17,7 @@
 package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -28,7 +29,7 @@ import org.slf4j.Logger;
  */
 public class IdleHandler extends ChannelDuplexHandler {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("HttpProxyHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("HttpProxyHandler");
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {

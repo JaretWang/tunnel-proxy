@@ -23,6 +23,7 @@ import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.config.ApnProxyRemoteRule;
 import com.dataeye.proxy.apn.utils.HostNamePortUtil;
 import com.dataeye.proxy.apn.utils.HttpErrorUtil;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,7 +40,7 @@ import org.slf4j.Logger;
  */
 public class ApnProxyPreHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("ApnProxyPreHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyPreHandler");
 
     public static final String HANDLER_NAME = "apnproxy.pre";
     private static final String[] FORBIDDEN_IPS = new String[]{"10.", "172.16.", "172.17.",
