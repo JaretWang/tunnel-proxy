@@ -41,8 +41,8 @@ public class TestIpConcurrent {
 //    private static final String pageUrl = "http://www.zhihu.com";
 //    private static final String pageUrl = "https://www.jd.com";
 
-    private static final String proxyIp = "114.106.137.106";
-    private static final int proxyPort = 4245;
+    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+    private static final int proxyPort = 21331;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
 
