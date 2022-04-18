@@ -1,12 +1,11 @@
 package com.dataeye.proxy.apn.handler;
 
-import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.apn.utils.HttpErrorUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelOption;
+import io.netty.channel.*;
+import io.netty.handler.codec.http.HttpMessage;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 
 import java.util.Collections;
@@ -23,10 +22,11 @@ import java.util.concurrent.atomic.LongAdder;
  * @author jaret
  * @date 2022/4/14 11:46
  */
+@ChannelHandler.Sharable
 public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
 
+    public static final String HANDLER_NAME = "apnproxy.connect.limit";
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ConnectionLimitHandler");
-
     private final int maxConcurrency;
     private final AtomicLong numConnections = new AtomicLong(0);
     private final LongAdder numDroppedConnections = new LongAdder();
@@ -39,36 +39,55 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        Channel channel = (Channel) msg;
-        long conn = numConnections.incrementAndGet();
-        if (conn > 0 && conn <= maxConcurrency) {
-            this.childChannelSet.add(channel);
-            channel.closeFuture().addListener(future -> {
-                // 通道关闭了，就移除channel，并减 1
-                childChannelSet.remove(channel);
+        synchronized (this) {
+            Channel channel = ctx.channel();
+            long conn = numConnections.incrementAndGet();
+            if (conn > 0 && conn <= maxConcurrency) {
+                childChannelSet.add(channel);
+                channel.closeFuture().addListener(future -> {
+                    // 通道关闭了，就移除channel，并减 1
+                    childChannelSet.remove(channel);
+                    numConnections.decrementAndGet();
+                });
+                super.channelRead(ctx, msg);
+                ctx.fireChannelRead(msg);
+                logger.info("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
+            } else {
+                logger.info("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
                 numConnections.decrementAndGet();
-            });
-            super.channelRead(ctx, msg);
-            logger.info("当前连接数：{}, ");
-        } else {
-            numConnections.decrementAndGet();
-            // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
-            channel.config().setOption(ChannelOption.SO_LINGER, 0);
-            channel.unsafe().closeForcibly();
-            // 记录关闭的连接
-            numDroppedConnections.increment();
-            if (loggingScheduled.compareAndSet(false, true)) {
-                // 定时打印关闭连接数量的日志
-                ctx.executor().schedule(this::writeNumDroppedConnectionsLog, 1, TimeUnit.SECONDS);
+                // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
+                channel.config().setOption(ChannelOption.SO_LINGER, 0);
+
+                // send error response
+                String errorMsg = "超出最大并发数 "+maxConcurrency+", 请稍后重试";
+                logger.error(errorMsg);
+                HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
+                channel.writeAndFlush(errorResponseMsg);
+                channel.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
+                channel.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
+                channel.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
+//                SocksServerUtils.closeOnFlush(channel);
+                channel.unsafe().closeForcibly();
+//                ReferenceCountUtil.release(msg);
+
+                // 记录关闭的连接
+                numDroppedConnections.increment();
+                if (loggingScheduled.compareAndSet(false, true)) {
+                    // 定时打印关闭连接数量的日志
+                    ctx.executor().schedule(this::writeNumDroppedConnectionsLog, 1, TimeUnit.SECONDS);
+                }
             }
+//            ctx.fireChannelRead(msg);
+//        ReferenceCountUtil.release(msg);
         }
     }
 
     private void writeNumDroppedConnectionsLog() {
         loggingScheduled.set(false);
+        // 计算总和，然后重置
         final long dropped = numDroppedConnections.sumThenReset();
         if (dropped > 0) {
-            logger.warn("断开连接数 [{}], 总并发数限制 [{}]", dropped, maxConcurrency);
+            logger.warn("断开连接数 [{}], 最大并发数 [{}]", dropped, maxConcurrency);
         }
     }
 

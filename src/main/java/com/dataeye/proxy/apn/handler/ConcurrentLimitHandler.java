@@ -21,6 +21,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ConnectionLimitHandler");
 
+    public static final String HANDLER_NAME = "apnproxy.concurrent.limit";
     private final int maxConcurrency;
     private final AtomicLong connections = new AtomicLong(0);
     private final LongAdder droppedConnections = new LongAdder();

@@ -1,14 +1,24 @@
 package com.dataeye.proxy;
 
+import com.dataeye.proxy.arloor.handler.RelayHandler;
+import com.dataeye.proxy.arloor.handler.SessionHandShakeHandler;
+import com.dataeye.proxy.arloor.trace.TraceConstant;
+import com.dataeye.proxy.arloor.util.RequestUtils;
+import com.dataeye.proxy.arloor.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.net.InetSocketAddress;
+
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 /**
  * @author jaret
@@ -24,23 +34,44 @@ public class TestLocalProxyWithNetty {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
-            b.group(group).channel(NioSocketChannel.class)
-//                    .handler(new ProxyServerChannelInitializer());
-                    .handler(new HttpClientCodec());
-
+            b.group(group)
+                    .channel(NioSocketChannel.class)
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            ChannelPipeline pipeline = socketChannel.pipeline();
+                            pipeline.addLast(new HttpClientCodec());
+                            pipeline.addLast(new HttpObjectAggregator(65535));
+                            pipeline.addLast(new MyHttpHandler());
+                        }
+                    });
             // Make the connection attempt.
-//            Channel ch = b.connect(proxyServerConfig.getHost(), proxyServerConfig.getPort()).sync().channel();
-            Channel ch = b.connect("127.0.0.1", 8123).sync().channel();
+            ChannelFuture connect = b.connect("127.0.0.1", 8123);
+            Channel channel = connect.sync().channel();
+            connect.addListener(new ChannelFutureListener() {
+                //            b.connect(session.getHost(), session.getPort()).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if (future.isSuccess()) {
+                        // Prepare the HTTP request.
+                        Channel outChannel = future.channel();
+                        log.info("outChannel hash : {}",outChannel.hashCode());
+                        log.info("channel hash : {}",channel.hashCode());
 
-            // Prepare the HTTP request.
-            HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.CONNECT, "http://www.baidu.com");
-            request.headers().set("Connection", "close");
-            request.headers().set("Host", "http://www.baidu.com:80");
+                        HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "http://www.baidu.com");
+                        request.headers().set("Connection", "close");
+                        request.headers().set("Host", "www.baidu.com:80");
+                        // Send the HTTP request.
+                        outChannel.writeAndFlush(request);
+                    } else {
+                        // Close the connection if the connection attempt has failed.
+                        log.error("错误");
+                    }
+                }
+            });
 
-            // Send the HTTP request.
-            ch.writeAndFlush(request);
             // Wait for the server to close the connection.
-            ch.closeFuture().sync();
+            channel.closeFuture().sync();
 
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
@@ -70,4 +101,16 @@ public class TestLocalProxyWithNetty {
         test("www.github.com", "/");
     }
 
+
+
+}
+
+class MyHttpHandler extends ChannelInboundHandlerAdapter {
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (msg instanceof FullHttpResponse) {
+
+        }
+    }
 }

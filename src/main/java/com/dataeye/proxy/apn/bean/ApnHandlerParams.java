@@ -1,5 +1,6 @@
 package com.dataeye.proxy.apn.bean;
 
+import com.dataeye.proxy.apn.handler.ConnectionLimitHandler;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
@@ -25,5 +26,6 @@ public class ApnHandlerParams {
     RequestDistributeService requestDistributeService;
     ThreadPoolTaskExecutor ioThreadPool;
     RequestMonitor requestMonitor;
+    ConnectionLimitHandler connectionLimitHandler;
 
 }

@@ -13,6 +13,9 @@ public class TimeUtils {
     public static final String FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     public static String formatLocalDate(LocalDateTime time){
+        if (time == null) {
+            return "";
+        }
         return DateTimeFormatter.ofPattern(FORMAT).format(time);
     }
 

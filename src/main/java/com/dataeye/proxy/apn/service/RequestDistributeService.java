@@ -2,7 +2,6 @@ package com.dataeye.proxy.apn.service;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.ApnProxyRelayHandler;
@@ -19,7 +18,6 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.SocksServerUtils;
-import com.dataeye.proxy.utils.TimeUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -117,8 +115,9 @@ public class RequestDistributeService {
         int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
         String realAddr = originalHost + ":" + originalPort;
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
-        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
-        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
+//        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
+//        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
         apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
         apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
 
@@ -157,8 +156,9 @@ public class RequestDistributeService {
         String realAddr = originalHost + ":" + originalPort;
         logger.info("转发普通请求 to {} for {}", remoteAddr, realAddr);
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
-        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
-        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
+//        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
+//        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
+        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr);
         apnHandlerParams.getRequestMonitor().setTargetAddr(realAddr);
         apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
 
@@ -333,7 +333,6 @@ public class RequestDistributeService {
                     HttpRequest oldRequest = (HttpRequest) msg;
                     logger.info("forward_handler 重新构造请求之前：{}", oldRequest);
                     HttpRequest newRequest = constructRequestForProxyByForward(oldRequest, apnProxyRemote);
-
                     logger.info("forward_handler 重新构造请求：{}", newRequest);
                     future.channel().write(newRequest);
 
@@ -441,6 +440,7 @@ public class RequestDistributeService {
                             logger.info("tunnel_handler 连接代理IP成功，耗时: {} ms", took);
                             if (apnProxyRemote.isAppleyRemoteRule()) {
                                 ctx.pipeline().remove("codec");
+//                                ctx.pipeline().remove(ConnectionLimitHandler.HANDLER_NAME);
                                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
 
                                 // add relay handler
@@ -464,8 +464,8 @@ public class RequestDistributeService {
                                                 (ChannelFutureListener) future2 -> {
                                                     // remove handlers
                                                     ctx.pipeline().remove("codec");
-                                                    ctx.pipeline().remove(
-                                                            ApnProxyTunnelHandler.HANDLER_NAME);
+//                                                    ctx.pipeline().remove(ConnectionLimitHandler.HANDLER_NAME);
+                                                    ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
 
                                                     // add relay handler
                                                     ctx.pipeline().addLast(new ApnProxyRelayHandler("UA --> " + apnProxyRemote.getRemote(), future1.channel()));

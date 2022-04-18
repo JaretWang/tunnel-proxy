@@ -1,6 +1,6 @@
 package com.dataeye.proxy;
 
-import lombok.extern.slf4j.Slf4j;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import okhttp3.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
@@ -15,7 +15,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.slf4j.Logger;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -34,13 +34,17 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/3/28 14:21
  * @description 测试单个ip的并发上限
  */
-@Slf4j
+//@Slf4j
 public class TestIpConcurrent {
+
+
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("TestIpConcurrent");
 
     private static final String pageUrl = "https://www.baidu.com";
 //    private static final String pageUrl = "http://www.zhihu.com";
 //    private static final String pageUrl = "https://www.jd.com";
 
+//    private static final String proxyIp = "127.0.0.1";
     private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final int proxyPort = 21331;
     private static final String username = "dataeye";
@@ -53,6 +57,7 @@ public class TestIpConcurrent {
         for (int i = 0; i < 1000; i++) {
             executorService.submit(new TestTask());
         }
+        executorService.shutdownNow();
     }
 
     static class TestTask implements Runnable{
@@ -66,7 +71,7 @@ public class TestIpConcurrent {
             } catch (IOException e) {
                 System.out.println("错误: "+e.getCause().getMessage());
             }
-            System.out.println(content);
+//            System.out.println(content);
             long end = System.currentTimeMillis();
             log.warn("耗时：{} ms", end - begin);
         }
