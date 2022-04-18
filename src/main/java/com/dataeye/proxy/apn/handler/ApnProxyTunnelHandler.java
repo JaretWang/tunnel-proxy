@@ -24,6 +24,7 @@ import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
+import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -110,16 +111,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        long cost2 = System.currentTimeMillis() - requestMonitor.getBegin();
-        requestMonitor.setCost(cost2);
-        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
-                requestMonitor.getCost(),
-                requestMonitor.isSuccess(),
-                requestMonitor.getTunnelName(),
-                requestMonitor.getProxyAddr(),
-                requestMonitor.getRequestType(),
-                requestMonitor.getTargetAddr(),
-                requestMonitor.getFailReason());
+        requestMonitor.setSuccess(false);
+        ReqMonitorUtils.cost(requestMonitor);
         super.channelInactive(ctx);
 //        ctx.close();
     }
@@ -127,6 +120,9 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error(cause.getMessage(), cause);
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        requestMonitor.setSuccess(false);
+        ReqMonitorUtils.cost(requestMonitor);
         ctx.close();
     }
 

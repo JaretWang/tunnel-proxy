@@ -113,7 +113,8 @@ public class RequestDistributeService {
         String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
         String originalHost = HostNamePortUtil.getHostName(originalHostHeader);
         int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
-        String realAddr = originalHost + ":" + originalPort;
+//        String realAddr = originalHost + ":" + originalPort;
+        String realAddr = httpRequest.uri();
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
 //        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());
 //        apnHandlerParams.getRequestMonitor().setProxyAddr(remoteAddr + "(" + formatLocalDate + ")");
@@ -153,7 +154,8 @@ public class RequestDistributeService {
         String originalHostHeader = httpRequest.headers().get(HttpHeaders.Names.HOST);
         String originalHost = HostNamePortUtil.getHostName(originalHostHeader);
         int originalPort = HostNamePortUtil.getPort(originalHostHeader, 80);
-        String realAddr = originalHost + ":" + originalPort;
+//        String realAddr = originalHost + ":" + originalPort;
+        String realAddr = httpRequest.uri();
         logger.info("转发普通请求 to {} for {}", remoteAddr, realAddr);
         apnHandlerParams.getRequestMonitor().setTunnelName(tunnelInstance.getAlias());
 //        String formatLocalDate = TimeUtils.formatLocalDate(apnProxyRemote.getExpireTime());

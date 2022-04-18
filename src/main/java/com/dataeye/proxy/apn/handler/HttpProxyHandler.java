@@ -19,6 +19,7 @@ package com.dataeye.proxy.apn.handler;
 import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -32,8 +33,8 @@ import org.slf4j.Logger;
  */
 public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
-    public static final String HANDLER_NAME = "apnproxy.proxy";
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("HttpProxyHandler");
+    public static final String HANDLER_NAME = "apnproxy.proxy";
     private final Channel uaChannel;
     private final String remoteAddr;
     private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
@@ -49,7 +50,7 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("Remote channel: " + remoteAddr + " active");
+        logger.debug("Remote channel: " + remoteAddr + " active");
         ctx.read();
     }
 
@@ -123,21 +124,20 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
                                 ctx.fireChannelRead(msg);
 //                            // todo 临时补充
 //                            ctx.close();
+
+                                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+                                requestMonitor.setSuccess(true);
+                                ReqMonitorUtils.cost(requestMonitor);
                             } else {
                                 ReferenceCountUtil.release(msg);
                                 ctx.close();
+
+                                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+                                requestMonitor.setSuccess(false);
+                                ReqMonitorUtils.cost(requestMonitor);
                             }
 
-                            RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                            requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-                            logger.info("{} ms, {}, {}, {}, {}, {}, {}",
-                                    requestMonitor.getCost(),
-                                    requestMonitor.isSuccess(),
-                                    requestMonitor.getTunnelName(),
-                                    requestMonitor.getProxyAddr(),
-                                    requestMonitor.getRequestType(),
-                                    requestMonitor.getTargetAddr(),
-                                    requestMonitor.getFailReason());
+
                         });
             }
         }
@@ -159,6 +159,11 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 ////        ctx.channel().close();
         ctx.close();
 //        uaChannel.close();
+
+
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        requestMonitor.setSuccess(false);
+        ReqMonitorUtils.cost(requestMonitor);
     }
 
     @Override
@@ -167,6 +172,10 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
         //todo 增加
 //        ctx.channel().close();
         ctx.close();
+
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        requestMonitor.setSuccess(false);
+        ReqMonitorUtils.cost(requestMonitor);
     }
 
     public interface RemoteChannelInactiveCallback {
