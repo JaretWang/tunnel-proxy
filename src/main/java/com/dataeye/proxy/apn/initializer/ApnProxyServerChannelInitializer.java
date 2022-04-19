@@ -17,6 +17,7 @@
 package com.dataeye.proxy.apn.initializer;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
+import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.config.ApnProxyConfig;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.*;
@@ -34,9 +35,11 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import org.jetbrains.annotations.NotNull;
 
 import javax.net.ssl.SSLEngine;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * @author xmx
@@ -67,6 +70,12 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
 //        pipeline.addLast(ConnectionLimitHandler.HANDLER_NAME, apnHandlerParams.getConnectionLimitHandler());
+        // 带宽监控
+//        ScheduledThreadPoolExecutor scheduledThreadPool = new ScheduledThreadPoolExecutor(10,
+//                r -> new Thread("bandwith-monitor-"), new ThreadPoolExecutor.AbortPolicy());
+//        pipeline.addLast("bandwidth", new GlobalTrafficShapingHandler(scheduledThreadPool,
+//                50*1024,10*1024,1000,15000));
+
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler(apnHandlerParams));
         pipeline.addLast(ApnProxyForwardHandler.HANDLER_NAME, new ApnProxyForwardHandler(apnHandlerParams));
         pipeline.addLast(ApnProxyTunnelHandler.HANDLER_NAME, new ApnProxyTunnelHandler(apnHandlerParams));

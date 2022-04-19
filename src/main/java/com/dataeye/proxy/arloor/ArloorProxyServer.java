@@ -14,18 +14,16 @@
  * under the License.
  */
 
-package com.dataeye.proxy.apn;
+package com.dataeye.proxy.arloor;
 
 
-import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.bean.RequestMonitor;
-import com.dataeye.proxy.apn.handler.ConnectionLimitHandler;
-import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
+import com.dataeye.proxy.arloor.bean.ArloorHandlerParams;
+import com.dataeye.proxy.arloor.config.ArloorConfig;
+import com.dataeye.proxy.arloor.handler.HttpProxyServerInitializer;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.dao.TunnelInitMapper;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -34,12 +32,14 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -50,9 +50,10 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @date 2022/4/7 10:30
  */
 @Component
-public class ApnProxyServer {
+public class ArloorProxyServer {
 
-    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
+    //    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ArloorProxyServer");
+    private static final Logger LOG = LoggerFactory.getLogger("ArloorProxyServer");
 
     @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;
@@ -64,7 +65,7 @@ public class ApnProxyServer {
     /**
      * 初始化隧道实例
      */
-    @PostConstruct
+//    @PostConstruct
     public void initMultiTunnel() {
         // 获取初始化参数
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
@@ -77,7 +78,7 @@ public class ApnProxyServer {
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         int size = tunnelInstances.size();
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create_");
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
         LOG.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
     }
@@ -89,15 +90,11 @@ public class ApnProxyServer {
      * @return
      */
     public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize, String threadNamePrefix) {
-        return getTunnelThreadpool(instanceSize, instanceSize, 2 * instanceSize, threadNamePrefix);
-    }
-
-    public ThreadPoolTaskExecutor getTunnelThreadpool(int coreSize, int maxSize, int queueSize, String threadNamePrefix) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
-        pool.setCorePoolSize(coreSize);
-        pool.setMaxPoolSize(maxSize);
-        pool.setQueueCapacity(queueSize);
-        pool.setKeepAliveSeconds(60);
+        pool.setCorePoolSize(instanceSize);
+        pool.setMaxPoolSize(instanceSize);
+        pool.setQueueCapacity(2 * instanceSize);
+        pool.setKeepAliveSeconds(0);
         pool.setWaitForTasksToCompleteOnShutdown(true);
         pool.setThreadNamePrefix(threadNamePrefix);
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
@@ -111,27 +108,31 @@ public class ApnProxyServer {
      *
      * @param tunnelInstance 隧道实例
      */
-    private void startProxyServer(TunnelInstance tunnelInstance) {
+    private void startProxyServer(TunnelInstance tunnelInstance) throws IOException, GeneralSecurityException {
         String alias = tunnelInstance.getAlias();
         String host = tunnelInstance.getIp();
         int port = tunnelInstance.getPort();
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
-        // TODO 暂时注释掉
-//        // 初始化业务线程池
-//        int businessThreadSize = tunnelInstance.getBusinessThreadSize();
-//        ThreadPoolTaskExecutor businessThreadPool = getTunnelThreadpool(businessThreadSize,
-//                businessThreadSize+1,
-//                2*businessThreadSize,
-//                "tunnel_" + tunnelInstance.getAlias()+"_");
+        // 初始化业务线程池
+//        ThreadPoolTaskExecutor businessThreadPool = getTunnelThreadpool(tunnelInstance.getBusinessThreadSize(),
+//                "tunnel_" + tunnelInstance.getAlias());
+//        RequestMonitor requestMonitor = new RequestMonitor();
+//        ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
+//                .apnProxyRemoteChooser(apnProxyRemoteChooser)
+//                .tunnelInstance(tunnelInstance)
+//                .requestDistributeService(requestDistributeService)
+//                .ioThreadPool(businessThreadPool)
+//                .requestMonitor(requestMonitor)
+//                .build();
 
-        ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
+        ArloorHandlerParams arloorHandlerParams = ArloorHandlerParams.builder()
+                .httpConfig(ArloorConfig.HTTP_CONFIG)
+                .sslConfig(ArloorConfig.SSL_CONFIG)
                 .apnProxyRemoteChooser(apnProxyRemoteChooser)
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)
-//                .ioThreadPool(businessThreadPool)
-//                .connectionLimitHandler(new ConnectionLimitHandler(tunnelInstance))
                 .build();
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
@@ -144,7 +145,7 @@ public class ApnProxyServer {
 //                .option(ChannelOption.SO_RCVBUF, 1024)
                 // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows为200，其他为128。
 //                .option(ChannelOption.SO_BACKLOG, tunnelInstance.getConcurrency())
-                .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
+                .childHandler(new HttpProxyServerInitializer(arloorHandlerParams))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         // 有数据立即发送
 //                .childOption(ChannelOption.TCP_NODELAY, true)
@@ -178,8 +179,72 @@ public class ApnProxyServer {
 
         @Override
         public void run() {
-            startProxyServer(tunnelInstance);
+            try {
+                startProxyServer(tunnelInstance);
+            } catch (Throwable e) {
+                LOG.error("启动隧道 [{}] 失败，原因：{}", tunnelInstance.getAlias(), e.getCause().getMessage());
+            }
         }
     }
+
+////    @PostConstruct
+//    void start(){
+//        EventLoopGroup bossGroup = OsUtils.buildEventLoopGroup(1);
+//        EventLoopGroup workerGroup = OsUtils.buildEventLoopGroup(0);
+//        try {
+//            Channel sslChannel = startSSl(bossGroup, workerGroup, ArloorConfig.SSL_CONFIG);
+//            Channel httpChannel = startHttp(bossGroup, workerGroup, ArloorConfig.HTTP_CONFIG);
+//            httpChannel.closeFuture().sync();
+//            sslChannel.closeFuture().sync();
+//        } catch (InterruptedException e) {
+//            LOG.error("interrupt!", e);
+//        } finally {
+//            bossGroup.shutdownGracefully();
+//            workerGroup.shutdownGracefully();
+//        }
+//    }
+//
+//    public static Channel startHttp(EventLoopGroup bossGroup, EventLoopGroup workerGroup, HttpConfig httpConfig) {
+//        try {
+//            // Configure the server.
+//            ServerBootstrap b = new ServerBootstrap();
+//            b.option(ChannelOption.SO_BACKLOG, 10240);
+//            b.group(bossGroup, workerGroup)
+//                    .channel(OsUtils.serverSocketChannelClazz())
+//                    .childHandler(new HttpProxyServerInitializer(httpConfig));
+//
+//            Channel httpChannel = b.bind(httpConfig.getPort()).sync().channel();
+//            LOG.info("http proxy@ port=" + httpConfig.getPort() + " auth=" + httpConfig.needAuth());
+//            return httpChannel;
+//        } catch (Exception e) {
+//            LOG.error("无法启动Http Proxy", e);
+//        }
+//        return null;
+//    }
+//
+//    public static Channel startSSl(EventLoopGroup bossGroup, EventLoopGroup workerGroup, SslConfig sslConfig) {
+//        try {
+//            // Configure the server.
+//            ServerBootstrap b = new ServerBootstrap();
+//            b.option(ChannelOption.SO_BACKLOG, 10240);
+//            HttpsProxyServerInitializer initializer = new HttpsProxyServerInitializer(sslConfig);
+//            b.group(bossGroup, workerGroup)
+//                    .channel(OsUtils.serverSocketChannelClazz())
+//                    .childHandler(initializer);
+//
+//            Channel sslChannel = b.bind(sslConfig.getPort()).sync().channel();
+//            // 每天更新一次ssl证书
+//            sslChannel.eventLoop().scheduleAtFixedRate(() -> {
+//                LOG.info("定时重加载ssl证书！");
+//                initializer.loadSslContext();
+//            }, 1, 1, TimeUnit.DAYS);
+//            LOG.info("https proxy@ port=" + sslConfig.getPort() + " auth=" + sslConfig.needAuth());
+//            return sslChannel;
+//        } catch (Exception e) {
+//            LOG.error("无法启动Https Proxy", e);
+//        }
+//        return null;
+//    }
+
 
 }

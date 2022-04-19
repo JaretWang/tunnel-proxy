@@ -16,14 +16,19 @@
 
 package com.dataeye.proxy.apn.handler;
 
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
-import io.netty.handler.codec.http.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 
@@ -31,18 +36,20 @@ import org.slf4j.Logger;
  * @author xmx
  * @version $Id: com.dataeye.proxy.apn.handler.HttpProxyHandler 14-1-8 16:13 (xmx) Exp $
  */
-public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
+public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("HttpProxyHandler");
     public static final String HANDLER_NAME = "apnproxy.proxy";
+    //    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DirectRelayHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final Channel uaChannel;
     private final String remoteAddr;
     private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
-    private final ApnHandlerParams apnHandlerParams;
+    private final RequestMonitor requestMonitor;
+    private boolean first = true;
 
-    public HttpProxyHandler(ApnHandlerParams apnHandlerParams, Channel uaChannel, String remoteAddr,
-                            RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
-        this.apnHandlerParams = apnHandlerParams;
+    public DirectRelayHandler(ApnHandlerParams apnHandlerParams, Channel uaChannel, String remoteAddr,
+                              RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
+        this.requestMonitor = apnHandlerParams.getRequestMonitor();
         this.uaChannel = uaChannel;
         this.remoteAddr = remoteAddr;
         this.remoteChannelInactiveCallback = remoteChannelInactiveCallback;
@@ -50,12 +57,13 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("Remote channel: " + remoteAddr + " active");
+        logger.info("DirectRelayHandler channelActive: Remote channel: {} active", remoteAddr);
         ctx.read();
     }
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
+        logger.info("DirectRelayHandler channelRead");
 
 //        HttpObject ho = (HttpObject) msg;
 //        logger.info("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
@@ -122,60 +130,71 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
                             if (future.isSuccess()) {
                                 ctx.read();
                                 ctx.fireChannelRead(msg);
-//                            // todo 临时补充
-//                            ctx.close();
 
-                                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                                requestMonitor.setSuccess(true);
-                                ReqMonitorUtils.cost(requestMonitor);
+                                if (first) {
+                                    // todo 临时增加
+                                    requestMonitor.setSuccess(true);
+                                    ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isSuccess");
+                                    IpMonitorUtils.invoke(requestMonitor, true, "DirectRelayHandler isSuccess");
+                                    first = false;
+                                }
                             } else {
                                 ReferenceCountUtil.release(msg);
                                 ctx.close();
 
-                                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                                requestMonitor.setSuccess(false);
-                                ReqMonitorUtils.cost(requestMonitor);
+                                if (first) {
+                                    // todo 临时增加
+                                    requestMonitor.setSuccess(false);
+                                    requestMonitor.setFailReason(future.cause().getMessage());
+                                    ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isError");
+                                    IpMonitorUtils.invoke(requestMonitor, false, "DirectRelayHandler isError");
+                                    first = false;
+                                }
                             }
-
-
                         });
             }
         }
     }
 
     @Override
-    public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
-        logger.debug("Remote channel: " + remoteAddr + " inactive");
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        logger.info("DirectRelayHandler channelReadComplete");
 
-        uaChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr);
-            }
-        });
+        super.channelReadComplete(ctx);
+    }
+
+    @Override
+    public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
+        logger.info("DirectRelayHandler channelInactive, Remote channel: {} inactive", remoteAddr);
+
+        uaChannel.writeAndFlush(Unpooled.EMPTY_BUFFER)
+                .addListener((ChannelFutureListener) future ->
+                        remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr));
         ctx.fireChannelInactive();
 
 //        //todo 增加
 ////        ctx.channel().close();
-        ctx.close();
 //        uaChannel.close();
+        ctx.close();
 
-
-        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        requestMonitor.setSuccess(false);
-        ReqMonitorUtils.cost(requestMonitor);
+//        requestMonitor.setSuccess(true);
+//        ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler channelInactive");
+//        IpMonitorUtils.invoke(requestMonitor, true, "DirectRelayHandler channelInactive");
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.info("DirectRelayHandler exceptionCaught");
+
         logger.error(cause.getMessage(), cause);
         //todo 增加
 //        ctx.channel().close();
         ctx.close();
 
-        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         requestMonitor.setSuccess(false);
-        ReqMonitorUtils.cost(requestMonitor);
+        requestMonitor.setFailReason(cause.getMessage());
+        ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler exceptionCaught");
+        IpMonitorUtils.invoke(requestMonitor, false, "DirectRelayHandler exceptionCaught");
     }
 
     public interface RemoteChannelInactiveCallback {

@@ -131,3 +131,19 @@ ab -n 1000 -c 1 http://13.209.21.196:8080/trade-server/test/order/testQueue
 
 
 
+# 问题记录
+
+### 线上大量请求后，代理 ip 报出connect time out
+
+- 第一步，使用代理ip和非代理ip的方式，在本地压测百度，新浪，查看区别
+  本地直接请求百度：1000个线程，超过1000个会报socket closed，read timed out，EOFException异常
+
+  代理ip请求百度：1000个线程就会报, connection timed out()
+
+- 第二部，如果对比后发现代理IP有问题，就调整线程数，查看最大值是多少
+- 第三步，使用代理ip下，每5秒，打印每个ip的使用次数，成功次数，失败次数，带宽大小
+
+
+
+Apn-Proxy纯netty支持和Tunnel-Proxy业务线程池的增强，在相同并发下，进行压力测试
+

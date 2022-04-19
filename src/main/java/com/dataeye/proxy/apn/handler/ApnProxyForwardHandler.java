@@ -18,13 +18,10 @@ package com.dataeye.proxy.apn.handler;
 
 
 import com.alibaba.fastjson.JSON;
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -36,7 +33,6 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author jaret
@@ -44,13 +40,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
+//    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
+
     public static final String HANDLER_NAME = "apnproxy.forward";
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyForwardHandler");
     private final List<HttpContent> httpContentBuffer = new ArrayList<>();
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
-    private final AtomicBoolean isAllocateIp = new AtomicBoolean(false);
-    private ApnProxyRemote apnProxyRemote = null;
 
     public ApnProxyForwardHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -58,42 +54,53 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        logger.info("forward channelActive");
+
+        super.channelActive(ctx);
+    }
+
+    @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) {
+        logger.info("forward channelRead");
+
         if (msg instanceof HttpRequest) {
             HttpRequest httpRequest = (HttpRequest) msg;
-            logger.info("ApnProxyForwardHandler 接收请求, 请求内容: {}", httpRequest.toString());
+            logger.debug("forward 接收请求, 请求内容: {}", httpRequest.toString());
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
             if (Objects.nonNull(cacheIpResult)) {
-                logger.info("forward 检测到缓存的ip: {}", JSON.toJSONString(cacheIpResult));
-
+                logger.debug("forward 检测到缓存的ip: {}", JSON.toJSONString(cacheIpResult));
                 requestDistributeService.sendRequestByForward(cacheIpResult, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
             } else {
-                ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-                ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-                ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(proxyConfig);
-                logger.info("forward 获取缓存ip为空，重新分配：{}", JSON.toJSONString(proxyConfig));
-
-                requestDistributeService.sendRequestByForward(proxyConfig, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
+                throw new RuntimeException("forward 获取缓存ip为空");
             }
             ReferenceCountUtil.release(msg);
-
         } else {
             HttpContent hc = ((HttpContent) msg);
             httpContentBuffer.add(hc);
-            logger.info("缓存 HttpContent, msg 类型：{}", msg.getClass());
+            logger.info("缓存HttpContent, size: {}, msg 类型：{}", httpContentBuffer.size(), msg.getClass());
         }
 
     }
 
     @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        logger.info("forward channelReadComplete");
+
+        super.channelReadComplete(ctx);
+    }
+
+    @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("forward 关闭连接");
+        logger.info("forward channelInactive");
+
         ctx.close();
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.info("forward exceptionCaught");
+
         logger.error(cause.getMessage(), cause);
         ctx.close();
     }

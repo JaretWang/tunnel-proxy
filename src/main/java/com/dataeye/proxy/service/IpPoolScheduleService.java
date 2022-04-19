@@ -124,7 +124,7 @@ public class IpPoolScheduleService {
      * @param proxyCfg
      * @return
      */
-    boolean isExpired(ProxyCfg proxyCfg) {
+    public boolean isExpired(ProxyCfg proxyCfg) {
         if (proxyCfg == null) {
             return true;
         }

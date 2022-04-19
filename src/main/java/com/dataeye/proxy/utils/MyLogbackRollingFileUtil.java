@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 
 public class MyLogbackRollingFileUtil {
 
-    private static String ENCODER_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%thread] [%file:%line] [%-5level] -> %msg%n";
+    private static String ENCODER_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss}] [%thread] [%file:%M:%line] [%-5level] -> %msg%n";
     private static String ENCODER_PATTERN2 = "[%d{yyyy-MM-dd HH:mm:ss}] [%-5level] [%thread] [%-4relative] [%p] [%c{0}:%L] - %msg %n";
 
     /**

@@ -16,8 +16,10 @@
 
 package com.dataeye.proxy.apn.initializer;
 
+import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.handler.ApnProxyRelayHandler;
+import com.dataeye.proxy.apn.handler.DirectRelayHandler;
+import com.dataeye.proxy.apn.handler.DirectRelayHandler.RemoteChannelInactiveCallback;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxySslRemote;
 import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
@@ -25,29 +27,47 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLEngine;
 
 /**
  * @author xmx
- * @version $Id: com.dataeye.proxy.apn.initializer.ApnProxyTunnelChannelInitializer 14-1-8 16:13 (xmx) Exp $
+ * @version $Id: com.dataeye.proxy.apn.initializer.HttpProxyChannelInitializer 14-1-8 16:13 (xmx) Exp $
  */
-public class ApnProxyTunnelChannelInitializer extends ChannelInitializer<SocketChannel> {
-
-    private final Channel uaChannel;
-    private final ApnProxyRemote apnProxyRemote;
-
-    public ApnProxyTunnelChannelInitializer(ApnProxyRemote apnProxyRemote, Channel uaChannel) {
-        this.apnProxyRemote = apnProxyRemote;
-        this.uaChannel = uaChannel;
-    }
+public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChannel> {
 
     /**
-     * @see ChannelInitializer#initChannel(Channel)
+     * 代理ip
      */
+    private final ApnProxyRemote apnProxyRemote;
+    /**
+     * 跟被代理的请求建立的channel
+     */
+    private final Channel uaChannel;
+    /**
+     * 代理ip地址
+     */
+    private final String remoteAddr;
+    /**
+     * proxy client 跟远程代理IP建立的通道关闭后的回调策略
+     */
+    private final RemoteChannelInactiveCallback remoteChannelInactiveCallback;
+    private final ApnHandlerParams apnHandlerParams;
+
+    public DirectRelayChannelInitializer(ApnHandlerParams apnHandlerParams, ApnProxyRemote apnProxyRemote, Channel uaChannel,
+                                       String remtoeAddr, RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
+        this.apnHandlerParams = apnHandlerParams;
+        this.apnProxyRemote = apnProxyRemote;
+        this.uaChannel = uaChannel;
+        this.remoteAddr = remtoeAddr;
+        this.remoteChannelInactiveCallback = remoteChannelInactiveCallback;
+    }
+
     @Override
-    protected void initChannel(SocketChannel channel) throws Exception {
+    public void initChannel(SocketChannel channel) throws Exception {
 
         ChannelPipeline pipeline = channel.pipeline();
 
@@ -56,15 +76,12 @@ public class ApnProxyTunnelChannelInitializer extends ChannelInitializer<SocketC
             SSLEngine engine = ApnProxySSLContextFactory.createClientSSLEnginForRemoteAddress(
                     sslRemote.getRemoteHost(), sslRemote.getRemotePort());
             engine.setUseClientMode(true);
-
             pipeline.addLast("ssl", new SslHandler(engine));
         }
 
-        if (apnProxyRemote.getRemoteListenType() == ApnProxyListenType.PLAIN) {
-            // nothing to do
-        }
+        pipeline.addLast("codec", new HttpClientCodec());
+        pipeline.addLast("http_proxy_agg", new HttpObjectAggregator(1024*1204));
 
-        pipeline.addLast(new ApnProxyRelayHandler(apnProxyRemote.getRemote() + " --> UA", uaChannel));
-
+        pipeline.addLast(DirectRelayHandler.HANDLER_NAME, new DirectRelayHandler(apnHandlerParams, uaChannel, remoteAddr, remoteChannelInactiveCallback));
     }
 }

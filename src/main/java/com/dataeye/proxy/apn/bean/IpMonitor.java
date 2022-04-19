@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author jaret
@@ -16,17 +18,13 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequestMonitor {
+public class IpMonitor {
 
-    long begin = System.currentTimeMillis();
-    long cost;
-    int bandwidth;
-    String tunnelName;
-    String proxyAddr;
+    String proxyIp;
     LocalDateTime expireTime;
-    String requestType;
-    String targetAddr;
-    boolean success;
-    String failReason;
+    AtomicLong useTimes;
+    AtomicLong okTimes;
+    AtomicLong errorTimes;
+    AtomicLong bandwidth;
 
 }

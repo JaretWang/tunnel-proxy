@@ -18,7 +18,6 @@ package com.dataeye.proxy.apn.remotechooser;
 
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.utils.TimeUtils;
-import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -64,6 +63,10 @@ public abstract class ApnProxyRemote {
     public final String getRemote() {
         String formatLocalDate = TimeUtils.formatLocalDate(expireTime);
         return this.remoteHost + ":" + this.remotePort+"("+formatLocalDate+")";
+    }
+
+    public final String getIpAddr() {
+        return this.remoteHost + ":" + this.remotePort;
     }
 
     public ApnProxyListenType getRemoteListenType() {

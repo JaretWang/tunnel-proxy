@@ -3,18 +3,20 @@
 <!--    <property name="HOME_PATH" value="C:\\Users\\caiguanghui\\Desktop\\DataEye\\gitlab\\tunnel-proxy\\logs" scope="CONTEXT"/>-->
     <property name="MAX_HISTORY" value="2" scope="CONTEXT"/>
 
-<!--    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">-->
-<!--        <encoder>-->
-<!--            &lt;!&ndash; 在logback中,％relative表示自应用程序启动以来打印相对时间戳(以毫秒为单位). &ndash;&gt;-->
-<!--&lt;!&ndash;            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>&ndash;&gt;-->
-<!--&lt;!&ndash;            <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%-4relative] [%thread] [%logger{35}] - %msg %n</pattern>&ndash;&gt;-->
-<!--            <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%-4relative] [%thread] [%p] [%c{0}:%L] - %msg %n</pattern>-->
-<!--&lt;!&ndash;            <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSS"}[%X{userId}|%X{sessionId}][%p][%c{0}-%M]-%m%n</pattern>&ndash;&gt;-->
-<!--        </encoder>-->
-<!--    </appender>-->
+    <!--    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">-->
+    <!--        <encoder>-->
+    <!--            &lt;!&ndash; 在logback中,％relative表示自应用程序启动以来打印相对时间戳(以毫秒为单位). &ndash;&gt;-->
+    <!--&lt;!&ndash;            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>&ndash;&gt;-->
+    <!--&lt;!&ndash;            <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%-4relative] [%thread] [%logger{35}] - %msg %n</pattern>&ndash;&gt;-->
+    <!--            <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5level] [%-4relative] [%thread] [%p] [%c{0}:%L] - %msg %n</pattern>-->
+    <!--&lt;!&ndash;            <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSS"}[%X{userId}|%X{sessionId}][%p][%c{0}-%M]-%m%n</pattern>&ndash;&gt;-->
+    <!--        </encoder>-->
+    <!--    </appender>-->
 
-<!--    <root level="INFO">-->
-<!--        <appender-ref ref="STDOUT"/>-->
-<!--    </root>-->
+    <!--    <root level="INFO">-->
+    <!--        <appender-ref ref="STDOUT"/>-->
+    <!--    </root>-->
 
+    <root level="info">
+    </root>
 </configuration>
