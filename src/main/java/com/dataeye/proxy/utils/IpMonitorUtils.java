@@ -6,18 +6,18 @@ import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author jaret
  * @date 2022/4/18 20:04
- * @description
+ * @description ip监控工具
  */
 @Component
 public class IpMonitorUtils {
@@ -78,6 +78,14 @@ public class IpMonitorUtils {
         }
     }
 
+    public static String getPercent(float num1, float num2) {
+        NumberFormat numberFormat = NumberFormat.getInstance();
+        // 设置精确到小数点后2位
+        numberFormat.setMaximumFractionDigits(2);
+        float devide = num1 / num2;
+        return numberFormat.format(devide * 100);
+    }
+
     @PostConstruct
     public void schedule() {
         executorService.submit(new GetIpUseTask());
@@ -95,17 +103,22 @@ public class IpMonitorUtils {
                     for (Map.Entry<String, IpMonitor> entry : IP_MONITOR_MAP.entrySet()) {
                         String ip = entry.getKey();
                         IpMonitor ipMonitor = entry.getValue();
-                        log.info(ipMonitor.toString());
-                        // 过期了就移除
+
+                        String proxyIp = ipMonitor.getProxyIp();
                         LocalDateTime expireTime = ipMonitor.getExpireTime();
+                        AtomicLong useTimes = ipMonitor.getUseTimes();
+                        AtomicLong errorTimes = ipMonitor.getErrorTimes();
+                        float okTimes = useTimes.longValue() - errorTimes.longValue();
+                        log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
+                                proxyIp, expireTime, useTimes, errorTimes, getPercent(okTimes, useTimes.longValue()));
+                        // 过期了就移除
                         LocalDateTime now = LocalDateTime.now();
                         if (now.isAfter(expireTime)) {
                             log.info("IP {} 过期,移除监控记录，有效时间={}, 当前={}", ip, expireTime, now);
                             IP_MONITOR_MAP.remove(ip);
                         }
-
                     }
-                    Thread.sleep(1500L);
+                    Thread.sleep(2000L);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

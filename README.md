@@ -155,7 +155,13 @@ Unexpected response code for CONNECT: 401
 
 表示没有权限，或者ip时间已经过期
 
+unexpected end of stream on https://mi.gdt.qq.com/...=9,
 
+网络波动，或者请求连接时间设置的不合理
+
+Remote host closed connection during handshake
+
+time_wait 
 
 # 命令
 
@@ -298,27 +304,41 @@ IP=114.96.198.114:4245(2022-04-20 15:47:45), 并发=50, 成功=491, 失败=9, �
 
 
 
+# 隧道测试
+
+### 本地测试
+
+```
+// 测试参数：https://www.baidu.com 每个线程2个任务
+并发：200, 成功=343, 失败=57, 失败率=14.25%, 错误原因列表：{SSL peer shut down incorrectly=4, Read timed out=3, timeout=50}
+并发：300, 成功=473, 失败=127, 失败率=21.17%, 错误原因列表：{SSL peer shut down incorrectly=10, Read timed out=5, timeout=101}
+
+// 优量广告测试地址：https://mi.gdt.qq.com/gdt_mview.fcg?posid=5000155655915649& 每个线程2个任务
+并发：200, 成功=400, 失败=0, 失败率=0%, 错误原因列表：{}
+并发：300, 成功=600, 失败=0, 失败率=0%, 错误原因列表：{}
+并发：400, 成功=800, 失败=0, 失败率=0%, 错误原因列表：{}
+并发：500, 成功=999, 失败=1, 失败率=0.1%, 错误原因列表：{Read timed out=1}
+并发：600, 成功=1197, 失败=3, 失败率=0.25%, 错误原因列表：{Read timed out=2, timeout=1}
+并发：700, 成功=789, 失败=611, 失败率=43.64%, 错误原因列表：{Read timed out=393, timeout=204}
+```
+
+
+
+### 线上测试
+
+```
+并发：300, 成功=480, 失败=120, 失败率=20%, 错误原因列表：{Read timed out=41, unexpected end of stream on https://mi.gdt.qq.com/...=30, timeout=49}
+并发：400, 成功=280, 失败=120, 失败率=30%, 错误原因列表：{Read timed out=100, timeout=20}
+并发：500, 成功=350, 失败=100, 失败率=20%, 错误原因列表：{Read timed out=57, timeout=43}
+并发：600, 成功=367, 失败=233, 失败率=38.83%, 错误原因列表：{Read timed out=68, unexpected end of stream on https://mi.gdt.qq.com/...=119, timeout=46}
+```
+
+
+
 # 备忘录
 
 统计上（请求）下（响应）行的数据大小。
 
 ip池的每个ip提前检查，还有1分钟过期就判定为失效。
 
-
-
-# 隧道测试
-
-```
-// 测试参数：https://www.baidu.com 每个线程2个任务
-并发：200, 成功=343, 失败=57, 失败率=14.25, 错误原因列表：{SSL peer shut down incorrectly=4, Read timed out=3, timeout=50}
-并发：300, 成功=473, 失败=127, 失败率=21.17, 错误原因列表：{SSL peer shut down incorrectly=10, Read timed out=5, timeout=101}
-
-// 优量广告测试地址：https://mi.gdt.qq.com/gdt_mview.fcg?posid=5000155655915649& 每个线程2个任务
-并发：200, 成功=400, 失败=0, 失败率=0, 错误原因列表：{}
-并发：300, 成功=600, 失败=0, 失败率=0, 错误原因列表：{}
-并发：400, 成功=800, 失败=0, 失败率=0, 错误原因列表：{}
-并发：500, 成功=999, 失败=1, 失败率=0.1, 错误原因列表：{Read timed out=1}
-并发：600, 成功=1197, 失败=3, 失败率=0.25, 错误原因列表：{Read timed out=2, timeout=1}
-并发：700, 成功=789, 失败=611, 失败率=43.64, 错误原因列表：{Read timed out=393, timeout=204}
-```
-
+找鹏远把所有的代理商ip拿过来测试一遍

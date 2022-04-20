@@ -52,7 +52,7 @@ public class TestIpConcurrentBandwidth {
     // 单个ip测试轮数
     int round = 5;
     // 每个线程运行任务的个数
-    int taskNumPerThread = 10;
+    int taskNumPerThread = 2;
     // 直连ip
     String directGetUrl = "http://webapi.http.zhimacangku.com/getip?num=1&type=2&pro=&city=0&yys=0&port=1&pack=228695&ts=1&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=";
     // 独享ip
