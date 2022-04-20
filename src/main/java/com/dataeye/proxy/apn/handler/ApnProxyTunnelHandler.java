@@ -95,9 +95,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("tunnel exceptionCaught： {}", cause.getMessage());
+        logger.error("tunnel exceptionCaught：{}", cause.getMessage());
 
-        logger.error(cause.getMessage(), cause);
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());

@@ -184,9 +184,8 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("DirectRelayHandler exceptionCaught");
+        logger.error("DirectRelayHandler exceptionCaught: {}",cause.getMessage());
 
-        logger.error(cause.getMessage(), cause);
         //todo 增加
 //        ctx.channel().close();
         ctx.close();

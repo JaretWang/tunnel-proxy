@@ -14,5 +14,6 @@ import org.springframework.stereotype.Component;
 public class BizConfig {
 
     private String proxyUrl;
+    private String queryParams;
 
 }

@@ -251,7 +251,7 @@ public class RequestDistributeService {
         String remoteAddr = apnProxyRemote.getRemote();
 
         DirectRelayHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
-            logger.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
+            logger.info("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
             uaChannel.close();
         };
 
@@ -260,9 +260,12 @@ public class RequestDistributeService {
                 .group(uaChannel.eventLoop())
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
+//                // 这个参数设定的是HTTP连接成功后，等待读取数据或者写数据的最大超时时间，单位为毫秒
+//                // 如果设置为0，则表示永远不会超时
+//                .option(ChannelOption.SO_TIMEOUT, tunnelInstance.getConnectTimeoutMillis())
+//                //todo 临时加上
+//                .option(ChannelOption.SO_KEEPALIVE,true)
                 .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                //todo 临时加上
-//                    .option(ChannelOption.SO_KEEPALIVE,true)
                 .option(ChannelOption.AUTO_READ, false)
                 .handler(new DirectRelayChannelInitializer(apnHandlerParams, apnProxyRemote, uaChannel, remoteAddr, cb));
 
@@ -294,7 +297,7 @@ public class RequestDistributeService {
                         .addListener((ChannelFutureListener) future1 -> future1.channel().read());
             } else {
 
-                // todo 如果失败，需要在这里使用新的ip重试（后续改造）\
+                // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                 String errorMsg;
                 ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                 if (proxyCfgs == null || proxyCfgs.isEmpty()) {
@@ -318,11 +321,12 @@ public class RequestDistributeService {
                     HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                     uaChannel.writeAndFlush(errorResponseMsg);
                 }
+
                 //todo 临时增加
                 requestMonitor.setSuccess(false);
                 requestMonitor.setFailReason(errorMsg);
-                ReqMonitorUtils.cost(requestMonitor, "ForwardRequestTask");
-                IpMonitorUtils.invoke(requestMonitor, false, "ForwardRequestTask");
+                ReqMonitorUtils.cost(requestMonitor, "sendForwardReq");
+                IpMonitorUtils.invoke(requestMonitor, false, "sendForwardReq");
 
                 SocksServerUtils.closeOnFlush(uaChannel);
                 httpContentBuffer.clear();
@@ -346,8 +350,8 @@ public class RequestDistributeService {
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
                 .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                //todo 临时加上
-//                    .option(ChannelOption.SO_KEEPALIVE,true)
+//                //todo 临时加上
+//                .option(ChannelOption.SO_KEEPALIVE,true)
                 .option(ChannelOption.AUTO_READ, false)
                 .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel));
 
@@ -408,8 +412,8 @@ public class RequestDistributeService {
                         // todo 临时增加
                         requestMonitor.setSuccess(false);
                         requestMonitor.setFailReason(errorMessage);
-                        ReqMonitorUtils.cost(requestMonitor, "TunnelRequestTask");
-                        IpMonitorUtils.invoke(requestMonitor, false, "TunnelRequestTask");
+                        ReqMonitorUtils.cost(requestMonitor, "sendTunnelReq");
+                        IpMonitorUtils.invoke(requestMonitor, false, "sendTunnelReq");
                     }
                 });
     }

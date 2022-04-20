@@ -37,10 +37,9 @@ public class TestLocalEnviroment {
 //    private static final String pageUrl = "http://www.zhihu.com";
 //    private static final String pageUrl = "https://www.jd.com";
 
+//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final String proxyIp = "127.0.0.1";
-    //    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final int proxyPort = 21331;
-    //    private static final int proxyPort = 21332;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
 
@@ -54,8 +53,6 @@ public class TestLocalEnviroment {
     public static void main(String[] args) throws IOException {
         for (int i = 0; i < 1; i++) {
             long begin = System.currentTimeMillis();
-//        sendByHttpClient(proxyPort+"_sendHttpsByHttpClient_repsonse.html",true);
-//        sendByOriginal("sendByOriginal_repsonse.html");
             System.out.println(sendByOkHttp(true));
             long end = System.currentTimeMillis();
             log.info("耗时：{} ms", (end - begin));

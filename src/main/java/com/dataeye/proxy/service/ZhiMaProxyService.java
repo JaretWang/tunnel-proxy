@@ -2,17 +2,14 @@ package com.dataeye.proxy.service;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.ProxyResponseDto;
 import com.dataeye.proxy.config.BizConfig;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.common.CommonHttpClient;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -39,23 +36,14 @@ import java.util.stream.Collectors;
 public class ZhiMaProxyService implements InitializingBean {
 
     private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ZhiMaProxyService");
-
     private static final ScheduledExecutorService REFRESH_EXECUTOR = Executors.newScheduledThreadPool(1);
-
     private static final AtomicInteger INDEX = new AtomicInteger(0);
-
     private static final int INDEX_LIMIT = Integer.MAX_VALUE / 2;
-
     private static List<ProxyCfg> CONTAINER = new ArrayList<>();
-
     @Resource
     private BizConfig bizConfig;
-
     @Resource
     private CommonHttpClient commonHttpClient;
-
-    @Value("${spring.profiles.active}")
-    private String profiles;
 
     private static String getEth0Inet4InnerIp() {
         Enumeration<NetworkInterface> networkInterfaces;
@@ -94,31 +82,19 @@ public class ZhiMaProxyService implements InitializingBean {
     }
 
     public void refresh() {
-        String host = getEth0Inet4InnerIp();
-        if (StringUtils.isBlank(host)) {
-            LOG.error("host null!");
-        }
-
-//        String params = "channel=1&protocolType=0&productLine=ADX&businessType=TUNNEL&serviceName=" + HandlerCons.ZHIMA_SERVICE_REG_NAME + "&instanceId=172.18.211.168";
-        String params;
-        if ("local".equalsIgnoreCase(profiles)) {
-            params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=172.18.211.168";
-        } else {
-            params = "channel=1&protocolType=0&productLine=ADX&businessType=CRAWL&serviceName=adx-replay&instanceId=" + host;
-        }
-        LOG.info("调用 proxy-service 服务的请求参数：{}", params);
-
-        HttpClientResponse response = commonHttpClient.doPost(bizConfig.getProxyUrl(), new HashMap<>(), params, ResponseEntityType.STRING_UTF8, null);
+        String proxyUrl = bizConfig.getProxyUrl();
+        String queryParams = bizConfig.getQueryParams();
+        LOG.info("url={}, params={}", proxyUrl, queryParams);
+        HttpClientResponse response = commonHttpClient.doPost(proxyUrl, new HashMap<>(), queryParams, ResponseEntityType.STRING_UTF8, null);
         if (!response.codeIs200() || Objects.isNull(response.getResponseContent())) {
             LOG.error("refresh proxy error,code:{}", response.getStatusCode());
             return;
         }
 
-
         String content = (String) response.getResponseContent();
         ProxyResponseDto responseDto = JSON.parseObject(content, ProxyResponseDto.class);
         if (!responseDto.getSuccess()) {
-            LOG.error("代理请求响应失败");
+            LOG.error("response get error");
             return;
         }
         List<ProxyCfg> proxyCfgs = responseDto.getData().stream()
@@ -144,7 +120,7 @@ public class ZhiMaProxyService implements InitializingBean {
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(proxyCfgs)) {
-            LOG.error("代理IP为空");
+            LOG.error("proxy ip is null");
             return;
         }
         if (INDEX.get() > INDEX_LIMIT) {
@@ -162,12 +138,4 @@ public class ZhiMaProxyService implements InitializingBean {
         return Optional.of(proxyCfg);
     }
 
-//    public String getPort() {
-////        // 先不需要端口，只统计机器的请求量
-////        if(null == environment.getProperty("server.port")){
-////            return "";
-////        }
-////        return environment.getProperty("server.port");
-//        return String.valueOf(HandlerCons.ZHIMA_PORT);
-//    }
 }

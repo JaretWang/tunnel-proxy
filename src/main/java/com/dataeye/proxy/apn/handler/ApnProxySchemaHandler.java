@@ -131,11 +131,10 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.info("schema exceptionCaught: {}",cause.getMessage());
+        logger.error("schema exceptionCaught: {}",cause.getMessage());
 
-        String message = cause.getCause().getMessage();
         requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(message);
+        requestMonitor.setFailReason(cause.getMessage());
         ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
 
         super.exceptionCaught(ctx, cause);
