@@ -81,7 +81,7 @@ public class ApnProxyRemoteChooser {
             // TODO 这里可能有多线程安全问题,一个取,一个拿
             ProxyCfg poll = proxyCfgsQueue.poll();
             if (Objects.nonNull(poll)) {
-                logger.info("从队列中获取代理ip的结果：{}", poll);
+                logger.debug("从队列中获取代理ip的结果：{}", poll);
                 // 取了需要再放进去
                 proxyCfgsQueue.offer(poll);
 

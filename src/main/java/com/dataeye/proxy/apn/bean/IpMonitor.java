@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @AllArgsConstructor
 public class IpMonitor {
 
+    String tunnelName;
     String proxyIp;
     LocalDateTime expireTime;
     AtomicLong useTimes;

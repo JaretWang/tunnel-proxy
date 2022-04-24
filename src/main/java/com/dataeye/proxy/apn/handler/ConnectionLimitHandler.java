@@ -57,12 +57,13 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
                 numConnections.decrementAndGet();
                 // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
                 channel.config().setOption(ChannelOption.SO_LINGER, 0);
-
                 // send error response
-                String errorMsg = "超出最大并发数 "+maxConcurrency+", 请稍后重试";
+                String errorMsg = "超出每秒最大并发数 " + maxConcurrency + ", 请稍后重试";
                 logger.error(errorMsg);
                 HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                 channel.writeAndFlush(errorResponseMsg);
+                channel.pipeline().remove(ConnectionLimitHandler.HANDLER_NAME);
+                channel.pipeline().remove("bandwidth.monitor");
                 channel.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
                 channel.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
                 channel.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);

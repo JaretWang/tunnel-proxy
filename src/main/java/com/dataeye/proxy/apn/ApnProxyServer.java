@@ -18,12 +18,12 @@ package com.dataeye.proxy.apn;
 
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.bean.RequestMonitor;
-import com.dataeye.proxy.apn.handler.ConnectionLimitHandler;
+import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.bootstrap.ServerBootstrap;
@@ -41,6 +41,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -131,7 +132,8 @@ public class ApnProxyServer {
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)
 //                .ioThreadPool(businessThreadPool)
-//                .connectionLimitHandler(new ConnectionLimitHandler(tunnelInstance))
+                .concurrentLimitHandler(new ConcurrentLimitHandler(tunnelInstance))
+                .trafficScheduledThreadPool(new ScheduledThreadPoolExecutor(10, new ThreadPoolConfig.TunnelThreadFactory("bandwidth-monitor-"), new ThreadPoolExecutor.AbortPolicy()))
                 .build();
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);

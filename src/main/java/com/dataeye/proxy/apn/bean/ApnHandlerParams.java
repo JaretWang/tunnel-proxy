@@ -1,6 +1,6 @@
 package com.dataeye.proxy.apn.bean;
 
-import com.dataeye.proxy.apn.handler.ConnectionLimitHandler;
+import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * @author jaret
@@ -26,6 +28,7 @@ public class ApnHandlerParams {
     RequestDistributeService requestDistributeService;
     ThreadPoolTaskExecutor ioThreadPool;
     RequestMonitor requestMonitor;
-    ConnectionLimitHandler connectionLimitHandler;
+    ConcurrentLimitHandler concurrentLimitHandler;
+    ScheduledThreadPoolExecutor trafficScheduledThreadPool;
 
 }

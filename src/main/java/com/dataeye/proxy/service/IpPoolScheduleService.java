@@ -1,7 +1,6 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -100,20 +99,31 @@ public class IpPoolScheduleService {
         }
     }
 
-    void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
-        // 先检查，从芝麻拉取的ip可能马上或者已经过期
+    /**
+     * 在更新之前检查ip的有效时间
+     *
+     * @param queue ip循环队列
+     */
+    public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
+        // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
             Optional<ProxyCfg> one = zhiMaProxyService.getOne();
             if (one.isPresent()) {
                 ProxyCfg newProxyCfg = one.get();
                 if (isExpired(newProxyCfg)) {
-                    log.warn("从芝麻拉取的ip已经过期, 具体ip: {}, 时间：{}", newProxyCfg.getHost(), newProxyCfg.getExpireTime());
+                    log.warn("拉取的ip已经过期, 具体ip: {}, 时间：{}", newProxyCfg.getHost(), newProxyCfg.getExpireTime());
                 } else {
+                    // 还需要检查ip是否在ip池中重复了
+                    if (queue.contains(newProxyCfg)) {
+                        log.warn("拉取的IP={}:{} 在IP池中已存在，即将重试", newProxyCfg.getHost(), newProxyCfg.getPort());
+                        continue;
+                    }
+                    //todo 还有一种可能，queue中虽然不包含 newProxyCfg，但可能是ip相同，过期时间，或者端口不同的情况。
                     queue.add(newProxyCfg);
                     break;
                 }
             } else {
-                log.error("芝麻代理服务获取ip结果为空");
+                log.error("从代理商获取ip结果为空");
             }
         }
     }
@@ -142,12 +152,13 @@ public class IpPoolScheduleService {
         @Override
         public void run() {
             while (true) {
-                log.warn("每 {}s 循环检查更新ip池", proxyServerConfig.getCycleCheckTime());
                 try {
                     checkAndUpdateIp();
                     proxyIpPool.forEach((instance, ipConfig) -> {
-                        List<String> collect = ipConfig.stream().map(item -> item.getHost() + ":" + item.getPort() + "(" + item.getExpireTime() + ")").collect(Collectors.toList());
-                        log.info("实例 [{}], ip池数量 [{}], ip列表：{}", instance, ipConfig.size(), collect);
+                        List<String> collect = ipConfig.stream()
+                                .map(item -> item.getHost() + ":" + item.getPort() + "(" + item.getExpireTime() + ")")
+                                .collect(Collectors.toList());
+                        log.info("instance={}, ip-pool-size={}, ip-pool-list={}", instance, ipConfig.size(), collect);
                     });
                     Thread.sleep(proxyServerConfig.getCycleCheckTime() * 1000L);
                 } catch (Throwable e) {

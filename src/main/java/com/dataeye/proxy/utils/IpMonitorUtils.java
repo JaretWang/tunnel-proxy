@@ -1,17 +1,19 @@
 package com.dataeye.proxy.utils;
 
+import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.apn.bean.IpMonitor;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.service.IpPoolScheduleService;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -24,12 +26,33 @@ public class IpMonitorUtils {
 
     public static final ConcurrentHashMap<String, IpMonitor> IP_MONITOR_MAP = new ConcurrentHashMap<>();
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitorUtils");
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+            new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"));
+    private static final double IP_USE_SUCCESS_PERCENT = 95;
+
+    @Resource
+    IpPoolScheduleService ipPoolScheduleService;
+
+    public static void main(String[] args) throws InterruptedException {
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> System.out.println(Thread.currentThread().getName() + "->" + System.currentTimeMillis()),
+                0, 1, TimeUnit.SECONDS);
+        Thread.sleep(5000);
+        SCHEDULE_EXECUTOR.shutdown();
+    }
 
     public static void invoke(RequestMonitor requestMonitor, boolean ok, String handler) {
+        Executors.newSingleThreadExecutor();
         invoke(false, requestMonitor, ok, handler);
     }
 
+    /**
+     * 监控ip的使用成功失败次数
+     *
+     * @param isInitAdd      是否初次分配ip
+     * @param requestMonitor 请求监控bean
+     * @param ok             本地调用ip是否成功
+     * @param handler        调用此监控方法的处理器
+     */
     public synchronized static void invoke(boolean isInitAdd, RequestMonitor requestMonitor, boolean ok, String handler) {
         if (requestMonitor == null) {
             log.error("requestMonitor is null");
@@ -63,6 +86,7 @@ public class IpMonitorUtils {
             IP_MONITOR_MAP.putIfAbsent(proxyIp, ipMonitor);
         } else {
             IpMonitor ipMonitor = new IpMonitor();
+            ipMonitor.setTunnelName(requestMonitor.getTunnelName());
             ipMonitor.setProxyIp(proxyIp);
             ipMonitor.setBandwidth(new AtomicLong(requestMonitor.getBandwidth() / 1024));
             if (ok) {
@@ -79,6 +103,9 @@ public class IpMonitorUtils {
     }
 
     public static String getPercent(float num1, float num2) {
+        if (num1 == 0 || num2 == 0) {
+            return "0";
+        }
         NumberFormat numberFormat = NumberFormat.getInstance();
         // 设置精确到小数点后2位
         numberFormat.setMaximumFractionDigits(2);
@@ -86,42 +113,68 @@ public class IpMonitorUtils {
         return numberFormat.format(devide * 100);
     }
 
+    /**
+     * ip监控列表，定时任务
+     */
     @PostConstruct
     public void schedule() {
-        executorService.submit(new GetIpUseTask());
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new GetIpUseTask(), 0, 2, TimeUnit.SECONDS);
     }
 
-    static class GetIpUseTask implements Runnable {
+    class GetIpUseTask implements Runnable {
 
         @Override
         public void run() {
-            while (true) {
+            try {
                 if (IP_MONITOR_MAP.isEmpty()) {
                     log.error("ip监控列表为空");
+                    return;
                 }
-                try {
-                    for (Map.Entry<String, IpMonitor> entry : IP_MONITOR_MAP.entrySet()) {
-                        String ip = entry.getKey();
-                        IpMonitor ipMonitor = entry.getValue();
+                for (Map.Entry<String, IpMonitor> entry : IP_MONITOR_MAP.entrySet()) {
+                    // IP:PORT
+                    String ip = entry.getKey();
+                    IpMonitor ipMonitor = entry.getValue();
+                    String tunnelName = ipMonitor.getTunnelName();
+                    // IP:PORT
+                    LocalDateTime monitorExpireTime = ipMonitor.getExpireTime();
+                    AtomicLong useTimes = ipMonitor.getUseTimes();
+                    AtomicLong errorTimes = ipMonitor.getErrorTimes();
+                    float okTimes = useTimes.longValue() - errorTimes.longValue();
+                    String percent = getPercent(okTimes, useTimes.longValue());
+                    log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
+                            ip, monitorExpireTime, useTimes, errorTimes, percent);
 
-                        String proxyIp = ipMonitor.getProxyIp();
-                        LocalDateTime expireTime = ipMonitor.getExpireTime();
-                        AtomicLong useTimes = ipMonitor.getUseTimes();
-                        AtomicLong errorTimes = ipMonitor.getErrorTimes();
-                        float okTimes = useTimes.longValue() - errorTimes.longValue();
-                        log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
-                                proxyIp, expireTime, useTimes, errorTimes, getPercent(okTimes, useTimes.longValue()));
-                        // 过期了就移除
-                        LocalDateTime now = LocalDateTime.now();
-                        if (now.isAfter(expireTime)) {
-                            log.info("IP {} 过期,移除监控记录，有效时间={}, 当前={}", ip, expireTime, now);
-                            IP_MONITOR_MAP.remove(ip);
+                    // 根据某个ip的使用失败情况，在ip池中剔除
+                    double percentValue = Double.parseDouble(percent);
+                    if (percentValue < IP_USE_SUCCESS_PERCENT) {
+                        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+                        if (proxyIpPool.containsKey(tunnelName)) {
+                            // 在ip池中剔除
+                            log.warn("ip {} 成功率低于 {}%, 即将从IP池中移除", ip, IP_USE_SUCCESS_PERCENT);
+                            String ipStr = ip.split(":")[0];
+                            int port = Integer.parseInt(ip.split(":")[1]);
+                            ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = proxyIpPool.get(tunnelName);
+                            for (ProxyCfg item : proxyCfgs) {
+                                if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
+                                    proxyCfgs.remove(item);
+                                    // 并添加一个新IP
+                                    log.info("移除ip={}, 并添加一个新IP", item);
+                                    // 移除完之后，再添加一个
+                                    ipPoolScheduleService.checkBeforeUpdate(proxyCfgs);
+                                }
+                            }
                         }
                     }
-                    Thread.sleep(2000L);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+
+                    // 过期了就移除监控记录
+                    LocalDateTime now = LocalDateTime.now();
+                    if (now.isAfter(monitorExpireTime)) {
+                        log.info("IP={} 过期, 移除监控记录，有效时间={}, 当前={}", ip, monitorExpireTime, now);
+                        IP_MONITOR_MAP.remove(ip);
+                    }
                 }
+            } catch (Throwable e) {
+                log.error("IpMonitorUtils error={}", e.getMessage());
             }
         }
     }

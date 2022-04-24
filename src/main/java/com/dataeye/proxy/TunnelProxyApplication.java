@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @date 2022/3/18 13:19
  * @description
  */
-@EnableAsync
 @EnableScheduling
 @EnableConfigurationProperties
 @SpringBootApplication

@@ -40,7 +40,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.info("TunnelRelayHandler channelRead: {} : {}", tag, msg);
+        logger.debug("TunnelRelayHandler channelRead: {} : {}", tag, msg);
 
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg)

@@ -1,45 +1,21 @@
-/*
- * Copyright (c) 2014 The APN-PROXY Project
- *
- * The APN-PROXY Project licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 package com.dataeye.proxy.apn.initializer;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.bean.RequestMonitor;
-import com.dataeye.proxy.apn.config.ApnProxyConfig;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.handler.*;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
-import com.dataeye.proxy.apn.service.RequestDistributeService;
-import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
+import com.dataeye.proxy.apn.handler.ApnProxyForwardHandler;
+import com.dataeye.proxy.apn.handler.ApnProxySchemaHandler;
+import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
+import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.handler.traffic.GlobalTrafficShapingHandler;
-import org.jetbrains.annotations.NotNull;
+import io.netty.handler.traffic.GlobalChannelTrafficShapingHandler;
 
-import javax.net.ssl.SSLEngine;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author xmx
@@ -69,15 +45,31 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        pipeline.addLast("request_object_agg", new HttpObjectAggregator(1024*1024));
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
-//        pipeline.addLast(ConnectionLimitHandler.HANDLER_NAME, apnHandlerParams.getConnectionLimitHandler());
-        // 带宽监控
-//        ScheduledThreadPoolExecutor scheduledThreadPool = new ScheduledThreadPoolExecutor(10,
-//                r -> new Thread("bandwith-monitor-"), new ThreadPoolExecutor.AbortPolicy());
-//        pipeline.addLast("bandwidth", new GlobalTrafficShapingHandler(scheduledThreadPool,
-//                50*1024,10*1024,1000,15000));
 
+        // 频率监控
+        pipeline.addLast(ConcurrentLimitHandler.HANDLER_NAME, apnHandlerParams.getConcurrentLimitHandler());
+        // 带宽监控
+        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+        int maxNetBandwidth = tunnelInstance.getMaxNetBandwidth();
+        // 单位：byte
+        long writeGlobalLimit = maxNetBandwidth * 1024 * 1024;
+        // 单位：byte
+        long readGlobalLimit = maxNetBandwidth * 1024 * 1024;
+        // 单位：byte
+        long writeChannelLimit = 400 * 1024;
+        // 单位：byte
+        long readChannelLimit = 400 * 1024;
+        // 单位：毫秒
+        long checkInterval = 1000;
+        // 单位：毫秒
+        long maxTime = 15000;
+
+        pipeline.addLast("bandwidth.monitor", new GlobalChannelTrafficShapingHandler(apnHandlerParams.getTrafficScheduledThreadPool(),
+                writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval, maxTime));
+        // 请求转发
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler(apnHandlerParams));
         pipeline.addLast(ApnProxyForwardHandler.HANDLER_NAME, new ApnProxyForwardHandler(apnHandlerParams));
         pipeline.addLast(ApnProxyTunnelHandler.HANDLER_NAME, new ApnProxyTunnelHandler(apnHandlerParams));
     }
+
 }

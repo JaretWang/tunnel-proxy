@@ -1,7 +1,7 @@
-package com.dataeye.proxy;
+package com.dataeye.proxy.utils;
 
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -11,33 +11,25 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author jaret
- * @date 2022/3/28 14:21
+ * @date 2022/4/21 10:53
  * @description
  */
-@Slf4j
-public class TestProductEnv {
+public class ProxyTestUtils {
 
-    private static final String pageUrl = "https://www.baidu.com";
-//    private static final String pageUrl = "http://www.taobao.com";
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ProxyTestUtils");
 
-//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
-//    private static final int proxyPort = 21332;
-//    private static final String username = "dataeye";
-//    private static final String password = "dataeye++123";
-
-    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
-    private static final int proxyPort = 21332;
-    private static final String username = "dataeye";
-    private static final String password = "dataeye++123";
-
-    public static void main(String[] args) throws IOException {
-        long begin = System.currentTimeMillis();
-        System.out.println(sendByOkHttp());
-        long end = System.currentTimeMillis();
-        log.warn("耗时：{} ms", end - begin);
-    }
-
-    public static String sendByOkHttp() throws IOException {
+    /**
+     * 使用代理ip发送，获取响应
+     *
+     * @param targetUrl 目标网页
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @return
+     * @throws IOException
+     */
+    public static String sendByProxyIp(String targetUrl, String proxyIp, int proxyPort, String username, String password) throws IOException {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
@@ -53,7 +45,7 @@ public class TestProductEnv {
         clientBuilder.proxyAuthenticator(authenticator);
 
         Request request = new Request.Builder()
-                .url(pageUrl)
+                .url(targetUrl)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
                 .addHeader("Connection", "Keep-Alive")
                 .build();
@@ -61,7 +53,6 @@ public class TestProductEnv {
         OkHttpClient client = clientBuilder.build();
 
         Response response = client.newCall(request).execute();
-        log.info("响应状态码：{}", response.code());
         return Objects.requireNonNull(response.body()).string();
     }
 

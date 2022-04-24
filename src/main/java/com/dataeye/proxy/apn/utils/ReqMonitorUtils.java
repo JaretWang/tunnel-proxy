@@ -1,14 +1,14 @@
 package com.dataeye.proxy.apn.utils;
 
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -22,8 +22,9 @@ public class ReqMonitorUtils {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
-    private static final int interval = 5;
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private static final int INTERVAL = 5;
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+            new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"));
 
     public static void cost(RequestMonitor requestMonitor, String handler) {
         if (requestMonitor == null) {
@@ -33,9 +34,9 @@ public class ReqMonitorUtils {
         requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
         logger.info("{} ms, {}, {}, {}, {}, {}, {}, {}",
                 requestMonitor.getCost(),
-                handler,
                 requestMonitor.isSuccess(),
                 requestMonitor.getTunnelName(),
+                handler,
                 requestMonitor.getProxyAddr(),
                 requestMonitor.getFailReason(),
                 requestMonitor.getRequestType(),
@@ -55,27 +56,24 @@ public class ReqMonitorUtils {
 
     @PostConstruct
     public void schedule() {
-        executorService.submit(new RequestUseMonitorTask());
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new RequestUseMonitorTask(), 0, INTERVAL, TimeUnit.MINUTES);
     }
 
     static class RequestUseMonitorTask implements Runnable {
 
         @Override
         public void run() {
-            while (true) {
+            try {
                 long okVal = OK_TIMES.longValue();
                 long errorVal = ERROR_TIMES.longValue();
                 long total = ERROR_TIMES.addAndGet(okVal);
                 String percent = IpMonitorUtils.getPercent(okVal, total);
-                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}", interval, total, okVal, errorVal, percent);
+                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%", INTERVAL, total, okVal, errorVal, percent);
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);
-                try {
-                    Thread.sleep(interval * 60 * 1000L);
-                } catch (Throwable e) {
-                    logger.info("异常: {}", e.getMessage());
-                }
+            } catch (Throwable e) {
+                logger.error("ReqMonitorUtils error={}", e.getMessage());
             }
         }
     }

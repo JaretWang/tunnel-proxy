@@ -63,7 +63,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
-        logger.info("DirectRelayHandler channelRead");
+        logger.debug("DirectRelayHandler channelRead");
 
 //        HttpObject ho = (HttpObject) msg;
 //        logger.info("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
