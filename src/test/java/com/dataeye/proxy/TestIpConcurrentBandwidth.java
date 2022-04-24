@@ -3,7 +3,7 @@ package com.dataeye.proxy;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
 import com.dataeye.proxy.service.impl.YiniuCloudFetchServiceImpl;
 import com.dataeye.proxy.service.impl.YouJieFetchServiceImpl;
@@ -71,7 +71,7 @@ public class TestIpConcurrentBandwidth {
     @Autowired
     private ApnProxyRemoteChooser apnProxyRemoteChooser;
     @Resource
-    private TunnelInitMapper tunnelInitMapper;
+    private TunnelInitService tunnelInitService;
     @Resource
     private DailiCloudFetchServiceImpl dailiCloudFetchService;
     @Resource
@@ -192,7 +192,7 @@ public class TestIpConcurrentBandwidth {
         ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
         List<String> resultList = new LinkedList<>();
 
-        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
         for (int i = 0; i < round; i++) {
             ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstances.get(0));
             // 保证测试过程 ip 都在有效期内

@@ -8,7 +8,11 @@ import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.concurrent.*;
+import java.math.BigDecimal;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -22,9 +26,10 @@ public class ReqMonitorUtils {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
+    private static final AtomicLong COST_TOTAL = new AtomicLong(0);
     private static final int INTERVAL = 5;
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"));
+            new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
 
     public static void cost(RequestMonitor requestMonitor, String handler) {
         if (requestMonitor == null) {
@@ -48,6 +53,7 @@ public class ReqMonitorUtils {
         } else {
             ERROR_TIMES.incrementAndGet();
         }
+        COST_TOTAL.addAndGet(requestMonitor.getCost());
     }
 
     public static void cost(RequestMonitor requestMonitor) {
@@ -68,10 +74,20 @@ public class ReqMonitorUtils {
                 long errorVal = ERROR_TIMES.longValue();
                 long total = ERROR_TIMES.addAndGet(okVal);
                 String percent = IpMonitorUtils.getPercent(okVal, total);
-                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%", INTERVAL, total, okVal, errorVal, percent);
+                double costAvg;
+                if (COST_TOTAL.get() == 0 || total == 0) {
+                    costAvg = 0;
+                } else {
+                    BigDecimal cost = new BigDecimal(COST_TOTAL.get());
+                    BigDecimal reqTotal = new BigDecimal(total);
+                    costAvg = cost.divide(reqTotal, 2, BigDecimal.ROUND_HALF_UP).doubleValue();
+                }
+
+                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={}/ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);
+                COST_TOTAL.set(0);
             } catch (Throwable e) {
                 logger.error("ReqMonitorUtils error={}", e.getMessage());
             }

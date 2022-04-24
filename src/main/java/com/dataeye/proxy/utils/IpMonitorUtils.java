@@ -27,21 +27,13 @@ public class IpMonitorUtils {
     public static final ConcurrentHashMap<String, IpMonitor> IP_MONITOR_MAP = new ConcurrentHashMap<>();
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitorUtils");
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"));
+            new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
     private static final double IP_USE_SUCCESS_PERCENT = 95;
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
 
-    public static void main(String[] args) throws InterruptedException {
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> System.out.println(Thread.currentThread().getName() + "->" + System.currentTimeMillis()),
-                0, 1, TimeUnit.SECONDS);
-        Thread.sleep(5000);
-        SCHEDULE_EXECUTOR.shutdown();
-    }
-
     public static void invoke(RequestMonitor requestMonitor, boolean ok, String handler) {
-        Executors.newSingleThreadExecutor();
         invoke(false, requestMonitor, ok, handler);
     }
 
@@ -102,6 +94,13 @@ public class IpMonitorUtils {
         }
     }
 
+    /**
+     * 获取百分比
+     *
+     * @param num1 除数
+     * @param num2 被除数
+     * @return
+     */
     public static String getPercent(float num1, float num2) {
         if (num1 == 0 || num2 == 0) {
             return "0";

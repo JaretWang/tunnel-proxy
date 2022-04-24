@@ -3,7 +3,7 @@ package com.dataeye.proxy.service;
 import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
 import org.slf4j.Logger;
@@ -17,10 +17,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -32,8 +30,17 @@ import java.util.stream.Collectors;
 public class IpPoolScheduleService {
 
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpPoolScheduleService");
-
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
+            new ThreadPoolConfig.TunnelThreadFactory("ip-pool-schedule-"), new ThreadPoolExecutor.AbortPolicy());
+    /**
+     * ip拉取记录计数器
+     */
+    private static final ConcurrentHashMap<String, Short> IP_FETCH_RECORD = new ConcurrentHashMap<>();
+    private static final int CHECK_IP_FETCH_HOUR = 1;
+    /**
+     * 统计时间
+     */
+    private final AtomicInteger statisticsTime = new AtomicInteger();
     /**
      * ip池
      */
@@ -43,11 +50,14 @@ public class IpPoolScheduleService {
     @Autowired
     ProxyServerConfig proxyServerConfig;
     @Resource
-    TunnelInitMapper tunnelInitMapper;
+    TunnelInitService tunnelInitService;
 
     @PostConstruct
     public void init() {
-        executorService.submit(new ScheduleUpdateTask());
+        // ip池定时更新
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new ScheduleUpdateTask(), 0, 3, TimeUnit.SECONDS);
+        // ip使用记录，监控计数
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpFetchCounter(), 0, CHECK_IP_FETCH_HOUR, TimeUnit.HOURS);
     }
 
     /**
@@ -56,7 +66,7 @@ public class IpPoolScheduleService {
      * @throws IOException
      */
     public void checkAndUpdateIp() throws IOException {
-        List<TunnelInstance> tunnelInstanceList = tunnelInitMapper.queryAll();
+        List<TunnelInstance> tunnelInstanceList = tunnelInitService.getTunnelList();
         for (TunnelInstance tunnelInstance : tunnelInstanceList) {
             initSingleServer(tunnelInstance);
         }
@@ -151,20 +161,38 @@ public class IpPoolScheduleService {
 
         @Override
         public void run() {
-            while (true) {
-                try {
-                    checkAndUpdateIp();
-                    proxyIpPool.forEach((instance, ipConfig) -> {
-                        List<String> collect = ipConfig.stream()
-                                .map(item -> item.getHost() + ":" + item.getPort() + "(" + item.getExpireTime() + ")")
-                                .collect(Collectors.toList());
-                        log.info("instance={}, ip-pool-size={}, ip-pool-list={}", instance, ipConfig.size(), collect);
-                    });
-                    Thread.sleep(proxyServerConfig.getCycleCheckTime() * 1000L);
-                } catch (Throwable e) {
-                    log.error("定时更新ip池出现异常，原因：{}", e.getCause().getMessage());
+            try {
+                checkAndUpdateIp();
+                proxyIpPool.forEach((instance, ipConfig) -> {
+                    List<String> collect = ipConfig.stream()
+                            .map(item -> item.getHost() + ":" + item.getPort() + "(" + item.getExpireTime() + ")")
+                            .collect(Collectors.toList());
+                    log.info("instance={}, ip-pool-size={}, ip-pool-list={}", instance, ipConfig.size(), collect);
+                });
+            } catch (Throwable e) {
+                log.error("定时更新ip池出现异常，原因：{}", e.getCause().getMessage());
+            }
+        }
+    }
+
+    class IpFetchCounter implements Runnable {
+
+        @Override
+        public void run() {
+            if (proxyIpPool.isEmpty()) {
+                log.error("ip拉取计数器异常：ip池为空");
+                return;
+            }
+            for (ConcurrentLinkedQueue<ProxyCfg> pool : proxyIpPool.values()) {
+                // 添加到计数器容器中
+                for (ProxyCfg proxyCfg : pool) {
+                    String host = proxyCfg.getHost();
+                    int port = proxyCfg.getPort();
+                    String proxyAddr = host + ":" + port;
+                    IP_FETCH_RECORD.putIfAbsent(proxyAddr, (short) 1);
                 }
             }
+            log.info("{} 小时内，已拉取IP数量={}", CHECK_IP_FETCH_HOUR, IP_FETCH_RECORD.size());
         }
     }
 

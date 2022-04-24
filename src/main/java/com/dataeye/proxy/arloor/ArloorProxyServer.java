@@ -23,7 +23,7 @@ import com.dataeye.proxy.arloor.bean.ArloorHandlerParams;
 import com.dataeye.proxy.arloor.config.ArloorConfig;
 import com.dataeye.proxy.arloor.handler.HttpProxyServerInitializer;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.service.TunnelInitService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -60,7 +60,7 @@ public class ArloorProxyServer {
     @Autowired
     RequestDistributeService requestDistributeService;
     @Resource
-    TunnelInitMapper tunnelInitMapper;
+    TunnelInitService tunnelInitService;
 
     /**
      * 初始化隧道实例
@@ -68,7 +68,7 @@ public class ArloorProxyServer {
 //    @PostConstruct
     public void initMultiTunnel() {
         // 获取初始化参数
-        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
         // 创建实例
         startByConfig(tunnelInstances);
     }
