@@ -73,17 +73,20 @@ public class ReqMonitorUtils {
                 long okVal = OK_TIMES.longValue();
                 long errorVal = ERROR_TIMES.longValue();
                 long total = ERROR_TIMES.addAndGet(okVal);
-                String percent = IpMonitorUtils.getPercent(okVal, total);
                 double costAvg;
-                if (COST_TOTAL.get() == 0 || total == 0) {
+                String percent;
+                if (COST_TOTAL.get() == 0 || total == 0 || errorVal == 0) {
                     costAvg = 0;
+                    percent = "0";
+                    logger.error("数值统计异常, OK_TIMES={}, ERROR_TIMES={}, total={}", okVal, errorVal, total);
                 } else {
                     BigDecimal cost = new BigDecimal(COST_TOTAL.get());
                     BigDecimal reqTotal = new BigDecimal(total);
                     costAvg = cost.divide(reqTotal, 2, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    percent = IpMonitorUtils.getPercent(okVal, total);
                 }
 
-                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={}/ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
+                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);
