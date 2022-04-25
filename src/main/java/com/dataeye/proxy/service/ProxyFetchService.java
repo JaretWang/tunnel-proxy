@@ -6,6 +6,7 @@ import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author jaret
@@ -14,8 +15,28 @@ import java.util.Objects;
  */
 public interface ProxyFetchService {
 
+    /**
+     * 每日拉取ip数最大值
+     */
+    AtomicInteger MAX_FETCH_IP_NUM_EVERY_DAY = new AtomicInteger(5000);
+    /**
+     * 最大重试获取ip次数
+     */
+    int MAX_RETRY_TIMES = 3;
+
+    /**
+     * 获取一个ip
+     *
+     * @return
+     * @throws Exception
+     */
     ProxyCfg getOne() throws Exception;
 
+    /**
+     * ApnProxyRemote 适配器
+     *
+     * @return
+     */
     default ApnProxyRemote apnProxyRemoteAdapter() {
         ProxyCfg one = null;
         try {

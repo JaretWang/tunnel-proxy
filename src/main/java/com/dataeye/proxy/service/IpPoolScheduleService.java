@@ -4,6 +4,7 @@ import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
 import org.slf4j.Logger;
@@ -16,9 +17,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -36,17 +36,16 @@ public class IpPoolScheduleService {
      * ip拉取记录计数器
      */
     private static final ConcurrentHashMap<String, Short> IP_FETCH_RECORD = new ConcurrentHashMap<>();
-    private static final int CHECK_IP_FETCH_HOUR = 1;
     /**
-     * 统计时间
+     * 循环检查ip拉取情况的时间间隔，单位：小时
      */
-    private final AtomicInteger statisticsTime = new AtomicInteger();
+    private static final int CHECK_IP_FETCH_HOUR = 1;
     /**
      * ip池
      */
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = new ConcurrentHashMap<>();
     @Autowired
-    ZhiMaProxyService zhiMaProxyService;
+    ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Autowired
     ProxyServerConfig proxyServerConfig;
     @Resource
@@ -82,11 +81,9 @@ public class IpPoolScheduleService {
         if (proxyIpPool.containsKey(id)) {
             ConcurrentLinkedQueue<ProxyCfg> queue = proxyIpPool.get(id);
             if (queue == null || queue.isEmpty()) {
-                // todo 某个id对应的ip为空,会存在IP池所有的ip同时失效的情况
+                // todo 某个隧道对应的ip池中的所有ip同时失效，可能性低
                 log.warn("id存在，但是ip循环队列为空");
-                for (int i = 0; i < tunnelInstance.getFixedIpPoolSize(); i++) {
-                    checkBeforeUpdate(queue, tunnelInstance);
-                }
+                getFixedNumIpAddr(queue, tunnelInstance);
                 proxyIpPool.put(id, queue);
                 return;
             }
@@ -96,16 +93,31 @@ public class IpPoolScheduleService {
                     queue.remove(next);
                     log.info("ip [{}] 即将过期或已经过期，移除", next.getHost());
                     // 放一个新的ip进去
-                    checkBeforeUpdate(queue, tunnelInstance);
+                    getFixedNumIpAddr(queue, tunnelInstance);
                 }
             }
         } else {
             log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
             ConcurrentLinkedQueue<ProxyCfg> queue = new ConcurrentLinkedQueue<>();
-            for (int i = 0; i < tunnelInstance.getFixedIpPoolSize(); i++) {
-                checkBeforeUpdate(queue, tunnelInstance);
-            }
+            getFixedNumIpAddr(queue, tunnelInstance);
             proxyIpPool.put(id, queue);
+        }
+    }
+
+    /**
+     * 获取固定数量的ip
+     * ps: 因为会拉取到重复的ip或者过期的ip，所以ip池在更新的时候ip量总是小于10个，所以需要边轮询，边检查ip池数量是不是达到了固定的10个，不能只做简单的轮询10次
+     */
+    void getFixedNumIpAddr(ConcurrentLinkedQueue<ProxyCfg> queue, TunnelInstance tunnelInstance) {
+        int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
+        while (queue.size() < fixedIpPoolSize) {
+            log.warn("当前ip池数量={}, 小于规定的 {} 个, 即将重试", queue.size(), fixedIpPoolSize);
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            checkBeforeUpdate(queue, tunnelInstance);
         }
     }
 
@@ -117,12 +129,19 @@ public class IpPoolScheduleService {
     public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue, TunnelInstance tunnelInstance) {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
-            Optional<ProxyCfg> one = zhiMaProxyService.getOne();
-            if (!one.isPresent()) {
+//            Optional<ProxyCfg> one = zhiMaProxyService.getOne();
+//            if (!one.isPresent()) {
+//                log.error("从代理商获取ip结果为空");
+//                continue;
+//            }
+
+            List<ProxyCfg> data = zhiMaFetchServiceImpl.getMany(1);
+            if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空");
                 continue;
             }
-            ProxyCfg newProxyCfg = one.get();
+
+            ProxyCfg newProxyCfg = data.get(0);
             if (isExpired(newProxyCfg)) {
                 log.warn("拉取的ip已过期, ip={}, port={}, 时间={}", newProxyCfg.getHost(), newProxyCfg.getPort(), newProxyCfg.getExpireTime());
                 continue;
@@ -163,6 +182,9 @@ public class IpPoolScheduleService {
 //        return now.isAfter(expireTime);
     }
 
+    /**
+     * 定时更新ip池
+     */
     class ScheduleUpdateTask implements Runnable {
 
         @Override
@@ -181,6 +203,9 @@ public class IpPoolScheduleService {
         }
     }
 
+    /**
+     * 单位时间内 ip 拉取累计计数器
+     */
     class IpFetchCounter implements Runnable {
 
         @Override

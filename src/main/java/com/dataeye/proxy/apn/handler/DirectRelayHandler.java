@@ -131,6 +131,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                                 ctx.read();
                                 ctx.fireChannelRead(msg);
 
+                                // todo 依然会执行两次，应该放入 attribute key
                                 if (first) {
                                     // todo 临时增加
                                     requestMonitor.setSuccess(true);

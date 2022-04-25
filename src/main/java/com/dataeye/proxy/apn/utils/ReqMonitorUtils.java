@@ -86,7 +86,8 @@ public class ReqMonitorUtils {
                     percent = IpMonitorUtils.getPercent(okVal, total);
                 }
 
-                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
+//                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
+                logger.info("{} min, total={}, ok={}, error={}, success percent={}%，avg time={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);

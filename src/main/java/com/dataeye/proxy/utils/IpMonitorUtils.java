@@ -146,7 +146,7 @@ public class IpMonitorUtils {
                     return;
                 }
             }
-            log.error("移除ip失败, ip池中不存在该ip={}", ip);
+            log.debug("移除ip失败, ip池中不存在该ip={}", ip);
             return;
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
@@ -169,7 +169,7 @@ public class IpMonitorUtils {
                         String tunnelName = ipMonitor.getTunnelName();
                         TunnelInstance tunnelInstance = tunnelInitService.getTunnel(tunnelName);
                         if (tunnelInstance == null) {
-                            log.error("未找到隧道实例 [{}]", tunnelName);
+                            log.error("未匹配隧道实例 [{}]", tunnelName);
                             IP_MONITOR_MAP.remove(ip);
                             continue;
                         }
