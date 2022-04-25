@@ -3,8 +3,10 @@ package com.dataeye.proxy.utils;
 import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.apn.bean.IpMonitor;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.IpPoolScheduleService;
+import com.dataeye.proxy.service.TunnelInitService;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,8 @@ public class IpMonitorUtils {
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
+    @Resource
+    TunnelInitService tunnelInitService;
 
     public static void invoke(RequestMonitor requestMonitor, boolean ok, String handler) {
         invoke(false, requestMonitor, ok, handler);
@@ -120,6 +124,34 @@ public class IpMonitorUtils {
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new GetIpUseTask(), 0, 2, TimeUnit.SECONDS);
     }
 
+    /**
+     * 从ip池移除高错误率的ip
+     */
+    private void removeHighErrorPercent(String tunnelName, String ip, TunnelInstance tunnelInstance) {
+        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+        if (proxyIpPool.containsKey(tunnelName)) {
+            // 在ip池中剔除
+            log.warn("ip {} 成功率低于 {}%, 即将从IP池中移除", ip, IP_USE_SUCCESS_PERCENT);
+            String ipStr = ip.split(":")[0];
+            int port = Integer.parseInt(ip.split(":")[1]);
+            ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = proxyIpPool.get(tunnelName);
+            for (ProxyCfg item : proxyCfgs) {
+                if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
+                    proxyCfgs.remove(item);
+                    // 并添加一个新IP
+                    String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
+                    log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
+                    // 移除完之后，再添加一个
+                    ipPoolScheduleService.checkBeforeUpdate(proxyCfgs, tunnelInstance);
+                    return;
+                }
+            }
+            log.error("移除ip失败, ip池中不存在该ip={}", ip);
+            return;
+        }
+        log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
+    }
+
     class GetIpUseTask implements Runnable {
 
         @Override
@@ -135,12 +167,32 @@ public class IpMonitorUtils {
                         String ip = entry.getKey();
                         IpMonitor ipMonitor = entry.getValue();
                         String tunnelName = ipMonitor.getTunnelName();
-                        // IP:PORT
+                        TunnelInstance tunnelInstance = tunnelInitService.getTunnel(tunnelName);
+                        if (tunnelInstance == null) {
+                            log.error("未找到隧道实例 [{}]", tunnelName);
+                            IP_MONITOR_MAP.remove(ip);
+                            continue;
+                        }
+
+                        // 过期了就移除监控记录
                         LocalDateTime monitorExpireTime = ipMonitor.getExpireTime();
+                        LocalDateTime now = LocalDateTime.now();
+                        if (now.isAfter(monitorExpireTime)) {
+                            // 此处移除之后，可能再次拉取到相同的ip
+                            log.info("IP={} 过期, 移除监控记录，有效时间={}, 当前={}", ip, monitorExpireTime, now);
+                            removeHighErrorPercent(tunnelName, ip, tunnelInstance);
+                            IP_MONITOR_MAP.remove(ip);
+                        }
+
+                        // 计算成功率
                         AtomicLong useTimes = ipMonitor.getUseTimes();
                         AtomicLong errorTimes = ipMonitor.getErrorTimes();
                         float okTimes = useTimes.longValue() - errorTimes.longValue();
-                        // useTimes=8, errorTimes=175
+                        if (okTimes < 0) {
+                            log.error("okTimes < 0，remove ip monitor detail");
+                            IP_MONITOR_MAP.remove(ip);
+                            continue;
+                        }
                         String percent = getPercent(okTimes, useTimes.longValue());
                         log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
                                 ip, monitorExpireTime, useTimes, errorTimes, percent);
@@ -148,31 +200,7 @@ public class IpMonitorUtils {
                         // 根据某个ip的使用失败情况，在ip池中剔除
                         double percentValue = Double.parseDouble(percent);
                         if (percentValue < IP_USE_SUCCESS_PERCENT) {
-                            ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
-                            if (proxyIpPool.containsKey(tunnelName)) {
-                                // 在ip池中剔除
-                                log.warn("ip {} 成功率低于 {}%, 即将从IP池中移除", ip, IP_USE_SUCCESS_PERCENT);
-                                String ipStr = ip.split(":")[0];
-                                int port = Integer.parseInt(ip.split(":")[1]);
-                                ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = proxyIpPool.get(tunnelName);
-                                for (ProxyCfg item : proxyCfgs) {
-                                    if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
-                                        proxyCfgs.remove(item);
-                                        // 并添加一个新IP
-                                        log.info("移除ip={}, 并添加一个新IP", item);
-                                        // 移除完之后，再添加一个
-                                        ipPoolScheduleService.checkBeforeUpdate(proxyCfgs);
-                                    }
-                                }
-                            }
-                        }
-
-                        // 过期了就移除监控记录
-                        LocalDateTime now = LocalDateTime.now();
-                        if (now.isAfter(monitorExpireTime)) {
-                            // 此处移除之后，可能再次拉取到相同的ip
-                            log.info("IP={} 过期, 移除监控记录，有效时间={}, 当前={}", ip, monitorExpireTime, now);
-                            IP_MONITOR_MAP.remove(ip);
+                            removeHighErrorPercent(tunnelName, ip, tunnelInstance);
                         }
                     }
                 } catch (Throwable e) {

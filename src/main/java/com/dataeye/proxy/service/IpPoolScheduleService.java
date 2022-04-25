@@ -85,7 +85,7 @@ public class IpPoolScheduleService {
                 // todo 某个id对应的ip为空,会存在IP池所有的ip同时失效的情况
                 log.warn("id存在，但是ip循环队列为空");
                 for (int i = 0; i < tunnelInstance.getFixedIpPoolSize(); i++) {
-                    checkBeforeUpdate(queue);
+                    checkBeforeUpdate(queue, tunnelInstance);
                 }
                 proxyIpPool.put(id, queue);
                 return;
@@ -96,14 +96,14 @@ public class IpPoolScheduleService {
                     queue.remove(next);
                     log.info("ip [{}] 即将过期或已经过期，移除", next.getHost());
                     // 放一个新的ip进去
-                    checkBeforeUpdate(queue);
+                    checkBeforeUpdate(queue, tunnelInstance);
                 }
             }
         } else {
             log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
             ConcurrentLinkedQueue<ProxyCfg> queue = new ConcurrentLinkedQueue<>();
             for (int i = 0; i < tunnelInstance.getFixedIpPoolSize(); i++) {
-                checkBeforeUpdate(queue);
+                checkBeforeUpdate(queue, tunnelInstance);
             }
             proxyIpPool.put(id, queue);
         }
@@ -114,27 +114,32 @@ public class IpPoolScheduleService {
      *
      * @param queue ip循环队列
      */
-    public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue) {
+    public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyCfg> queue, TunnelInstance tunnelInstance) {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
             Optional<ProxyCfg> one = zhiMaProxyService.getOne();
-            if (one.isPresent()) {
-                ProxyCfg newProxyCfg = one.get();
-                if (isExpired(newProxyCfg)) {
-                    log.warn("拉取的ip已经过期, 具体ip: {}, 时间：{}", newProxyCfg.getHost(), newProxyCfg.getExpireTime());
-                } else {
-                    // 还需要检查ip是否在ip池中重复了
-                    if (queue.contains(newProxyCfg)) {
-                        log.warn("拉取的IP={}:{} 在IP池中已存在，即将重试", newProxyCfg.getHost(), newProxyCfg.getPort());
-                        continue;
-                    }
-                    //todo 还有一种可能，queue中虽然不包含 newProxyCfg，但可能是ip相同，过期时间，或者端口不同的情况。
-                    queue.add(newProxyCfg);
-                    break;
-                }
-            } else {
+            if (!one.isPresent()) {
                 log.error("从代理商获取ip结果为空");
+                continue;
             }
+            ProxyCfg newProxyCfg = one.get();
+            if (isExpired(newProxyCfg)) {
+                log.warn("拉取的ip已过期, ip={}, port={}, 时间={}", newProxyCfg.getHost(), newProxyCfg.getPort(), newProxyCfg.getExpireTime());
+                continue;
+            }
+            // 还需要检查ip是否在ip池中重复了
+            // todo 还有一种可能，queue中虽然不包含 newProxyCfg，但可能是ip相同，过期时间，或者端口不同的情况。
+            if (queue.contains(newProxyCfg)) {
+                log.warn("拉取的IP={}:{} 在IP池中已存在，即将重试", newProxyCfg.getHost(), newProxyCfg.getPort());
+                continue;
+            }
+            // ip池满的就不用添加
+            if (queue.size() >= tunnelInstance.getFixedIpPoolSize()) {
+                log.warn("IP池已满, 配置数量={}, 真实数量={}, 取消添加", tunnelInstance.getFixedIpPoolSize(), queue.size());
+                continue;
+            }
+            queue.add(newProxyCfg);
+            break;
         }
     }
 
@@ -146,6 +151,7 @@ public class IpPoolScheduleService {
      */
     public boolean isExpired(ProxyCfg proxyCfg) {
         if (proxyCfg == null) {
+            log.error("proxyCfg is null");
             return true;
         }
         LocalDateTime expireTime = proxyCfg.getExpireTime();
