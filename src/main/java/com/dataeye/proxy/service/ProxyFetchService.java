@@ -1,6 +1,6 @@
 package com.dataeye.proxy.service;
 
-import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
@@ -30,7 +30,7 @@ public interface ProxyFetchService {
      * @return
      * @throws Exception
      */
-    ProxyCfg getOne() throws Exception;
+    ProxyIp getOne() throws Exception;
 
     /**
      * ApnProxyRemote 适配器
@@ -38,7 +38,7 @@ public interface ProxyFetchService {
      * @return
      */
     default ApnProxyRemote apnProxyRemoteAdapter() {
-        ProxyCfg one = null;
+        ProxyIp one = null;
         try {
             one = getOne();
         } catch (Exception e) {

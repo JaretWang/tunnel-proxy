@@ -2,7 +2,7 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
@@ -11,14 +11,16 @@ import com.dataeye.proxy.utils.OkHttpTool;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,76 +46,64 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     SendMailService sendMailService;
 
     @Override
-    public ProxyCfg getOne() {
+    public ProxyIp getOne() throws InterruptedException {
+        return getIpList(1).get(0);
+    }
+
+    public List<ProxyIp> getIpList(int num) throws InterruptedException {
         if (isOverFetchIpNumLimit()) {
             logger.error("已达到每日最大拉取ip数量 {} !!!", MAX_FETCH_IP_NUM_EVERY_DAY.get());
-            return null;
+            return Collections.emptyList();
         }
 
-        String url = zhiMaConfig.getDirectGetUrl();
-//        String url = zhiMaConfig.getExclusiveGetUrl();
-//        String url = zhiMaConfig.getTunnelGetUrl();
+        String url = zhiMaConfig.getDirectGetUrl() + "&num=" + num;
 
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
         if (StringUtils.isBlank(json)) {
             logger.error("芝麻代理拉取ip为空");
-            return null;
+            return Collections.emptyList();
         }
+
         JSONObject jsonObject = JSONObject.parseObject(json);
         boolean success = jsonObject.getBooleanValue("success");
-        if (success) {
-            JSONArray data = jsonObject.getJSONArray("data");
-            if (Objects.nonNull(data) && data.size() > 0) {
-                String ipItem = data.get(0).toString();
-                JSONObject ipElement = JSONObject.parseObject(ipItem);
-                String ip = ipElement.getString("ip");
-                int port = ipElement.getIntValue("port");
-                String expireTime = ipElement.getString("expire_time");
-                LocalDateTime parse = LocalDateTime.parse(expireTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                // 计数
-                FETCH_IP_NUM_NOW.incrementAndGet();
-                return ProxyCfg.builder()
-                        .host(ip)
-                        .port(port)
-                        .expireTime(parse)
-                        .userName("")
-                        .password("")
-                        .build();
-            } else {
-                logger.error("代理ip列表为空，原因：{}", json);
-            }
-        } else {
+        if (!success) {
             logger.error("从芝麻代理拉取ip失败，原因：{}", json);
+            // 处理限流
+            int code = jsonObject.getIntValue("code");
+            if (code == 111) {
+                Thread.sleep(1500L);
+                return getIpList(num);
+            }
+            return Collections.emptyList();
         }
-        return null;
-    }
 
-    /**
-     * 获取多个ip
-     */
-    public List<ProxyCfg> getMany(int num) {
-        // 为了去重才用set
-        Set<ProxyCfg> data = new HashSet<>();
-        int count = 0;
-        while (data.size() < num) {
-            if (count >= MAX_RETRY_TIMES) {
-                logger.warn("重试 {} 次获取ip无果，跳出循环", MAX_RETRY_TIMES);
-                break;
-            }
-            ProxyCfg one = getOne();
-            if (Objects.nonNull(one)) {
-                data.add(one);
-            } else {
-                count++;
-                try {
-                    // 防止限流
-                    Thread.sleep(1000L);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+        JSONArray data = jsonObject.getJSONArray("data");
+        if (Objects.isNull(data) || data.size() <= 0) {
+            logger.error("拉取代理ip列表为空，原因：{}", json);
+            return Collections.emptyList();
         }
-        return new LinkedList<>(data);
+
+        List<ProxyIp> result = new LinkedList<>();
+        logger.info("本次拉取ip, 需要数量={}, 实际拉取数量={}", num, data.size());
+        for (Object datum : data) {
+            JSONObject ipElement = JSONObject.parseObject(datum.toString());
+            String ip = ipElement.getString("ip");
+            int port = ipElement.getIntValue("port");
+            String expireTime = ipElement.getString("expire_time");
+            LocalDateTime parse = LocalDateTime.parse(expireTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            // 计数
+            FETCH_IP_NUM_NOW.incrementAndGet();
+            ProxyIp proxyIp = ProxyIp.builder()
+                    .host(ip)
+                    .port(port)
+                    .expireTime(parse)
+                    .valid(new AtomicBoolean(true))
+                    .userName("")
+                    .password("")
+                    .build();
+            result.add(proxyIp);
+        }
+        return result;
     }
 
     /**
@@ -137,16 +127,24 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         IS_SEND_ALARM_EMAIL.set(false);
     }
 
-    /**
-     * 发送告警邮件(每隔1个小时发送一次)
-     */
-    @Scheduled(cron = "0 0 0/1 * * ?")
-    void sendAlarmEmail() {
+//    /**
+//     * 发送告警邮件(每隔1个小时发送一次)
+//     */
+//    @Scheduled(cron = "0 0 0/1 * * ?")
+//    void sendAlarmEmail() {
 //        if (IS_SEND_ALARM_EMAIL.get()) {
 //            String subject = "芝麻代理IP拉取数量告警";
 //            String content = "已拉取ip数=" + FETCH_IP_NUM_NOW.get() + ", 每日最大ip数限制=" + MAX_FETCH_IP_NUM_EVERY_DAY.get();
 //            sendMailService.sendMail(subject, content);
 //        }
+//    }
+
+    /**
+     * 每隔1小时,打印一次当日累计拉取ip数量
+     */
+    @Scheduled(cron = "0 0 0/1 * * ?")
+    void getIpFetchNumNow() {
+        logger.info("今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
     }
 
 }

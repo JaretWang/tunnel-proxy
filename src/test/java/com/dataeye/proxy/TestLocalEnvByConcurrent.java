@@ -33,8 +33,7 @@ public class TestLocalEnvByConcurrent {
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
     // 本地限流阈值
-//    private static final int totalNum = 200;
-    private static final int totalNum = 5;
+    private static final int totalNum = 50;
     private static final int totalTask = totalNum * 2;
     private static final AtomicLong ok = new AtomicLong(0);
     private static final AtomicLong error = new AtomicLong(0);

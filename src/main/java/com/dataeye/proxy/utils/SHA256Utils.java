@@ -1,7 +1,6 @@
 package com.dataeye.proxy.utils;
 
 
-import com.dataeye.logback.LogbackRollingFileUtil;
 import org.slf4j.Logger;
 
 import java.security.MessageDigest;

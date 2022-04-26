@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URLEncoder;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -90,4 +92,44 @@ public class OkHttpTool {
             throw new RuntimeException("HTTP GET同步请求失败 URL:" + reqUrl, e);
         }
     }
+
+    /**
+     * 使用代理IP发送
+     *
+     * @param targetUrl 目标地址
+     * @param proxyIp   代理IP
+     * @param proxyPort 代理port
+     * @param username  用户名
+     * @param password  密码
+     * @return
+     * @throws IOException
+     */
+    public static Response sendByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password) throws IOException {
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+
+        Authenticator authenticator = (route, response) -> {
+            String credential = Credentials.basic(username, password);
+            return response.request().newBuilder()
+                    .header("Proxy-Authorization", credential)
+                    .build();
+        };
+        clientBuilder.proxyAuthenticator(authenticator);
+
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
+        clientBuilder.proxy(proxy);
+        clientBuilder.connectTimeout(60, TimeUnit.SECONDS);
+        clientBuilder.callTimeout(60, TimeUnit.SECONDS);
+
+        Request request = new Request.Builder()
+                .url(targetUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36")
+//                .addHeader("Connection", "Keep-Alive")
+                .addHeader("Connection", "close")
+                .build();
+
+        OkHttpClient client = clientBuilder.build();
+
+        return client.newCall(request).execute();
+    }
+
 }

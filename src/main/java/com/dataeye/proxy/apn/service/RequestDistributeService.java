@@ -1,7 +1,7 @@
 package com.dataeye.proxy.apn.service;
 
-import com.dataeye.commonx.domain.ProxyCfg;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
 import com.dataeye.proxy.apn.handler.DirectRelayHandler;
@@ -296,13 +296,12 @@ public class RequestDistributeService {
                 future.channel().writeAndFlush(Unpooled.EMPTY_BUFFER)
                         .addListener((ChannelFutureListener) future1 -> future1.channel().read());
             } else {
-
                 // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                 String errorMsg;
-                ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
+                ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                 if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                     long took = System.currentTimeMillis() - begin;
-                    errorMsg = "forward_handler 连接代理IP [" + remoteAddr + "] 失败, 耗时：" + took + " ms";
+                    errorMsg = "forward_handler 连接代理IP [" + remoteAddr + "] 失败, 耗时：" + took + " ms, 具体原因: ip池为空";
                     logger.error(errorMsg);
                     // send error response
                     HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);

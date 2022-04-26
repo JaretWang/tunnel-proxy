@@ -2,7 +2,7 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.config.YouJieConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -30,7 +30,7 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
     YouJieConfig youJieConfig;
 
     @Override
-    public ProxyCfg getOne() throws InterruptedException {
+    public ProxyIp getOne() throws InterruptedException {
         String ipFectchUrl = youJieConfig.getIpFectchUrl();
         String data = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         if (StringUtils.isBlank(data)) {
@@ -49,7 +49,7 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
             String ip = split[0];
             int port = Integer.parseInt(split[1]);
             // get one
-            return ProxyCfg.builder()
+            return ProxyIp.builder()
                     .host(ip)
                     .port(port)
                     .expireTime(LocalDateTime.of(2023, 1, 1, 1, 1, 1))

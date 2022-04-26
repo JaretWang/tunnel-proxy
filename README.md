@@ -1035,7 +1035,7 @@ ip池的每个ip提前检查，还有1分钟过期就判定为失效。
 
 
 
-3千万一天 1kb以下 EDX 销量更新
+3千万请求一天 1kb以下 EDX 销量更新
 
 
 
@@ -1063,7 +1063,29 @@ cpu disk 11点半到12点 出现尖刺，看看什么情况
 
 从proxy-service拉取的ip有重复的，自己重新自己拉取，并且，做好ip拉取上限告警
 
-19:10 上线的
+ip池中的ProxyIp可以和IpMonitor可以合并到一起, 就不用同步ip池中的ip和监控记录表里面的ip的状态了.
+
+```
+------------------- 请求监控工具 ------------------------
+cat adx-ReqMonitorUtils.log | grep "percent" | tail -10f | grep "success percent"
+cat adx-ReqMonitorUtils.log | grep "ERROR"
+
+------------------- ip监控工具 ------------------------
+tail -3f adx-IpMonitorUtils.log | grep "success percent"
+cat adx-IpMonitorUtils.log | grep "ERROR"
+cat adx-IpMonitorUtils.log | grep "成功移除ip="
+cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
+
+------------------- ip池 ------------------------
+tail -3f adx-IpPoolScheduleService.log | grep "instance=youliang"
+cat adx-IpPoolScheduleService.log | grep "ERROR"
+cat adx-IpPoolScheduleService.log | grep "拉取IP数量"
+cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
+注: 1小时,平均拉取250个ip. 24小时就是, 一天6000个ip
+
+------------------- 风控 ------------------------
+tail -f adx-ConcurrentLimitHandler.log
+```
 
 
 

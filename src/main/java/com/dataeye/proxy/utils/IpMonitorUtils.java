@@ -1,6 +1,6 @@
 package com.dataeye.proxy.utils;
 
-import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.IpMonitor;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
@@ -127,23 +127,23 @@ public class IpMonitorUtils {
     /**
      * 从ip池移除高错误率的ip
      */
-    private void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance) {
+    private void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance) throws InterruptedException {
         String tunnelName = tunnelInstance.getAlias();
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
             // 在ip池中剔除
             log.warn("ip {} 成功率低于 {}%, 即将从IP池中移除", ip, IP_USE_SUCCESS_PERCENT);
             String ipStr = ip.split(":")[0];
             int port = Integer.parseInt(ip.split(":")[1]);
-            ConcurrentLinkedQueue<ProxyCfg> proxyCfgs = proxyIpPool.get(tunnelName);
-            for (ProxyCfg item : proxyCfgs) {
+            ConcurrentLinkedQueue<ProxyIp> ipPool = proxyIpPool.get(tunnelName);
+            for (ProxyIp item : ipPool) {
                 if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
-                    proxyCfgs.remove(item);
+                    item.getValid().set(false);
                     // 并添加一个新IP
                     String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个
-                    ipPoolScheduleService.checkBeforeUpdate(proxyCfgs, tunnelInstance);
+                    ipPoolScheduleService.checkBeforeUpdate(ipPool, tunnelInstance, 1);
                     // 并且再移除监控记录
                     IP_MONITOR_MAP.remove(ip);
                     return;

@@ -2,7 +2,7 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.commonx.domain.ProxyCfg;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
@@ -36,7 +36,7 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
     YiNiuCloudConfig yiNiuCloudConfig;
 
     @Override
-    public ProxyCfg getOne() {
+    public ProxyIp getOne() {
         String ipFectchUrl = yiNiuCloudConfig.getIpFectchUrl();
         String json = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         JSONObject jsonObject = JSONObject.parseObject(json);
@@ -50,7 +50,7 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
                 int port = ipElement.getIntValue("port");
                 // 临时测试设置时间
                 LocalDateTime localDateTime = LocalDateTime.of(2023, 1, 1, 1, 1, 1);
-                return ProxyCfg.builder()
+                return ProxyIp.builder()
                         .host(ip)
                         .port(port)
                         .expireTime(localDateTime)
@@ -67,8 +67,8 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
     /**
      * 获取多个ip
      */
-    public List<ProxyCfg> getMultiple(int num) {
-        List<ProxyCfg> result = new LinkedList<>();
+    public List<ProxyIp> getMultiple(int num) {
+        List<ProxyIp> result = new LinkedList<>();
         String ipFectchUrl = yiNiuCloudConfig.getIpFectchWithCustomQuantity();
         String url = ipFectchUrl + "&count="+num;
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
@@ -83,7 +83,7 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
                     int port = ipElement.getIntValue("port");
                     // 临时测试
                     LocalDateTime localDateTime = LocalDateTime.of(2023, 1, 1, 1, 1, 1);
-                    ProxyCfg proxyCfg = ProxyCfg.builder()
+                    ProxyIp proxyCfg = ProxyIp.builder()
                             .host(ip)
                             .port(port)
                             .expireTime(localDateTime)
@@ -101,8 +101,8 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
 
     public List<ApnProxyRemote> getMany(int num){
         List<ApnProxyRemote> result = new LinkedList<>();
-        List<ProxyCfg> multiple = getMultiple(num);
-        for (ProxyCfg one : multiple) {
+        List<ProxyIp> multiple = getMultiple(num);
+        for (ProxyIp one : multiple) {
             ApnProxyRemote apPlainRemote = new ApnProxyPlainRemote();
             apPlainRemote.setAppleyRemoteRule(true);
             apPlainRemote.setRemoteListenType(ApnProxyListenType.PLAIN);

@@ -1,9 +1,6 @@
 package com.dataeye.proxy.service.impl;
 
-import com.dataeye.commonx.domain.ProxyCfg;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.config.DailiCloudConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -15,9 +12,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Objects;
 
 /**
  * @author jaret
@@ -33,7 +28,7 @@ public class DailiCloudFetchServiceImpl implements ProxyFetchService {
     DailiCloudConfig dailiCloudConfig;
 
     @Override
-    public ProxyCfg getOne() throws InterruptedException {
+    public ProxyIp getOne() throws InterruptedException {
         String ipFectchUrl = dailiCloudConfig.getIpFectchUrl();
         String data = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         if (StringUtils.isBlank(data)) {
@@ -52,7 +47,7 @@ public class DailiCloudFetchServiceImpl implements ProxyFetchService {
         long expireTime = Long.parseLong(split2[split2.length - 1]);
         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(expireTime, 0, ZoneOffset.ofHours(8));
 
-        return ProxyCfg.builder()
+        return ProxyIp.builder()
                 .host(ip)
                 .port(Integer.parseInt(port))
                 .expireTime(dateTime)
