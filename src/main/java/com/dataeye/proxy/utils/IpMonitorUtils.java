@@ -127,7 +127,8 @@ public class IpMonitorUtils {
     /**
      * 从ip池移除高错误率的ip
      */
-    private void removeHighErrorPercent(String tunnelName, String ip, TunnelInstance tunnelInstance) {
+    private void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance) {
+        String tunnelName = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyCfg>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
             // 在ip池中剔除
@@ -146,7 +147,7 @@ public class IpMonitorUtils {
                     return;
                 }
             }
-            log.debug("移除ip失败, ip池中不存在该ip={}", ip);
+            log.warn("移除ip失败, ip池中不存在该ip={}", ip);
             return;
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
@@ -180,7 +181,7 @@ public class IpMonitorUtils {
                         if (now.isAfter(monitorExpireTime)) {
                             // 此处移除之后，可能再次拉取到相同的ip
                             log.info("IP={} 过期, 移除监控记录，有效时间={}, 当前={}", ip, monitorExpireTime, now);
-                            removeHighErrorPercent(tunnelName, ip, tunnelInstance);
+//                            removeHighErrorPercent(tunnelName, ip, tunnelInstance);
                             IP_MONITOR_MAP.remove(ip);
                         }
 
@@ -189,7 +190,7 @@ public class IpMonitorUtils {
                         AtomicLong errorTimes = ipMonitor.getErrorTimes();
                         float okTimes = useTimes.longValue() - errorTimes.longValue();
                         if (okTimes < 0) {
-                            log.error("okTimes < 0，remove ip monitor detail");
+                            log.error("okTimes < 0，remove ip={} monitor detail", ip);
                             IP_MONITOR_MAP.remove(ip);
                             continue;
                         }
@@ -200,7 +201,7 @@ public class IpMonitorUtils {
                         // 根据某个ip的使用失败情况，在ip池中剔除
                         double percentValue = Double.parseDouble(percent);
                         if (percentValue < IP_USE_SUCCESS_PERCENT) {
-                            removeHighErrorPercent(tunnelName, ip, tunnelInstance);
+                            removeHighErrorPercent(ip, tunnelInstance);
                         }
                     }
                 } catch (Throwable e) {
