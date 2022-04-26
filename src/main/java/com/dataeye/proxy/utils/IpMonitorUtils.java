@@ -144,10 +144,14 @@ public class IpMonitorUtils {
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个
                     ipPoolScheduleService.checkBeforeUpdate(proxyCfgs, tunnelInstance);
+                    // 并且再移除监控记录
+                    IP_MONITOR_MAP.remove(ip);
                     return;
                 }
             }
-            log.warn("移除ip失败, ip池中不存在该ip={}", ip);
+            // ip池中不存在该ip,就应该移除对该ip的监控
+            log.warn("移除ip失败, ip池中不存在该ip={}, 即将移除对该ip的监控记录", ip);
+            IP_MONITOR_MAP.remove(ip);
             return;
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
