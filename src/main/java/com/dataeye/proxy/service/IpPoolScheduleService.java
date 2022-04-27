@@ -89,6 +89,16 @@ public class IpPoolScheduleService {
                     getFixedNumIpAddr(queue, tunnelInstance, 1);
                 }
             }
+
+            // 会有一段时间的ip池数量不足
+            // 如果queue中的有效ip数不够数量,则需要继续添加
+            int validIpSize = getValidIpSize(queue);
+            int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
+            if (validIpSize < fixedIpPoolSize) {
+                int fetchSize = fixedIpPoolSize - validIpSize;
+                getFixedNumIpAddr(queue, tunnelInstance, fetchSize);
+            }
+
         } else {
             log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
             ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
@@ -103,8 +113,8 @@ public class IpPoolScheduleService {
      */
     void getFixedNumIpAddr(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
         int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
-        while (queue.size() < fixedIpPoolSize) {
-            log.warn("当前ip池数量={}, 小于规定的 {} 个, 即将重试", queue.size(), fixedIpPoolSize);
+        while (getValidIpSize(queue) < fixedIpPoolSize) {
+            log.warn("当前ip池数量={}, 实际有效ip数={}, 小于规定的 {} 个, 即将重试", queue.size(), getValidIpSize(queue), fixedIpPoolSize);
             checkBeforeUpdate(queue, tunnelInstance, numOnce);
         }
     }
@@ -126,18 +136,19 @@ public class IpPoolScheduleService {
 
             for (ProxyIp newProxyIp : data) {
                 if (isExpired(newProxyIp)) {
-                    log.warn("拉取的ip已过期, ip={}, port={}, 时间={}", newProxyIp.getHost(), newProxyIp.getPort(), newProxyIp.getExpireTime());
+                    log.warn("拉取的ip={} 已过期, 时间={}", newProxyIp.getIpAddr(), newProxyIp.getExpireTime());
                     continue;
                 }
                 // 还需要检查ip是否在ip池中重复了
                 // todo 还有一种可能，queue中虽然不包含 newProxyIp，但可能是ip相同，过期时间，或者端口不同的情况。
                 if (queue.contains(newProxyIp)) {
-                    log.warn("拉取的IP={}:{} 在IP池中已存在，即将重试", newProxyIp.getHost(), newProxyIp.getPort());
+                    log.warn("拉取的IP={} 在IP池中已存在，即将重试", newProxyIp.getIpAddr());
                     continue;
                 }
                 // ip池满的就不用添加
-                if (queue.size() >= tunnelInstance.getFixedIpPoolSize()) {
-                    log.warn("IP池已满, 配置数量={}, 真实数量={}, 取消添加", tunnelInstance.getFixedIpPoolSize(), queue.size());
+                int validIpSize = getValidIpSize(queue);
+                if (validIpSize >= tunnelInstance.getFixedIpPoolSize()) {
+                    log.warn("IP池已满, 配置数量={}, 有效数量={}, 取消添加", tunnelInstance.getFixedIpPoolSize(), validIpSize);
                     continue;
                 }
                 queue.add(newProxyIp);
@@ -165,6 +176,12 @@ public class IpPoolScheduleService {
         return duration < proxyServerConfig.getJudgeExpiredIpMinSeconds();
     }
 
+    private int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
+        return (int) queue.stream()
+                .filter(proxyIp -> proxyIp.getValid().get())
+                .distinct().count();
+    }
+
     /**
      * 定时更新ip池
      */
@@ -179,12 +196,8 @@ public class IpPoolScheduleService {
                             .map(ProxyIp::getIpAddrWithTimeAndValid)
                             .distinct()
                             .collect(Collectors.toList());
-                    List<ProxyIp> validList = queue.stream()
-                            .filter(proxyIp -> proxyIp.getValid().get())
-                            .distinct()
-                            .collect(Collectors.toList());
-
-                    log.info("tunnel={}, ip-pool-size={}, valid-ip-size={}, ip-pool-list={}", tunnel, queue.size(), validList.size(), JSON.toJSONString(collect));
+                    int validIpSize = getValidIpSize(queue);
+                    log.info("tunnel={}, ip-pool-size={}, valid-ip-size={}, ip-pool-list={}", tunnel, queue.size(), validIpSize, JSON.toJSONString(collect));
                 });
             } catch (Throwable e) {
                 log.error("定时更新ip池出现异常，原因：{}", e.getCause().getMessage());

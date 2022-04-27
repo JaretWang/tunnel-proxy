@@ -1077,7 +1077,7 @@ cat adx-IpMonitorUtils.log | grep "成功移除ip="
 cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
 
 ------------------- ip池 ------------------------
-tail -3f adx-IpPoolScheduleService.log | grep "instance=youliang"
+tail -3f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
 cat adx-IpPoolScheduleService.log | grep "ERROR"
 cat adx-IpPoolScheduleService.log | grep "拉取IP数量"
 cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
@@ -1085,6 +1085,18 @@ cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
 
 ------------------- 风控 ------------------------
 tail -f adx-ConcurrentLimitHandler.log
+```
+
+如果服务中断, ip池数量会满了不会变化, 因为失效的ip不会被poll, 所以就一直存在里面, 然后程序检测有效ip不足,就会往里面添加第二批有效的ip, 当第二批也失效, 就会循环添加,一直到最后, ip池可能可能因为没有释放掉, 而导致内存泄露.
+
+
+
+# 配置总结
+
+```
+程序: 一个隧道10个ip, 500TPS, 2G堆内存 YoungGC 最多一分钟6次,没有 FullGC
+请求方: 每小时25W请求, 每秒70个请求, 每个请求响应大小20KB左右, 每秒带宽1.5MB, 每分钟带宽90MB
+阿里云机器: 16核CPU 32G运存 10Mbps带宽
 ```
 
 

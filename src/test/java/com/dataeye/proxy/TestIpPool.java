@@ -1,8 +1,10 @@
 package com.dataeye.proxy;
 
+import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 
 import java.time.LocalDateTime;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -41,6 +43,27 @@ public class TestIpPool {
 
     private static void sendRequest(ProxyIp ip) {
         System.out.println("模拟 ip=" + ip.getHost() + ", port=" + ip.getPort() + " 发送请求");
+    }
+
+    private static String buildIpPoolJson() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("code", 0);
+        jsonObject.put("msg", "0");
+        jsonObject.put("success", true);
+        LinkedList<JSONObject> data = new LinkedList<>();
+        Random random = new Random();
+        for (int i = 10; i < 20; i++) {
+            int ip_val = random.nextInt(6553);
+            int min_val = random.nextInt(5);
+            int second_val = random.nextInt(60);
+            JSONObject element = new JSONObject();
+            element.put("ip", "10.10.10." + i);
+            element.put("port", ip_val);
+            element.put("expire_time", LocalDateTime.now().plusMinutes(min_val).plusSeconds(second_val));
+            data.add(element);
+        }
+        jsonObject.put("data", data);
+        return jsonObject.toJSONString();
     }
 
     private static ConcurrentLinkedQueue<ProxyIp> buildIpPool() {

@@ -17,10 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,6 +56,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         String url = zhiMaConfig.getDirectGetUrl() + "&num=" + num;
 
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
+//        String json = buildIpPoolJson();
         if (StringUtils.isBlank(json)) {
             logger.error("芝麻代理拉取ip为空");
             return Collections.emptyList();
@@ -71,7 +69,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             // 处理限流
             int code = jsonObject.getIntValue("code");
             if (code == 111) {
-                Thread.sleep(1500L);
+                logger.error("被芝麻限流, 重试");
+                Thread.sleep(2000L);
                 return getIpList(num);
             }
             return Collections.emptyList();
@@ -145,6 +144,31 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     @Scheduled(cron = "0 0 0/1 * * ?")
     void getIpFetchNumNow() {
         logger.info("今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
+    }
+
+    /**
+     * 伪造拉取的数据
+     * @return
+     */
+    private static String buildIpPoolJson() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("code", 0);
+        jsonObject.put("msg", "0");
+        jsonObject.put("success", true);
+        LinkedList<JSONObject> data = new LinkedList<>();
+        Random random = new Random();
+        for (int i = 10; i < 20; i++) {
+            int ip_val = random.nextInt(6553);
+            int min_val = random.nextInt(5);
+            int second_val = random.nextInt(60);
+            JSONObject element = new JSONObject();
+            element.put("ip", "10.10.10." + i);
+            element.put("port", ip_val);
+            element.put("expire_time", LocalDateTime.now().plusMinutes(min_val).plusSeconds(second_val));
+            data.add(element);
+        }
+        jsonObject.put("data", data);
+        return jsonObject.toJSONString();
     }
 
 }

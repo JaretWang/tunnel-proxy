@@ -46,26 +46,26 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
 
-        // 频率监控
-        pipeline.addLast(ConcurrentLimitHandler.HANDLER_NAME, apnHandlerParams.getConcurrentLimitHandler());
-        // 带宽监控
-        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-        int maxNetBandwidth = tunnelInstance.getMaxNetBandwidth();
-        // 单位：byte
-        long writeGlobalLimit = maxNetBandwidth * 1024 * 1024;
-        // 单位：byte
-        long readGlobalLimit = maxNetBandwidth * 1024 * 1024;
-        // 单位：byte
-        long writeChannelLimit = 400 * 1024;
-        // 单位：byte
-        long readChannelLimit = 400 * 1024;
-        // 单位：毫秒
-        long checkInterval = 1000;
-        // 单位：毫秒
-        long maxTime = 15000;
+//        // 频率监控
+//        pipeline.addLast(ConcurrentLimitHandler.HANDLER_NAME, apnHandlerParams.getConcurrentLimitHandler());
+//        // 带宽监控
+//        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+//        int maxNetBandwidth = tunnelInstance.getMaxNetBandwidth();
+//        // 单位：byte
+//        long writeGlobalLimit = maxNetBandwidth * 1024 * 1024;
+//        // 单位：byte
+//        long readGlobalLimit = maxNetBandwidth * 1024 * 1024;
+//        // 单位：byte
+//        long writeChannelLimit = 400 * 1024;
+//        // 单位：byte
+//        long readChannelLimit = 400 * 1024;
+//        // 单位：毫秒
+//        long checkInterval = 1000;
+//        // 单位：毫秒
+//        long maxTime = 15000;
+//        pipeline.addLast("bandwidth.monitor", new GlobalChannelTrafficShapingHandler(apnHandlerParams.getTrafficScheduledThreadPool(),
+//                writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval, maxTime));
 
-        pipeline.addLast("bandwidth.monitor", new GlobalChannelTrafficShapingHandler(apnHandlerParams.getTrafficScheduledThreadPool(),
-                writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval, maxTime));
         // 请求转发
         pipeline.addLast(ApnProxySchemaHandler.HANDLER_NAME, new ApnProxySchemaHandler(apnHandlerParams));
         pipeline.addLast(ApnProxyForwardHandler.HANDLER_NAME, new ApnProxyForwardHandler(apnHandlerParams));
