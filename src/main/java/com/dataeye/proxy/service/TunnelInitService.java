@@ -10,9 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +35,7 @@ public class TunnelInitService {
      */
     public List<TunnelInstance> getTunnelList() {
         if (!TUNNEL_INSTANCES.isEmpty()) {
-            return TUNNEL_INSTANCES;
+            return TUNNEL_INSTANCES.stream().distinct().collect(Collectors.toList());
         }
         String eth0Inet4InnerIp;
         if ("local".equals(profile)) {
@@ -54,13 +52,16 @@ public class TunnelInitService {
         List<TunnelInstance> enableList = tunnelInstances.stream()
                 // 只启动本机器需要的隧道
                 .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()))
+                .distinct()
                 .collect(Collectors.toList());
-        List<String> nameList = enableList.stream()
+        List<String> nameList = tunnelInstances.stream()
+                // 只启动本机器需要的隧道
+                .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()))
                 .map(TunnelInstance::getAlias)
                 .collect(Collectors.toList());
         logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
         TUNNEL_INSTANCES.addAll(enableList);
-        return TUNNEL_INSTANCES;
+        return TUNNEL_INSTANCES.stream().distinct().collect(Collectors.toList());
     }
 
     /**
