@@ -19,4 +19,9 @@ public class TimeUtils {
         return DateTimeFormatter.ofPattern(FORMAT).format(time);
     }
 
+    public static LocalDateTime str2LocalDate(String time){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(FORMAT);
+        return LocalDateTime.parse(time, formatter);
+    }
+
 }

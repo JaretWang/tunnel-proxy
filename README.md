@@ -1079,7 +1079,7 @@ cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
 ------------------- ip池 ------------------------
 tail -3f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
 cat adx-IpPoolScheduleService.log | grep "ERROR"
-cat adx-IpPoolScheduleService.log | grep "拉取IP数量"
+cat adx-IpPoolScheduleService.log | grep "今日累计拉取IP数量"
 cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
 注: 1小时,平均拉取250个ip. 24小时就是, 一天6000个ip
 
@@ -1087,7 +1087,11 @@ cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
 tail -f adx-ConcurrentLimitHandler.log
 ```
 
-如果服务中断, ip池数量会满了不会变化, 因为失效的ip不会被poll, 所以就一直存在里面, 然后程序检测有效ip不足,就会往里面添加第二批有效的ip, 当第二批也失效, 就会循环添加,一直到最后, ip池可能可能因为没有释放掉, 而导致内存泄露.
+1.ip池
+
+如果服务中断, ip池数量会满了不会变化, 因为失效的ip不会被poll, 所以就一直存在里面, 然后程序检测有效ip不足, 就会往里面添加第二批有效的ip, 当第二批也失效, 就会循环添加,一直到最后, ip池可能可能因为没有释放掉, 而导致内存泄露
+
+
 
 
 

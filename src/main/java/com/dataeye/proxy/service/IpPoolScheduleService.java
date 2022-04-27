@@ -5,6 +5,7 @@ import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.service.impl.YouJieFetchServiceImpl;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
@@ -39,6 +40,8 @@ public class IpPoolScheduleService {
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
+    @Autowired
+    YouJieFetchServiceImpl youJieFetchServiceImpl;
     @Autowired
     ProxyServerConfig proxyServerConfig;
     @Resource
@@ -97,7 +100,6 @@ public class IpPoolScheduleService {
                 int fetchSize = fixedIpPoolSize - validIpSize;
                 getFixedNumIpAddr(queue, tunnelInstance, fetchSize);
             }
-
         } else {
             log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
             ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
@@ -127,7 +129,18 @@ public class IpPoolScheduleService {
     public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
-            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce);
+            List<ProxyIp> data;
+            //todo 优量使用芝麻   edx销量使用游杰
+            String alias = tunnelInstance.getAlias();
+            if ("youliang".equalsIgnoreCase(alias)) {
+                data = zhiMaFetchServiceImpl.getIpList(numOnce);
+            } else if ("edx-sale".equalsIgnoreCase(alias)) {
+                data = zhiMaFetchServiceImpl.getIpList(numOnce);
+//                data = youJieFetchServiceImpl.getIpList(numOnce);
+            } else {
+                throw new RuntimeException("未知隧道名: " + alias);
+            }
+
             if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空, 即将重试");
                 continue;
@@ -150,7 +163,7 @@ public class IpPoolScheduleService {
                     log.warn("IP池已满, 配置数量={}, 有效数量={}, 取消添加", tunnelInstance.getFixedIpPoolSize(), validIpSize);
                     continue;
                 }
-                queue.add(newProxyIp);
+                queue.offer(newProxyIp);
             }
             break;
         }

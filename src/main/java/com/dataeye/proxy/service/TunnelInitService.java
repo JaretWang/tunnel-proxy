@@ -2,9 +2,15 @@ package com.dataeye.proxy.service;
 
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.NetUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,25 +23,43 @@ import java.util.stream.Collectors;
 @Service
 public class TunnelInitService {
 
+    public static final List<TunnelInstance> TUNNEL_INSTANCES = new LinkedList<>();
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelInitService");
     @Resource
     TunnelInitMapper tunnelInitMapper;
-
-    public static final List<TunnelInstance> TUNNEL_INSTANCES = new LinkedList<>();
+    @Value("${spring.profiles.active}")
+    String profile;
 
     /**
      * 获取所有隧道实例配置列表
+     *
      * @return 隧道实例配置列表
      */
     public List<TunnelInstance> getTunnelList() {
         if (!TUNNEL_INSTANCES.isEmpty()) {
             return TUNNEL_INSTANCES;
         }
+        String eth0Inet4InnerIp;
+        if ("local".equals(profile)) {
+            eth0Inet4InnerIp = "localhost";
+        } else {
+            eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
+        }
+        if (StringUtils.isBlank(eth0Inet4InnerIp)) {
+            logger.error("获取本机eth0网卡ip地址失败");
+            return Collections.emptyList();
+        }
+        logger.info("本机eth0网卡的ip地址={}", eth0Inet4InnerIp);
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
-        List<TunnelInstance> collect = tunnelInstances.stream()
-                // 0关闭，1开启
-                .filter(element -> element.getEnable() == 1)
+        List<TunnelInstance> enableList = tunnelInstances.stream()
+                // 只启动本机器需要的隧道
+                .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()))
                 .collect(Collectors.toList());
-        TUNNEL_INSTANCES.addAll(collect);
+        List<String> nameList = enableList.stream()
+                .map(TunnelInstance::getAlias)
+                .collect(Collectors.toList());
+        logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
+        TUNNEL_INSTANCES.addAll(enableList);
         return TUNNEL_INSTANCES;
     }
 

@@ -29,7 +29,8 @@ public class TestLocalEnvByConcurrent {
 
 //    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final String proxyIp = "127.0.0.1";
-    private static final int proxyPort = 21331;
+//    private static final int proxyPort = 21331;
+    private static final int proxyPort = 21333;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
     // 本地限流阈值

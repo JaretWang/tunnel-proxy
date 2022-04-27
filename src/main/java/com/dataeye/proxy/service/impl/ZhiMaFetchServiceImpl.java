@@ -121,7 +121,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0 0 * * ?")
     public void reSetFetchIpNum() {
-        logger.info("重置当日累计拉取的ip数量为0");
+        logger.info("芝麻代理 - 重置当日累计拉取的ip数量为0");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
     }
@@ -143,7 +143,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0 0/1 * * ?")
     void getIpFetchNumNow() {
-        logger.info("今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
+        logger.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
     }
 
     /**

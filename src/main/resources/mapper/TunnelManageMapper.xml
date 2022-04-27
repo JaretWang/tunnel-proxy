@@ -6,7 +6,7 @@
     <resultMap id="select_all" type="com.dataeye.proxy.bean.dto.TunnelInstance">
         <id column="id" jdbcType="INTEGER" property="id" />
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
-        <result column="enable" jdbcType="INTEGER" property="enable"/>
+        <result column="location" jdbcType="VARCHAR" property="location"/>
         <result column="ip" jdbcType="INTEGER" property="ip"/>
         <result column="port" jdbcType="INTEGER" property="port"/>
         <result column="username" jdbcType="VARCHAR" property="username"/>
