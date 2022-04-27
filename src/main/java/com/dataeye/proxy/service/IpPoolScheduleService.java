@@ -55,7 +55,6 @@ public class IpPoolScheduleService {
      *
      * @throws IOException
      */
-    @PostConstruct
     public void checkAndUpdateIp() throws IOException, InterruptedException {
         List<TunnelInstance> tunnelInstanceList = tunnelInitService.getTunnelList();
         for (TunnelInstance tunnelInstance : tunnelInstanceList) {

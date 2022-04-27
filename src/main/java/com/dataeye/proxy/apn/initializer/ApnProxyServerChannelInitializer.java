@@ -46,9 +46,9 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
 
-//        // 频率监控
-//        pipeline.addLast(ConcurrentLimitHandler.HANDLER_NAME, apnHandlerParams.getConcurrentLimitHandler());
-//        // 带宽监控
+        // 频率监控
+        pipeline.addLast(ConcurrentLimitHandler.HANDLER_NAME, apnHandlerParams.getConcurrentLimitHandler());
+        // 带宽监控
 //        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
 //        int maxNetBandwidth = tunnelInstance.getMaxNetBandwidth();
 //        // 单位：byte
