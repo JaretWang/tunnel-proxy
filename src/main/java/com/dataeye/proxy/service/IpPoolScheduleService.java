@@ -129,17 +129,19 @@ public class IpPoolScheduleService {
     public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
-            List<ProxyIp> data;
-            //todo 优量使用芝麻   edx销量使用游杰
-            String alias = tunnelInstance.getAlias();
-            if ("youliang".equalsIgnoreCase(alias)) {
-                data = zhiMaFetchServiceImpl.getIpList(numOnce);
-            } else if ("edx-sale".equalsIgnoreCase(alias)) {
-                data = zhiMaFetchServiceImpl.getIpList(numOnce);
-//                data = youJieFetchServiceImpl.getIpList(numOnce);
-            } else {
-                throw new RuntimeException("未知隧道名: " + alias);
-            }
+            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce);
+
+//            List<ProxyIp> data;
+//            //todo 优量使用芝麻   edx销量使用游杰
+//            String alias = tunnelInstance.getAlias();
+//            if ("youliang".equalsIgnoreCase(alias)) {
+//                data = zhiMaFetchServiceImpl.getIpList(numOnce);
+//            } else if ("edx-sale".equalsIgnoreCase(alias)) {
+//                data = zhiMaFetchServiceImpl.getIpList(numOnce);
+////                data = youJieFetchServiceImpl.getIpList(numOnce);
+//            } else {
+//                throw new RuntimeException("未知隧道名: " + alias);
+//            }
 
             if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空, 即将重试");

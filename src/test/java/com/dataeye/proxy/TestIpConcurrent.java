@@ -2,27 +2,11 @@ package com.dataeye.proxy;
 
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import okhttp3.*;
-import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 
-import java.io.*;
-import java.net.HttpURLConnection;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,8 +26,8 @@ public class TestIpConcurrent {
 //    private static final String pageUrl = "http://www.zhihu.com";
 //    private static final String pageUrl = "https://www.jd.com";
 
-    private static final String proxyIp = "127.0.0.1";
-    //    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+    //    private static final String proxyIp = "127.0.0.1";
+    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
     private static final int proxyPort = 21331;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
@@ -92,7 +76,8 @@ public class TestIpConcurrent {
     static class TestTask implements Runnable {
 
         CountDownLatch countDownLatch;
-        public TestTask(CountDownLatch countDownLatch){
+
+        public TestTask(CountDownLatch countDownLatch) {
             this.countDownLatch = countDownLatch;
         }
 
