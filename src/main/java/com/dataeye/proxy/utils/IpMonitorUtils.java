@@ -30,7 +30,6 @@ public class IpMonitorUtils {
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitorUtils");
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
             new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
-    private static final double IP_USE_SUCCESS_PERCENT = 95;
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
@@ -132,7 +131,7 @@ public class IpMonitorUtils {
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
             // 在ip池中剔除
-            log.warn("ip {} 成功率低于 {}%, 即将从IP池中移除", ip, IP_USE_SUCCESS_PERCENT);
+            log.warn("ip={} 成功率低于 {}%, 即将从IP池中移除", ip, tunnelInstance.getMinSuccessPercentForRemoveIp());
             String ipStr = ip.split(":")[0];
             int port = Integer.parseInt(ip.split(":")[1]);
             ConcurrentLinkedQueue<ProxyIp> ipPool = proxyIpPool.get(tunnelName);
@@ -204,7 +203,7 @@ public class IpMonitorUtils {
 
                         // 根据某个ip的使用失败情况，在ip池中剔除
                         double percentValue = Double.parseDouble(percent);
-                        if (percentValue < IP_USE_SUCCESS_PERCENT) {
+                        if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp()) {
                             removeHighErrorPercent(ip, tunnelInstance);
                         }
                     }

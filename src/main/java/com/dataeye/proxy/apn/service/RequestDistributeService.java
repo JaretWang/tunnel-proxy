@@ -279,7 +279,7 @@ public class RequestDistributeService {
 //                    apnHandlerParams.getRequestMonitor().setSuccess(true);
 
                 long took = System.currentTimeMillis() - begin;
-                logger.debug("forward_handler 连接代理IP [{}] 成功, 耗时：{} ms", apnProxyRemote.getRemote(), took);
+                logger.debug("forward_handler 连接代理IP成功, ip={}, 耗时={} ms", apnProxyRemote.getRemote(), took);
                 HttpRequest oldRequest = (HttpRequest) msg;
                 logger.debug("forward_handler 重新构造请求之前：{}", oldRequest);
                 HttpRequest newRequest = constructRequestForProxyByForward(oldRequest, apnProxyRemote);
@@ -301,7 +301,7 @@ public class RequestDistributeService {
                 ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
                 if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                     long took = System.currentTimeMillis() - begin;
-                    errorMsg = "forward_handler 连接代理IP [" + remoteAddr + "] 失败, 耗时：" + took + " ms, 具体原因: ip池为空";
+                    errorMsg = "forward_handler连接代理IP失败, ip=" + remoteAddr + ", 耗时=" + took + " ms, 具体原因: ip池为空";
                     logger.error(errorMsg);
                     // send error response
                     HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
@@ -312,7 +312,7 @@ public class RequestDistributeService {
                             .collect(Collectors.toList());
                     long took = System.currentTimeMillis() - begin;
                     String errorMessage = future.cause().getMessage();
-                    errorMsg = "forward_handler 连接代理IP [" + remoteAddr + "] 失败, 耗时：" + took + " ms, " +
+                    errorMsg = "forward_handler连接代理IP失败, ip=" + remoteAddr + " , 耗时：" + took + " ms, " +
                             "具体原因: " + errorMessage + ", 此时的ip池列表：" + ipList.toString();
                     logger.error(errorMsg);
 
@@ -352,6 +352,14 @@ public class RequestDistributeService {
 //                //todo 临时加上
 //                .option(ChannelOption.SO_KEEPALIVE,true)
                 .option(ChannelOption.AUTO_READ, false)
+//                .handler(new ChannelInitializer<SocketChannel>() {
+//                    @Override
+//                    protected void initChannel(SocketChannel ch) throws Exception {
+//                        ChannelPipeline pipeline = ch.pipeline();
+//                        pipeline.addLast(new LoggingHandler("TUNNEL_LOGGER", LogLevel.INFO));
+//                        pipeline.addLast(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel));
+//                    }
+//                });
                 .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel));
 
         String remoteHost = apnProxyRemote.getRemoteHost();
@@ -373,7 +381,10 @@ public class RequestDistributeService {
                             // add relay handler
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> Remote", future1.channel()));
 
+                            logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
                             String newConnectRequest = constructConnectRequestForProxyByTunnel(httpRequest, apnProxyRemote);
+                            logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
+
                             future1
                                     .channel()
                                     .writeAndFlush(Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8))

@@ -4,6 +4,7 @@ import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,7 +31,7 @@ public interface ProxyFetchService {
      * @return
      * @throws Exception
      */
-    ProxyIp getOne() throws Exception;
+    ProxyIp getOne(TunnelInstance tunnelInstance) throws Exception;
 
     /**
      * ApnProxyRemote 适配器
@@ -40,7 +41,7 @@ public interface ProxyFetchService {
     default ApnProxyRemote apnProxyRemoteAdapter() {
         ProxyIp one = null;
         try {
-            one = getOne();
+            one = getOne(null);
         } catch (Exception e) {
             e.printStackTrace();
         }

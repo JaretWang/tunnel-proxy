@@ -48,7 +48,8 @@ public class IpPoolScheduleService {
     TunnelInitService tunnelInitService;
 
     @PostConstruct
-    public void init() {
+    public void init() throws IOException, InterruptedException {
+        checkAndUpdateIp();
         // ip池定时更新
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new ScheduleUpdateTask(), 0, 3, TimeUnit.SECONDS);
     }
@@ -121,7 +122,7 @@ public class IpPoolScheduleService {
     }
 
     /**
-     * 在更新之前检查ip的有效时间
+     * 在更新IP池之前, 检查拉取的ip是否已经过期, 是否已经存在于ip池
      *
      * @param numOnce 一次拉取ip个数
      * @param queue   ip循环队列
@@ -129,7 +130,7 @@ public class IpPoolScheduleService {
     public void checkBeforeUpdate(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
-            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce);
+            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce, tunnelInstance);
 
 //            List<ProxyIp> data;
 //            //todo 优量使用芝麻   edx销量使用游杰
@@ -190,6 +191,12 @@ public class IpPoolScheduleService {
         return duration < proxyServerConfig.getJudgeExpiredIpMinSeconds();
     }
 
+    /**
+     * 获取ip池有效ip数量
+     *
+     * @param queue ip池
+     * @return
+     */
     private int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
         return (int) queue.stream()
                 .filter(proxyIp -> proxyIp.getValid().get())

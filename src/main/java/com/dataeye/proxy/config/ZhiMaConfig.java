@@ -25,5 +25,9 @@ public class ZhiMaConfig {
      * 隧道ip
      */
     String tunnelGetUrl;
+    /**
+     * 获取套餐剩余ip的数量
+     */
+    String getRemainIpNumUrl;
 
 }

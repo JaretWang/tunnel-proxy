@@ -30,10 +30,15 @@ public class ApnProxyRemoteChooser {
      * @param tunnelInstance
      * @return
      */
-    public ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance) {
+    public ApnProxyRemote getProxyConfig(TunnelInstance tunnelInstance) throws InterruptedException {
         String proxyServer = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         ConcurrentLinkedQueue<ProxyIp> proxyCfgsQueue = proxyIpPool.get(proxyServer);
+        if (Objects.isNull(proxyCfgsQueue)) {
+            logger.error("没有检测到隧道 {} 的ip池", proxyServer);
+            ipPoolScheduleService.initSingleServer(tunnelInstance);
+            return getProxyConfig(tunnelInstance);
+        }
         ProxyIp poll = proxyCfgsQueue.poll();
         if (Objects.isNull(poll)) {
             try {
@@ -46,7 +51,7 @@ public class ApnProxyRemoteChooser {
         }
         // 只取有效的
         boolean valid = poll.getValid().get();
-        if (!valid){
+        if (!valid) {
             logger.info("ip={} 已失效, 即将被移除", poll.getIpAddr());
             return getProxyConfig(tunnelInstance);
         }

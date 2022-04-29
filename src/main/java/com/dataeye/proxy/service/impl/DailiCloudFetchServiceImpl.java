@@ -1,6 +1,7 @@
 package com.dataeye.proxy.service.impl;
 
 import com.dataeye.proxy.apn.bean.ProxyIp;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.DailiCloudConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -28,7 +29,7 @@ public class DailiCloudFetchServiceImpl implements ProxyFetchService {
     DailiCloudConfig dailiCloudConfig;
 
     @Override
-    public ProxyIp getOne() throws InterruptedException {
+    public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
         String ipFectchUrl = dailiCloudConfig.getIpFectchUrl();
         String data = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         if (StringUtils.isBlank(data)) {

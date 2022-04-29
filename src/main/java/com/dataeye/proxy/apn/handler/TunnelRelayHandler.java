@@ -5,10 +5,14 @@ import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author jaret
@@ -38,9 +42,27 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    @SneakyThrows
+    public String convertByteBufToString(ByteBuf buf) {
+        String str;
+        if (buf.hasArray()) { // 处理堆缓冲区
+            str = new String(buf.array(), buf.arrayOffset() + buf.readerIndex(), buf.readableBytes());
+        } else { // 处理直接缓冲区以及复合缓冲区
+            byte[] bytes = new byte[buf.readableBytes()];
+            buf.getBytes(buf.readerIndex(), bytes);
+            str = new String(bytes, 0, buf.readableBytes(), StandardCharsets.UTF_8);
+        }
+        return str;
+    }
+
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.debug("TunnelRelayHandler channelRead: {} : {}", tag, msg);
+        logger.info("TunnelRelayHandler channelRead: {} : {}", tag, msg);
+//        System.out.println(msg);
+        //UnpooledByteBufAllocator(directByDefault: true)
+//        new UnpooledByteBufAllocator();
+//        ByteBuf buf = (ByteBuf) msg;
+//        System.out.println(convertByteBufToString(buf));
 
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg)

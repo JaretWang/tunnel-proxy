@@ -1066,23 +1066,20 @@ cpu disk 11点半到12点 出现尖刺，看看什么情况
 ip池中的ProxyIp可以和IpMonitor可以合并到一起, 就不用同步ip池中的ip和监控记录表里面的ip的状态了.
 
 ```
-------------------- 请求监控工具 ------------------------
-cat adx-ReqMonitorUtils.log | grep "percent" | tail -10f | grep "success percent"
-cat adx-ReqMonitorUtils.log | grep "ERROR"
-
 ------------------- ip监控工具 ------------------------
 tail -3f adx-IpMonitorUtils.log | grep "success percent"
 cat adx-IpMonitorUtils.log | grep "ERROR"
 cat adx-IpMonitorUtils.log | grep "成功移除ip="
 cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
-
+------------------- 请求监控工具 ------------------------
+cat adx-ReqMonitorUtils.log | grep "percent" | tail -10f | grep "success percent"
+cat adx-ReqMonitorUtils.log | grep "ERROR"
 ------------------- ip池 ------------------------
 tail -3f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
 cat adx-IpPoolScheduleService.log | grep "ERROR"
 cat adx-IpPoolScheduleService.log | grep "今日累计拉取IP数量"
 cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
 注: 1小时,平均拉取250个ip. 24小时就是, 一天6000个ip
-
 ------------------- 风控 ------------------------
 tail -f adx-ConcurrentLimitHandler.log
 ```
@@ -1091,6 +1088,16 @@ tail -f adx-ConcurrentLimitHandler.log
 
 如果服务中断, ip池数量会满了不会变化, 因为失效的ip不会被poll, 所以就一直存在里面, 然后程序检测有效ip不足, 就会往里面添加第二批有效的ip, 当第二批也失效, 就会循环添加,一直到最后, ip池可能可能因为没有释放掉, 而导致内存泄露
 
+### 待解决问题
+
+edx销量,跑隧道成功率很低,需要查看整个请求的流程,对一下请求失败的url的这个流程.  那边有风控,后续讨论
+
+观察优量的运行情况
+
+adx-replay观察统计请求量,做一个请求量的估算,以及查看代码中的定时任务的运行逻辑是否是串行的,然后估算出现在的请求量后, 需要在这个在这个基础上再做一次请求量的提升
+
+
+
 
 
 
@@ -1098,12 +1105,27 @@ tail -f adx-ConcurrentLimitHandler.log
 # 配置总结
 
 ```
-程序: 一个隧道10个ip, 500TPS, 2G堆内存 YoungGC 最多一分钟6次,没有 FullGC
+程序: 一个隧道10个ip, 500TPS限制, 2G堆内存 YoungGC 最多一分钟6次, 没有 FullGC
 请求方: 每小时25W请求, 每秒70个请求, 每个请求响应大小20KB左右, 每秒带宽1.5MB, 每分钟带宽90MB
 阿里云机器: 16核CPU 32G运存 10Mbps带宽
 
    7-> adx-crawl-007   172.18.211.168  120.25.162.186   16/32G   
    8-> adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
+   
+   
+地址: 120.79.147.167
+端口: 21333
+用户名: dataeye
+密码: dataeye++123
+
+
+[2022-04-28 10:13:06] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=884
+[2022-04-28 10:13:16] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=349
+[2022-04-28 10:13:26] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=192
+[2022-04-28 10:13:36] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=81
+[2022-04-28 10:13:46] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=106
+[2022-04-28 10:13:56] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=168
+
 ```
 
 

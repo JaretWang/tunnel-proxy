@@ -3,6 +3,7 @@ package com.dataeye.proxy.service.impl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ProxyIp;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.YouJieConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
@@ -12,7 +13,6 @@ import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -41,13 +41,13 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
     SendMailService sendMailService;
 
     @Override
-    public ProxyIp getOne() throws InterruptedException {
-        return getIpList(1).get(0);
+    public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
+        return getIpList(1, tunnelInstance).get(0);
     }
 
-    public List<ProxyIp> getIpList(int num) throws InterruptedException {
-        if (isOverFetchIpNumLimit()) {
-            logger.error("已达到每日最大拉取ip数量 {} !!!", MAX_FETCH_IP_NUM_EVERY_DAY.get());
+    public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance) throws InterruptedException {
+        if (isOverFetchIpNumLimit(tunnelInstance)) {
+            logger.error("已达到每日最大拉取ip数量 {} !!!", tunnelInstance.getMaxFetchIpNumEveryDay());
             return Collections.emptyList();
         }
 
@@ -95,8 +95,9 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
      *
      * @return 是否超过限制
      */
-    public boolean isOverFetchIpNumLimit() {
-        boolean status = FETCH_IP_NUM_NOW.get() > MAX_FETCH_IP_NUM_EVERY_DAY.get();
+    public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance) {
+//        boolean status = FETCH_IP_NUM_NOW.get() > MAX_FETCH_IP_NUM_EVERY_DAY.get();
+        boolean status = FETCH_IP_NUM_NOW.get() > tunnelInstance.getMaxFetchIpNumEveryDay();
         IS_SEND_ALARM_EMAIL.set(status);
         return status;
     }

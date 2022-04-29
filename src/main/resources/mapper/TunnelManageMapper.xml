@@ -19,7 +19,8 @@
         <result column="max_slow_req_size" jdbcType="INTEGER" property="maxSlowReqSize"/>
         <result column="fixed_ip_pool_size" jdbcType="INTEGER" property="fixedIpPoolSize"/>
         <result column="check_ip_pool_interval_seconds" jdbcType="INTEGER" property="checkIpPoolIntervalSeconds"/>
-        <result column="pull_ip_size_once" jdbcType="INTEGER" property="pullIpSizeOnce"/>
+        <result column="min_success_percent_for_remove_ip" jdbcType="INTEGER" property="minSuccessPercentForRemoveIp"/>
+        <result column="max_fetch_ip_num_every_day" jdbcType="INTEGER" property="maxFetchIpNumEveryDay"/>
         <result column="connect_timeout_millis" jdbcType="INTEGER" property="connectTimeoutMillis"/>
         <result column="retry_count" jdbcType="INTEGER" property="retryCount"/>
         <result column="last_modified" jdbcType="TIMESTAMP" property="lastModified"/>

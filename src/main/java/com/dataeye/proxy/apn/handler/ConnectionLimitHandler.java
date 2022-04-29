@@ -88,7 +88,7 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
         // 计算总和，然后重置
         final long dropped = numDroppedConnections.sumThenReset();
         if (dropped > 0) {
-            logger.warn("断开连接数 [{}], 最大并发数 [{}]", dropped, maxConcurrency);
+            logger.info("断开连接数 [{}], 最大并发数 [{}]", dropped, maxConcurrency);
         }
     }
 

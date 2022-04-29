@@ -6,8 +6,8 @@ import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.YiNiuCloudConfig;
-import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,7 +35,7 @@ public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
     YiNiuCloudConfig yiNiuCloudConfig;
 
     @Override
-    public ProxyIp getOne() {
+    public ProxyIp getOne(TunnelInstance tunnelInstance) {
         String ipFectchUrl = yiNiuCloudConfig.getIpFectchUrl();
         String json = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         JSONObject jsonObject = JSONObject.parseObject(json);

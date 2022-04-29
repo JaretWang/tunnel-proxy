@@ -31,7 +31,8 @@ public class TunnelInstance implements Serializable {
     private int maxSlowReqSize;
     private int fixedIpPoolSize;
     private int checkIpPoolIntervalSeconds;
-    private int pullIpSizeOnce;
+    private int minSuccessPercentForRemoveIp;
+    private int maxFetchIpNumEveryDay;
     private int connectTimeoutMillis;
     private int retryCount;
     private String lastModified;

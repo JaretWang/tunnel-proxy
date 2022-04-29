@@ -5,17 +5,10 @@ import com.dataeye.proxy.apn.handler.ApnProxyForwardHandler;
 import com.dataeye.proxy.apn.handler.ApnProxySchemaHandler;
 import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
 import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.traffic.GlobalChannelTrafficShapingHandler;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author xmx
