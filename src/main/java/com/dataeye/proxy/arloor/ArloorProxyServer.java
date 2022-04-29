@@ -54,6 +54,7 @@ public class ArloorProxyServer {
 
     //    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ArloorProxyServer");
     private static final Logger LOG = LoggerFactory.getLogger("ArloorProxyServer");
+    private static final String LOCAL_ADDRESS = "0.0.0.0";
 
     @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;
@@ -110,7 +111,6 @@ public class ArloorProxyServer {
      */
     private void startProxyServer(TunnelInstance tunnelInstance) throws IOException, GeneralSecurityException {
         String alias = tunnelInstance.getAlias();
-        String host = tunnelInstance.getIp();
         int port = tunnelInstance.getPort();
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
@@ -139,7 +139,7 @@ public class ArloorProxyServer {
         EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
-                .localAddress(host, port)
+                .localAddress(LOCAL_ADDRESS, port)
                 .channel(NioServerSocketChannel.class)
 //                // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
 //                .option(ChannelOption.SO_RCVBUF, 1024)
@@ -155,7 +155,7 @@ public class ArloorProxyServer {
 //                .childOption(ChannelOption.TCP_NODELAY, false);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            LOG.info("代理服务器 [{}] 启动成功, ip: {}, port: {}", alias, host, port);
+            LOG.info("代理服务器 [{}] 启动成功, port: {}", alias, port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             LOG.error("启动代理服务器时，出现异常：{}", e.getMessage());

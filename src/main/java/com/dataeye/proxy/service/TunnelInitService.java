@@ -50,13 +50,11 @@ public class TunnelInitService {
         logger.info("本机eth0网卡的ip地址={}", eth0Inet4InnerIp);
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         List<TunnelInstance> enableList = tunnelInstances.stream()
-                // 只启动本机器需要的隧道
-                .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()))
+                // 只启动本机器需要的隧道 && 0关闭 1开启
+                .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()) && element.getEnable() == 1)
                 .distinct()
                 .collect(Collectors.toList());
-        List<String> nameList = tunnelInstances.stream()
-                // 只启动本机器需要的隧道
-                .filter(element -> element.getLocation().equals(eth0Inet4InnerIp.trim()))
+        List<String> nameList = enableList.stream()
                 .map(TunnelInstance::getAlias)
                 .collect(Collectors.toList());
         logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);

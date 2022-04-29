@@ -48,21 +48,25 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      *
      * @return
      */
-    private static String buildIpPoolJson() {
+    private static String buildIpPoolJson(int num) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("code", 0);
         jsonObject.put("msg", "0");
         jsonObject.put("success", true);
         LinkedList<JSONObject> data = new LinkedList<>();
         Random random = new Random();
-        for (int i = 10; i < 20; i++) {
+        int initVal = 10;
+        int total = initVal + num;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        for (int i = initVal; i <= total; i++) {
             int ip_val = random.nextInt(6553);
-            int min_val = random.nextInt(5);
-            int second_val = random.nextInt(60);
+            int min_val = random.nextInt(10);
+            int nanos_val = random.nextInt(100);
+            String expire_time = LocalDateTime.now().plusMinutes(min_val).plusNanos(nanos_val).format(formatter);
             JSONObject element = new JSONObject();
             element.put("ip", "10.10.10." + i);
             element.put("port", ip_val);
-            element.put("expire_time", LocalDateTime.now().plusMinutes(min_val).plusSeconds(second_val));
+            element.put("expire_time", expire_time);
             data.add(element);
         }
         jsonObject.put("data", data);
@@ -81,9 +85,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
 
         String url = zhiMaConfig.getDirectGetUrl() + "&num=" + num;
-
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
-//        String json = buildIpPoolJson();
+//        String json = buildIpPoolJson(num);
         if (StringUtils.isBlank(json)) {
             logger.error("芝麻代理拉取ip为空");
             return Collections.emptyList();

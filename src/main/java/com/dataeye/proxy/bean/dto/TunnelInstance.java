@@ -19,7 +19,7 @@ public class TunnelInstance implements Serializable {
     private int id;
     private String alias;
     private String location;
-    private String ip;
+    private int enable;
     private int port;
     private String username;
     private String password;
