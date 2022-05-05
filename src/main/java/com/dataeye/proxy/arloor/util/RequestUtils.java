@@ -25,6 +25,7 @@ public class RequestUtils {
 
         Set<String> headerNames = httpRequest.headers().names();
         for (String headerName : headerNames) {
+//
 //            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
 //                continue;
 //            }

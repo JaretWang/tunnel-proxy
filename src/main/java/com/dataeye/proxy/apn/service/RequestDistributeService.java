@@ -4,6 +4,7 @@ import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
+import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.apn.handler.DirectRelayHandler;
 import com.dataeye.proxy.apn.handler.TunnelRelayHandler;
 import com.dataeye.proxy.apn.initializer.DirectRelayChannelInitializer;
@@ -207,6 +208,11 @@ public class RequestDistributeService {
                 continue;
             }
 
+            //todo 临时增加
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
+                continue;
+            }
+
             for (String headerValue : httpRequest.headers().getAll(headerName)) {
                 sb.append(headerName).append(": ").append(headerValue).append(CRLF);
             }
@@ -217,9 +223,7 @@ public class RequestDistributeService {
             String proxyAuthorization = apnProxyRemote.getProxyUserName() + ":"
                     + apnProxyRemote.getProxyPassword();
             try {
-                sb.append(
-                        "Proxy-Authorization: Basic "
-                                + Base64.encodeBase64String(proxyAuthorization.getBytes("UTF-8")))
+                sb.append("Proxy-Authorization: Basic " + Base64.encodeBase64String(proxyAuthorization.getBytes("UTF-8")))
                         .append(CRLF);
             } catch (UnsupportedEncodingException e) {
             }
@@ -259,6 +263,17 @@ public class RequestDistributeService {
         bootstrap
                 .group(uaChannel.eventLoop())
                 .channel(NioSocketChannel.class)
+
+                //todo 修复 close_wait 临时加上
+                // -1以及所有<0的数表示socket.close()方法立即返回，但OS底层会将发送缓冲区全部发送到对端。
+                // 0表示socket.close()方法立即返回，OS放弃发送缓冲区的数据直接向对端发送RST包，对端收到复位错误。
+                // 非0整数值表示调用socket.close()方法的线程被阻塞直到延迟时间到或发送缓冲区中的数据发送完毕，若超时，则对端会收到复位错误。
+                .option(ChannelOption.SO_LINGER, 0)
+                // 连接心跳检测, 默认2小时12分钟后, 关闭不存活的连接
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                // 关闭等待所有数据接收完,再发送数据
+                .option(ChannelOption.TCP_NODELAY, true)
+
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
 //                // 这个参数设定的是HTTP连接成功后，等待读取数据或者写数据的最大超时时间，单位为毫秒
 //                // 如果设置为0，则表示永远不会超时
@@ -347,11 +362,22 @@ public class RequestDistributeService {
         bootstrap
                 .group(uaChannel.eventLoop())
                 .channel(NioSocketChannel.class)
+
+                //todo 修复 close_wait 临时加上
+                // -1以及所有<0的数表示socket.close()方法立即返回，但OS底层会将发送缓冲区全部发送到对端。
+                // 0表示socket.close()方法立即返回，OS放弃发送缓冲区的数据直接向对端发送RST包，对端收到复位错误。
+                // 非0整数值表示调用socket.close()方法的线程被阻塞直到延迟时间到或发送缓冲区中的数据发送完毕，若超时，则对端会收到复位错误。
+                .option(ChannelOption.SO_LINGER, 0)
+                // 连接心跳检测, 默认2小时12分钟后, 关闭不存活的连接
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                // 关闭等待所有数据接收完,再发送数据
+                .option(ChannelOption.TCP_NODELAY, true)
+
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
                 .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                .option(ChannelOption.AUTO_READ, false)
 //                //todo 临时加上
 //                .option(ChannelOption.SO_KEEPALIVE,true)
-                .option(ChannelOption.AUTO_READ, false)
 //                .handler(new ChannelInitializer<SocketChannel>() {
 //                    @Override
 //                    protected void initChannel(SocketChannel ch) throws Exception {
@@ -375,15 +401,15 @@ public class RequestDistributeService {
                         logger.info("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
                         if (apnProxyRemote.isAppleyRemoteRule()) {
                             ctx.pipeline().remove("codec");
-//                                ctx.pipeline().remove(ConnectionLimitHandler.HANDLER_NAME);
+                            ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
 
                             // add relay handler
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> Remote", future1.channel()));
 
-                            logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
+                            logger.info("tunnel_handler 重新构造请求之前：{}", httpRequest);
                             String newConnectRequest = constructConnectRequestForProxyByTunnel(httpRequest, apnProxyRemote);
-                            logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
+                            logger.info("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
 
                             future1
                                     .channel()

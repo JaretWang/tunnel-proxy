@@ -18,7 +18,6 @@ package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
-import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -116,12 +115,13 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse httpResponse = (FullHttpResponse) msg;
 //            logger.info("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
-            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
+//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
 
-//            //todo 使用短连接
-//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
-//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
+            //todo 使用短连接
+            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
+
             httpResponse.retain();
 
             if (uaChannel.isActive()) {
@@ -174,7 +174,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
         ctx.fireChannelInactive();
 
 //        //todo 增加
-////        ctx.channel().close();
+//        ctx.channel().close();
 //        uaChannel.close();
         ctx.close();
 

@@ -163,30 +163,6 @@ Remote host closed connection during handshake
 
 time_wait 
 
-# 命令
-
-> 统计错误请求有多少个，以及每个错误占用有多少
->
-
-```shell
-cat adx-ReqMonitorUtils.log | grep 'false, pangolin' | awk -F ', ' '{print($2,$6)}' |awk -F '!' '{count[$1]++} END {for(i in count ){print(i,count[i])}}'
-```
-
-> 统计不同的ip+port有多少个
->
-
-```shell
-cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -F= ' {print($2)}' | awk -F, '{print $1}' | awk -F: '{print $1}'| sort | uniq -c  |wc -l
-```
-
-> 统计不同的ip有多少个
-
-```shell
-
-```
-
-
-
 # 稳定性修复
 
 - 错误
@@ -1102,6 +1078,10 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 
 
 
+
+
+
+
 # 配置总结
 
 ```
@@ -1174,3 +1154,61 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 2.协议说明，如何支持http，https，socks5协议的，socks5协议的概述，以及好处
 
 3.后面的隧道需要做哪些优化
+
+
+
+# 问题
+
+### 命令
+
+> 统计错误请求有多少个，以及每个错误占用有多少
+
+```shell
+cat adx-ReqMonitorUtils.log | grep 'false, pangolin' | awk -F ', ' '{print($2,$6)}' |awk -F '!' '{count[$1]++} END {for(i in count ){print(i,count[i])}}'
+```
+
+> 统计不同的ip+port有多少个
+
+```shell
+cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -F= ' {print($2)}' | awk -F, '{print $1}' | awk -F: '{print $1}'| sort | uniq -c  |wc -l
+```
+
+
+
+### TCP连接数过多,CLOSE_WAIT状态过多
+
+1.监控脚本
+
+```
+#!/bin/bash
+
+#netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}'
+
+TCP_CLOSE_WAIT_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '/^CLOSE_WAIT/ {print $2}'`
+TCP_TOTAL_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '{sum+=$2} END {print sum}'`
+
+#echo ${TCP_CLOSE_WAIT_COUNT}
+
+#echo ${TCP_TOTAL_COUNT}
+
+function send_mail(){
+    serverName=`hostname`
+    sendMsg=TCP%20Connections%20too%20many%20on%20${serverName}
+    url="http://172.18.248.80/innerservice/mail/send?subject=Tcp%20Connections%20Alert&content=${sendMsg}&to=chenghuajie@dataeye.com,wangchaojia@dataeye.com&isMime=false&needReceipt=false"
+    curl ${url}
+}
+
+
+if [[ ${TCP_CLOSE_WAIT_COUNT} -ge 30000 ]] || [[ ${TCP_TOTAL_COUNT} -ge 50000 ]];then
+   netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' > /data0/logs/tunnel-proxy/tcp-count.log
+   ## send mail and restart app
+   /usr/local/htdocs/tunnel-proxy/shell/deploy-restart.sh restart
+   send_mail
+fi
+```
+
+
+
+2.linux参数设置
+
+https://blog.csdn.net/dandan2zhuzhu/article/details/78413946
