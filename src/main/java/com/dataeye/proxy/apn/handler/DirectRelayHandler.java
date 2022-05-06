@@ -179,14 +179,6 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                         remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr));
         ctx.fireChannelInactive();
 
-        try {
-            // todo 为了测试 too many files
-            ctx.channel().closeFuture().sync();
-            ctx.channel().eventLoop().shutdownGracefully();
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-
 //        //todo 增加
 //        ctx.channel().close();
 //        uaChannel.close();
@@ -205,14 +197,6 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
         //todo 增加
 //        ctx.channel().close();
         ctx.close();
-
-        try {
-            // todo 为了测试 too many files
-            ctx.channel().closeFuture().sync();
-            ctx.channel().eventLoop().shutdownGracefully();
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
 
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());

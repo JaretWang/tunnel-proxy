@@ -260,10 +260,9 @@ public class RequestDistributeService {
         };
 
         final Bootstrap bootstrap = new Bootstrap();
-        NioEventLoopGroup clientEventLoop = new NioEventLoopGroup(1);
         bootstrap
-//                .group(uaChannel.eventLoop())
-                .group(clientEventLoop)
+                .group(uaChannel.eventLoop())
+//                .group(clientEventLoop)
                 .channel(NioSocketChannel.class)
 
                 //todo 修复 close_wait 临时加上
@@ -348,14 +347,6 @@ public class RequestDistributeService {
                 SocksServerUtils.closeOnFlush(uaChannel);
                 httpContentBuffer.clear();
                 future.channel().close();
-
-                try {
-                    // todo 为了测试 too many files
-                    future.channel().closeFuture().sync();
-                    clientEventLoop.shutdownGracefully();
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
             }
         });
     }
@@ -370,10 +361,10 @@ public class RequestDistributeService {
 
         // connect remote
         final Bootstrap bootstrap = new Bootstrap();
-        NioEventLoopGroup clientEventLoop = new NioEventLoopGroup(1);
+//        NioEventLoopGroup clientEventLoop = new NioEventLoopGroup(1);
         bootstrap
-//                .group(uaChannel.eventLoop())
-                .group(clientEventLoop)
+                .group(uaChannel.eventLoop())
+//                .group(clientEventLoop)
                 .channel(NioSocketChannel.class)
 
                 //todo 修复 close_wait 临时加上
@@ -465,14 +456,6 @@ public class RequestDistributeService {
                         ReqMonitorUtils.cost(requestMonitor, "sendTunnelReq");
                         IpMonitorUtils.invoke(requestMonitor, false, "sendTunnelReq");
 
-
-                        try {
-                            // todo 为了测试 too many files
-                            ctx.channel().closeFuture().sync();
-                            clientEventLoop.shutdownGracefully();
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
                     }
 
                 });
