@@ -104,7 +104,7 @@ public class RequestDistributeService {
 //        sendTunnelReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
 
         try {
-            sendReqByOkHttp(ctx.channel(), apnProxyRemote, null, httpRequest);
+            sendReqByOkHttp(ctx.channel(), apnProxyRemote, apnHandlerParams, null, httpRequest);
         } catch (Throwable e) {
             logger.info("sendReqByOkHttp have error, detail={}", e.getMessage());
         }
@@ -147,7 +147,7 @@ public class RequestDistributeService {
 //        sendForwardReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
 
         try {
-            sendReqByOkHttp(uaChannel, apnProxyRemote, httpContentBuffer, httpRequest);
+            sendReqByOkHttp(uaChannel, apnProxyRemote, apnHandlerParams, httpContentBuffer, httpRequest);
         } catch (Throwable e) {
             logger.info("sendReqByOkHttp have error, detail={}", e.getMessage());
         }
@@ -266,6 +266,7 @@ public class RequestDistributeService {
 
     void sendReqByOkHttp(final Channel uaChannel,
                          ApnProxyRemote apnProxyRemote,
+                         ApnHandlerParams apnHandlerParams,
                          List<HttpContent> httpContentBuffer,
                          HttpRequest httpRequest) throws IOException {
         Set<String> headerNames = httpRequest.headers().names();
@@ -314,12 +315,12 @@ public class RequestDistributeService {
         } else {
             throw new RuntimeException("不认识的请求方式: " + method);
         }
-        DefaultFullHttpResponse responseMsg = getResponse(response);
+        DefaultFullHttpResponse responseMsg = getResponse(response, apnHandlerParams.getRequestMonitor());
         uaChannel.writeAndFlush(responseMsg);
         SocksServerUtils.closeOnFlush(uaChannel);
     }
 
-    DefaultFullHttpResponse getResponse(Response response) throws IOException {
+    DefaultFullHttpResponse getResponse(Response response, RequestMonitor requestMonitor) throws IOException {
         int code = response.code();
         if (code == HttpResponseStatus.OK.code()) {
             String result = Objects.requireNonNull(response.body()).string();
@@ -330,6 +331,10 @@ public class RequestDistributeService {
             fullHttpResponse.headers().add(HttpHeaders.Names.CONNECTION, "close");
             // 释放资源
             Objects.requireNonNull(response.body()).close();
+
+            requestMonitor.setSuccess(true);
+            ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
+            IpMonitorUtils.invoke(requestMonitor, true, "OK_HTTP_TOOL");
             return fullHttpResponse;
         } else {
             HttpResponseStatus httpResponseStatus = HttpResponseStatus.valueOf(code);
@@ -337,7 +342,8 @@ public class RequestDistributeService {
                 httpResponseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             }
             String errMsg = Objects.requireNonNull(response.body()).string();
-            logger.error("ok http send fail, code={}, reason={}", code, errMsg);
+            String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
+            logger.error(msg);
             ByteBuf errorResponseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
             DefaultFullHttpResponse errorResponseMsg = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, errorResponseContent);
             errorResponseMsg.headers().add(HttpHeaders.Names.CONTENT_ENCODING, CharsetUtil.UTF_8.name());
@@ -345,6 +351,11 @@ public class RequestDistributeService {
             errorResponseMsg.headers().add(HttpHeaders.Names.CONNECTION, "close");
             // 释放资源
             Objects.requireNonNull(response.body()).close();
+
+            requestMonitor.setSuccess(false);
+            requestMonitor.setFailReason(msg);
+            ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
+            IpMonitorUtils.invoke(requestMonitor, false, "OK_HTTP_TOOL");
             return errorResponseMsg;
         }
     }
