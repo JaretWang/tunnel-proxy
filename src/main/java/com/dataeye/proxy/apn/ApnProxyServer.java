@@ -130,7 +130,8 @@ public class ApnProxyServer {
 //                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows默认为200，其他为128。
 //                .option(ChannelOption.SO_BACKLOG, 1024)
                 .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
-                .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                // todo 测试错误  failed to allocate 2048 byte(s) of direct memory
+//                .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
 
                 //todo 修复 close_wait 临时加上
                 .option(ChannelOption.SO_REUSEADDR, true)
