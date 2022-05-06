@@ -35,8 +35,8 @@ public class TestLocalEnvByConcurrent {
 //    private static final String proxyIp = "120.25.162.186";
     // edx-sale
 //    private static final String proxyIp = "120.79.147.167";
-    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
-//    private static final String proxyIp = "127.0.0.1";
+//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+    private static final String proxyIp = "127.0.0.1";
     private static final int proxyPort = 21332;
 //    private static final int proxyPort = 21333;
     private static final String username = "dataeye";

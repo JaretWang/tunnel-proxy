@@ -1212,3 +1212,19 @@ fi
 2.linux参数设置
 
 https://blog.csdn.net/dandan2zhuzhu/article/details/78413946
+
+
+
+
+
+```
+查看服务启动后占用的句柄数
+cd /proc/5434/fd | ll | wc -l     (注: 5434为进程号)
+
+建立的连接数
+netstat -n | grep 21332 | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}' 
+
+查看全连接队列
+ss -lnt|grep 'Recv-Q\|21332'  (注: 21332为socket监听端口号)
+```
+
