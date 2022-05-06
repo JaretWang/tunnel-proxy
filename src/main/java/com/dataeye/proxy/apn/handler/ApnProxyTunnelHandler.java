@@ -45,7 +45,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
-    private final NioEventLoopGroup clientEventLoopGroup = new NioEventLoopGroup(1);
 
     public ApnProxyTunnelHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -68,7 +67,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
             if (Objects.nonNull(cacheIpResult)) {
                 logger.info("tunnel 检测到缓存ip: {}", JSON.toJSONString(cacheIpResult));
-                requestDistributeService.sendRequestByTunnel(clientEventLoopGroup, cacheIpResult, apnHandlerParams, ctx, httpRequest);
+                requestDistributeService.sendRequestByTunnel(cacheIpResult, apnHandlerParams, ctx, httpRequest);
             } else {
                 throw new RuntimeException("tunnel 获取缓存ip为空");
             }
