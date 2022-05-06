@@ -12,6 +12,7 @@ import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
@@ -33,6 +34,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     private final List<HttpContent> httpContentBuffer = new ArrayList<>();
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
+    private final NioEventLoopGroup clientEventLoopGroup = new NioEventLoopGroup(1);
 
     public ApnProxyForwardHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -56,7 +58,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
             if (Objects.nonNull(cacheIpResult)) {
                 logger.debug("forward 检测到缓存的ip: {}", JSON.toJSONString(cacheIpResult));
-                requestDistributeService.sendRequestByForward(cacheIpResult, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
+                requestDistributeService.sendRequestByForward(clientEventLoopGroup, cacheIpResult, apnHandlerParams, httpRequest, httpContentBuffer, ctx, msg);
             } else {
                 throw new RuntimeException("forward 获取缓存ip为空");
             }

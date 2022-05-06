@@ -27,6 +27,7 @@ import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
+    private final NioEventLoopGroup clientEventLoopGroup = new NioEventLoopGroup(1);
 
     public ApnProxyTunnelHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -66,7 +68,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
             if (Objects.nonNull(cacheIpResult)) {
                 logger.info("tunnel 检测到缓存ip: {}", JSON.toJSONString(cacheIpResult));
-                requestDistributeService.sendRequestByTunnel(cacheIpResult, apnHandlerParams, ctx, httpRequest);
+                requestDistributeService.sendRequestByTunnel(clientEventLoopGroup, cacheIpResult, apnHandlerParams, ctx, httpRequest);
             } else {
                 throw new RuntimeException("tunnel 获取缓存ip为空");
             }

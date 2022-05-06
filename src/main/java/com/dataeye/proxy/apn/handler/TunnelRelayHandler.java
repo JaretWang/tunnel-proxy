@@ -104,6 +104,10 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 //        ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler channelInactive");
 //        IpMonitorUtils.invoke(requestMonitor, true, "TunnelRelayHandler channelInactive");
 
+        // todo 为了测试 too many files
+        ctx.channel().closeFuture().sync();
+        ctx.channel().eventLoop().shutdownGracefully();
+
         ctx.fireChannelInactive();
         //todo 补充
         ctx.close();
@@ -117,6 +121,10 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
         requestMonitor.setFailReason(cause.getMessage());
         ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler exceptionCaught");
         IpMonitorUtils.invoke(requestMonitor, false, "TunnelRelayHandler exceptionCaught");
+
+        // todo 为了测试 too many files
+        ctx.channel().closeFuture().sync();
+        ctx.channel().eventLoop().shutdownGracefully();
 
         ctx.close();
     }

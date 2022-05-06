@@ -21,8 +21,8 @@ import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
@@ -60,7 +60,7 @@ public class RequestDistributeService {
      * @param ctx
      * @param httpRequest
      */
-    public void sendRequestByTunnel(ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
+    public void sendRequestByTunnel(NioEventLoopGroup clientEventLoopGroup, ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
                                     final ChannelHandlerContext ctx,
                                     HttpRequest httpRequest) {
 //        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
@@ -94,7 +94,7 @@ public class RequestDistributeService {
         // 提交代理请求任务
 //        TunnelRequestTask proxyRequestTask = new TunnelRequestTask(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
 //        ioThreadPool.submit(proxyRequestTask);
-        sendTunnelReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
+        sendTunnelReq(clientEventLoopGroup, requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
     }
 
     /**
@@ -106,7 +106,7 @@ public class RequestDistributeService {
      * @param ctx
      * @param msg
      */
-    public void sendRequestByForward(ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
+    public void sendRequestByForward(NioEventLoopGroup clientEventLoopGroup, ApnProxyRemote apnProxyRemote, ApnHandlerParams apnHandlerParams,
                                      HttpRequest httpRequest,
                                      List<HttpContent> httpContentBuffer,
                                      ChannelHandlerContext ctx, Object msg) {
@@ -130,7 +130,7 @@ public class RequestDistributeService {
         // 提交代理请求任务
 //        ForwardRequestTask proxyRequestTask = new ForwardRequestTask(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
 //        ioThreadPool.submit(proxyRequestTask);
-        sendForwardReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+        sendForwardReq(clientEventLoopGroup, uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
     }
 
     public HttpRequest constructRequestForProxyByForward(HttpRequest httpRequest,
@@ -244,13 +244,13 @@ public class RequestDistributeService {
         SocksServerUtils.closeOnFlush(ctx.channel());
     }
 
-    void sendForwardReq(final Channel uaChannel,
+    void sendForwardReq(NioEventLoopGroup clientEventLoop, final Channel uaChannel,
                         ApnHandlerParams apnHandlerParams,
                         ApnProxyRemote apnProxyRemote,
                         TunnelInstance tunnelInstance,
                         List<HttpContent> httpContentBuffer,
                         Object msg) {
-        logger.info("业务线程开始转发请求");
+        logger.debug("业务线程开始转发请求");
         long begin = System.currentTimeMillis();
         String remoteAddr = apnProxyRemote.getRemote();
 
@@ -261,7 +261,8 @@ public class RequestDistributeService {
 
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap
-                .group(uaChannel.eventLoop())
+//                .group(uaChannel.eventLoop())
+                .group(clientEventLoop)
                 .channel(NioSocketChannel.class)
 
                 //todo 修复 close_wait 临时加上
@@ -346,11 +347,15 @@ public class RequestDistributeService {
                 SocksServerUtils.closeOnFlush(uaChannel);
                 httpContentBuffer.clear();
                 future.channel().close();
+
+                // todo 为了测试 too many files
+                future.channel().closeFuture().sync();
+                clientEventLoop.shutdownGracefully();
             }
         });
     }
 
-    void sendTunnelReq(RequestMonitor requestMonitor,
+    void sendTunnelReq(NioEventLoopGroup clientEventLoop, RequestMonitor requestMonitor,
                        final ChannelHandlerContext ctx,
                        HttpRequest httpRequest,
                        ApnProxyRemote apnProxyRemote,
@@ -361,7 +366,8 @@ public class RequestDistributeService {
         // connect remote
         final Bootstrap bootstrap = new Bootstrap();
         bootstrap
-                .group(uaChannel.eventLoop())
+//                .group(uaChannel.eventLoop())
+                .group(clientEventLoop)
                 .channel(NioSocketChannel.class)
 
                 //todo 修复 close_wait 临时加上
@@ -452,7 +458,13 @@ public class RequestDistributeService {
                         requestMonitor.setFailReason(errorMessage);
                         ReqMonitorUtils.cost(requestMonitor, "sendTunnelReq");
                         IpMonitorUtils.invoke(requestMonitor, false, "sendTunnelReq");
+
+
+                        // todo 为了测试 too many files
+                        ctx.channel().closeFuture().sync();
+                        ctx.channel().eventLoop().shutdownGracefully();
                     }
+
                 });
     }
 
@@ -481,7 +493,8 @@ public class RequestDistributeService {
 
         @Override
         public void run() {
-            sendForwardReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+            NioEventLoopGroup clientEventLoopGroup = new NioEventLoopGroup(1);
+            sendForwardReq(clientEventLoopGroup, uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
         }
     }
 
@@ -507,7 +520,8 @@ public class RequestDistributeService {
 
         @Override
         public void run() {
-            sendTunnelReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
+            NioEventLoopGroup clientEventLoopGroup = new NioEventLoopGroup(1);
+            sendTunnelReq(clientEventLoopGroup, requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
         }
     }
 

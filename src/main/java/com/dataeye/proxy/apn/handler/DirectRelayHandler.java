@@ -153,7 +153,13 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                                 }
                             }
                         });
+            } else {
+                //todo 临时增加, 修复 too many files
+                ReferenceCountUtil.release(msg);
             }
+        } else {
+            //todo 临时增加, 修复 too many files
+            ReferenceCountUtil.release(msg);
         }
     }
 
@@ -173,10 +179,15 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                         remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr));
         ctx.fireChannelInactive();
 
+        // todo 为了测试 too many files
+        ctx.channel().closeFuture().sync();
+        ctx.channel().eventLoop().shutdownGracefully();
+
 //        //todo 增加
 //        ctx.channel().close();
 //        uaChannel.close();
         ctx.close();
+
 
 //        requestMonitor.setSuccess(true);
 //        ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler channelInactive");
@@ -190,6 +201,10 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
         //todo 增加
 //        ctx.channel().close();
         ctx.close();
+
+        // todo 为了测试 too many files
+        ctx.channel().closeFuture().sync();
+        ctx.channel().eventLoop().shutdownGracefully();
 
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());
