@@ -1,7 +1,9 @@
 package com.dataeye.proxy.arloor.session;
 
 import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.apn.cons.Global;
 import com.dataeye.proxy.apn.handler.TunnelRelayHandler;
+import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.arloor.handler.HeartbeatIdleStateHandler;
 import com.dataeye.proxy.arloor.handler.RelayHandler;
 import com.dataeye.proxy.arloor.handler.SessionHandShakeHandler;
@@ -37,7 +39,7 @@ public enum Status {
     HTTP_REQUEST {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
-            log.debug("HTTP_REQUEST");
+            log.info("HTTP_REQUEST");
 
             if (msg instanceof HttpRequest) {
                 HttpRequest request = (HttpRequest) msg;
@@ -60,7 +62,7 @@ public enum Status {
     LAST_HTTP_CONTENT {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
-            log.debug("LAST_HTTP_CONTENT");
+            log.info("LAST_HTTP_CONTENT");
 
             //SimpleChannelInboundHandler会将HttpContent中的bytebuf Release，但是这个还会转给relayHandler，所以需要在这里预先retain
             ((HttpContent) msg).content().retain();
@@ -84,7 +86,7 @@ public enum Status {
     WEB {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
-            log.debug("WEB");
+            log.info("WEB");
 
             session.setAttribute(TraceConstant.host.name(), "localhost");
             Span dispatch = Tracer.spanBuilder(TraceConstant.web.name())
@@ -108,7 +110,7 @@ public enum Status {
     CheckAuth {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
-            log.debug("CheckAuth");
+            log.info("CheckAuth");
 
             String clientHostname = ((InetSocketAddress) channelContext.channel().remoteAddress()).getAddress().getHostAddress();
             //2. 检验auth
@@ -164,6 +166,8 @@ public enum Status {
     TUNNEL {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
+            log.info("TUNNEL");
+
             HttpRequest request = session.getRequest();
             final Channel inboundChannel = channelContext.channel();
             Bootstrap b = session.getBootStrap();
@@ -173,19 +177,21 @@ public enum Status {
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(new HeartbeatIdleStateHandler(5, 0, 0, TimeUnit.MINUTES));
 
-//            //todo 添加代理IP
-//            ApnProxyRemote apnProxyRemote = channelContext.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-//            String remoteHost = apnProxyRemote.getRemoteHost();
-//            int remotePort = apnProxyRemote.getRemotePort();
-//            log.info("TUNNEL, to {} for {}", apnProxyRemote.getRemote(), request.uri());
-//            b.connect(remoteHost, remotePort).addListener(new ChannelFutureListener() {
-
-            b.connect(session.getHost(), session.getPort()).addListener(new ChannelFutureListener() {
+            //todo 添加代理IP
+            ApnProxyRemote apnProxyRemote = channelContext.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+            log.info("TUNNEL, to {} for {}", apnProxyRemote.getRemote(), request.uri());
+            b.connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort()).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (future.isSuccess()) {
-//                        if (apnProxyRemote.isAppleyRemoteRule()) {
-                        if (false) {
+                        if (apnProxyRemote.isAppleyRemoteRule()) {
+
+//            b.connect(session.getHost(), session.getPort()).addListener(new ChannelFutureListener() {
+//                @Override
+//                public void operationComplete(ChannelFuture future) throws Exception {
+//                    if (future.isSuccess()) {
+//                        if (false) {
+
                             final Channel outboundChannel = future.channel();
                             channelContext.pipeline().remove(HttpRequestDecoder.class);
                             channelContext.pipeline().remove(HttpResponseEncoder.class);
@@ -253,6 +259,7 @@ public enum Status {
     GETPOST {
         @Override
         public void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg) {
+            log.info("GETPOST");
 
             HttpRequest request = session.getRequest();
             final Channel inboundChannel = channelContext.channel();
@@ -277,18 +284,21 @@ public enum Status {
 //                    .handler(new TempChannelInitializer(inboundChannel, request.headers().get("Host"),cb));
                     .handler(new HeartbeatIdleStateHandler(5, 0, 0, TimeUnit.MINUTES));
 
-//            //todo 添加代理IP
-//            ApnProxyRemote apnProxyRemote = channelContext.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-//            String remoteHost = apnProxyRemote.getRemoteHost();
-//            int remotePort = apnProxyRemote.getRemotePort();
-//            log.info("GETPOST, to {} for {}", apnProxyRemote.getRemote(), request.headers().get("Host"));
-//            b.connect(remoteHost, remotePort).addListener(new ChannelFutureListener() {
-            b.connect(session.getHost(), session.getPort()).addListener(new ChannelFutureListener() {
+            //todo 添加代理IP
+            ApnProxyRemote apnProxyRemote = channelContext.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
+            log.info("GETPOST, to {} for {}", apnProxyRemote.getRemote(), request.headers().get("Host"));
+            b.connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort()).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (future.isSuccess()) {
-//                        if (apnProxyRemote.isAppleyRemoteRule()) {
-                        if (false) {
+                        if (apnProxyRemote.isAppleyRemoteRule()) {
+
+//            b.connect(session.getHost(), session.getPort()).addListener(new ChannelFutureListener() {
+//                @Override
+//                public void operationComplete(ChannelFuture future) throws Exception {
+//                    if (future.isSuccess()) {
+//                        if (false) {
+
                             final Channel outboundChannel = future.channel();
                             channelContext.pipeline().remove(HttpRequestDecoder.class);
                             channelContext.pipeline().remove(HttpResponseEncoder.class);
@@ -427,6 +437,7 @@ public enum Status {
     };
 
     private static final Logger log = LoggerFactory.getLogger(Status.class);
+//    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ArloorProxyServer");
 
     public abstract void handle(Session session, ChannelHandlerContext channelContext, HttpObject msg);
 }

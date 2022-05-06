@@ -1,14 +1,14 @@
 package com.dataeye.proxy.apn.initializer;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
-import com.dataeye.proxy.apn.handler.ApnProxyForwardHandler;
-import com.dataeye.proxy.apn.handler.ApnProxySchemaHandler;
-import com.dataeye.proxy.apn.handler.ApnProxyTunnelHandler;
-import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
+import com.dataeye.proxy.apn.handler.*;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.timeout.IdleStateHandler;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author xmx
@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.HttpServerCodec;
 public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
     private final ApnHandlerParams apnHandlerParams;
+    long readerIdleTime = 5,  writerIdleTime = 5,  allIdleTime = 10;
 
     public ApnProxyServerChannelInitializer(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;
@@ -27,7 +28,8 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
         ChannelPipeline pipeline = channel.pipeline();
 
 //        pipeline.addLast("idlestate", new IdleStateHandler(0, 0, 3, TimeUnit.MINUTES));
-//        pipeline.addLast("idlehandler", new IdleHandler());
+        pipeline.addLast("idlestate", new IdleStateHandler(readerIdleTime, writerIdleTime, allIdleTime, TimeUnit.SECONDS));
+        pipeline.addLast("idlehandler", new IdleHandler());
 //        pipeline.addLast("datalog", new LoggingHandler("PRE_BYTE_LOGGER", LogLevel.DEBUG));
 //        if (ApnProxyConfig.getConfig().getListenType() == ApnProxyListenType.SSL) {
 //            SSLEngine engine = ApnProxySSLContextFactory.createServerSSLSSLEngine();

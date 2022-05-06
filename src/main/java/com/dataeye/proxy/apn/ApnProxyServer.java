@@ -127,8 +127,8 @@ public class ApnProxyServer {
                 .channel(NioServerSocketChannel.class)
 //                // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
 //                .option(ChannelOption.SO_RCVBUF, 1024)
-//                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows为200，其他为128。
-//                .option(ChannelOption.SO_BACKLOG, tunnelInstance.getConcurrency())
+//                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows默认为200，其他为128。
+//                .option(ChannelOption.SO_BACKLOG, 1024)
                 .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
                 .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
 

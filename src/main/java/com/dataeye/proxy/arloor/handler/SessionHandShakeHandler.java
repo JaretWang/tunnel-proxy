@@ -55,7 +55,7 @@ public class SessionHandShakeHandler extends SimpleChannelInboundHandler<HttpObj
             }
             ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
             isAllocateIp.compareAndSet(false, true);
-            log.info("初始化分配ip，结果：{}", JSON.toJSONString(apnProxyRemote));
+            log.info("初始化分配ip，结果：{}", apnProxyRemote.getRemote());
         } else {
             ApnProxyRemote result = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
             log.info("Schema -> 已分配ip，再次提取，结果：{}", JSON.toJSONString(result));

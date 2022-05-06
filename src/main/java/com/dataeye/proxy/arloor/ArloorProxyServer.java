@@ -37,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -79,7 +80,7 @@ public class ArloorProxyServer {
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         int size = tunnelInstances.size();
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create");
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create_");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
         LOG.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
     }
