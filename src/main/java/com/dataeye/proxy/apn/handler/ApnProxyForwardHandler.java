@@ -80,8 +80,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.info("forward channelInactive");
         // todo 为了测试 too many files
-        ctx.channel().closeFuture().sync();
-        ctx.channel().eventLoop().shutdownGracefully();
+//        ctx.channel().closeFuture().sync();
+//        ctx.channel().eventLoop().shutdownGracefully();
         ctx.close();
     }
 
@@ -97,8 +97,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
         ctx.close();
         // todo 为了测试 too many files
-        ctx.channel().closeFuture().sync();
-        ctx.channel().eventLoop().shutdownGracefully();
+//        ctx.channel().closeFuture().sync();
+//        ctx.channel().eventLoop().shutdownGracefully();
     }
 
 }
