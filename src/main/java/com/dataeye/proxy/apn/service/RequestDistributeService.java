@@ -1,5 +1,7 @@
 package com.dataeye.proxy.apn.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
@@ -17,22 +19,26 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.OkHttpTool;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -94,7 +100,14 @@ public class RequestDistributeService {
         // 提交代理请求任务
 //        TunnelRequestTask proxyRequestTask = new TunnelRequestTask(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
 //        ioThreadPool.submit(proxyRequestTask);
-        sendTunnelReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
+
+//        sendTunnelReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
+
+        try {
+            sendReqByOkHttp(ctx.channel(), apnProxyRemote, null, httpRequest);
+        } catch (Throwable e) {
+            logger.info("sendReqByOkHttp have error, detail={}", e.getMessage());
+        }
     }
 
     /**
@@ -130,7 +143,14 @@ public class RequestDistributeService {
         // 提交代理请求任务
 //        ForwardRequestTask proxyRequestTask = new ForwardRequestTask(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
 //        ioThreadPool.submit(proxyRequestTask);
-        sendForwardReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+
+//        sendForwardReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+
+        try {
+            sendReqByOkHttp(uaChannel, apnProxyRemote, httpContentBuffer, httpRequest);
+        } catch (Throwable e) {
+            logger.info("sendReqByOkHttp have error, detail={}", e.getMessage());
+        }
     }
 
     public HttpRequest constructRequestForProxyByForward(HttpRequest httpRequest,
@@ -242,6 +262,91 @@ public class RequestDistributeService {
         FullHttpMessage errorResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, content);
         ctx.channel().writeAndFlush(errorResponse);
         SocksServerUtils.closeOnFlush(ctx.channel());
+    }
+
+    void sendReqByOkHttp(final Channel uaChannel,
+                         ApnProxyRemote apnProxyRemote,
+                         List<HttpContent> httpContentBuffer,
+                         HttpRequest httpRequest) throws IOException {
+        Set<String> headerNames = httpRequest.headers().names();
+        HashMap<String, String> headers = new HashMap<>(headerNames.size());
+        for (String headerName : headerNames) {
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
+                continue;
+            }
+            // 解决response乱码
+            if (StringUtils.equalsIgnoreCase(headerName, "Accept-Encoding")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+                continue;
+            }
+            headers.put(headerName, httpRequest.headers().getAll(headerName).get(0));
+        }
+        headers.put(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+        headers.put("Proxy-Connection", HttpHeaders.Values.CLOSE);
+
+        String method = httpRequest.method().name();
+        String uri = httpRequest.uri();
+        String remoteHost = apnProxyRemote.getRemoteHost();
+        int remotePort = apnProxyRemote.getRemotePort();
+        String proxyUserName = apnProxyRemote.getProxyUserName();
+        String proxyPassword = apnProxyRemote.getProxyPassword();
+        Response response;
+        if ("get".equalsIgnoreCase(method)) {
+            response = OkHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+        } else if ("post".equalsIgnoreCase(method)) {
+            if (httpContentBuffer != null && !httpContentBuffer.isEmpty()) {
+                StringBuilder builder = new StringBuilder();
+                for (HttpContent httpContent : httpContentBuffer) {
+                    ByteBuf content = httpContent.content();
+                    String str = content.toString(StandardCharsets.UTF_8);
+                    builder.append(str);
+                }
+                JSONObject body = JSONObject.parseObject(JSON.toJSONString(builder));
+                response = OkHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
+            } else {
+                response = OkHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+            }
+        } else {
+            throw new RuntimeException("不认识的请求方式: " + method);
+        }
+        DefaultFullHttpResponse responseMsg = getResponse(response);
+        uaChannel.writeAndFlush(responseMsg);
+        SocksServerUtils.closeOnFlush(uaChannel);
+    }
+
+    DefaultFullHttpResponse getResponse(Response response) throws IOException {
+        int code = response.code();
+        if (code == HttpResponseStatus.OK.code()) {
+            String result = Objects.requireNonNull(response.body()).string();
+            ByteBuf errorResponseContent = Unpooled.copiedBuffer(result, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, errorResponseContent);
+            fullHttpResponse.headers().add(HttpHeaders.Names.CONTENT_ENCODING, CharsetUtil.UTF_8.name());
+            fullHttpResponse.headers().add(HttpHeaders.Names.CONTENT_LENGTH, errorResponseContent.readableBytes());
+            fullHttpResponse.headers().add(HttpHeaders.Names.CONNECTION, "close");
+            // 释放资源
+            Objects.requireNonNull(response.body()).close();
+            return fullHttpResponse;
+        } else {
+            HttpResponseStatus httpResponseStatus = HttpResponseStatus.valueOf(code);
+            if (httpResponseStatus == null) {
+                httpResponseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+            }
+            String errMsg = Objects.requireNonNull(response.body()).string();
+            logger.error("ok http send fail, code={}, reason={}", code, errMsg);
+            ByteBuf errorResponseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse errorResponseMsg = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, errorResponseContent);
+            errorResponseMsg.headers().add(HttpHeaders.Names.CONTENT_ENCODING, CharsetUtil.UTF_8.name());
+            errorResponseMsg.headers().add(HttpHeaders.Names.CONTENT_LENGTH, errorResponseContent.readableBytes());
+            errorResponseMsg.headers().add(HttpHeaders.Names.CONNECTION, "close");
+            // 释放资源
+            Objects.requireNonNull(response.body()).close();
+            return errorResponseMsg;
+        }
     }
 
     void sendForwardReq(final Channel uaChannel,

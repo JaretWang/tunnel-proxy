@@ -39,9 +39,7 @@ public class OkHttpTool {
         // 添加头部信息
         Request.Builder builder = new Request.Builder().url(reqUrl);
         if (header != null && !header.isEmpty()) {
-            header.entrySet().forEach(res -> {
-                builder.addHeader(res.getKey(), res.getValue());
-            });
+            header.forEach(builder::addHeader);
         }
         // 发送请求
         Request request = builder.post(body).build();
@@ -61,6 +59,40 @@ public class OkHttpTool {
      * @param flag   地址中带有参数为 TRUE 没有参数 FALSE
      * @return
      */
+    public static String doGet(String reqUrl, Map<String, String> header, Map<String, String> params, boolean flag) {
+        StringBuilder stringBuilder = new StringBuilder();
+        //处理参数
+        if (params != null && !params.isEmpty()) {
+            params.keySet().forEach(res -> {
+                if (StringUtils.isNotBlank(stringBuilder) || flag) {
+                    stringBuilder.append("&");
+                } else {
+                    stringBuilder.append("?");
+                }
+                try {
+                    stringBuilder.append(String.format("%s=%s", res, URLEncoder.encode(params.get(res), "UTF-8")));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        // 拼接参数
+        String requestUrl = reqUrl + stringBuilder;
+        // 发送请求
+        Request.Builder builder = new Request.Builder()
+                .url(requestUrl);
+        if (header != null && !header.isEmpty()) {
+            header.forEach(builder::addHeader);
+        }
+        Request request = builder.get().build();
+        try {
+            Response response = OKHTTP_CLIENT.newCall(request).execute();
+            return response.body().string();
+        } catch (Exception e) {
+            throw new RuntimeException("HTTP GET同步请求失败 URL:" + reqUrl, e);
+        }
+    }
+
     public static String doGet(String reqUrl, Map<String, String> params, boolean flag) {
         StringBuilder stringBuilder = new StringBuilder();
         //处理参数
@@ -76,15 +108,14 @@ public class OkHttpTool {
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
-
             });
         }
         // 拼接参数
         String requestUrl = reqUrl + stringBuilder;
         // 发送请求
-        Request request = new Request.Builder()
-                .url(requestUrl)
-                .build();
+        Request.Builder builder = new Request.Builder()
+                .url(requestUrl);
+        Request request = builder.get().build();
         try {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
@@ -92,6 +123,7 @@ public class OkHttpTool {
             throw new RuntimeException("HTTP GET同步请求失败 URL:" + reqUrl, e);
         }
     }
+
 
     /**
      * 使用代理IP发送
@@ -104,16 +136,19 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password) throws IOException {
+    public static Response sendByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                       Map<String, String> params, JSONObject body) throws IOException {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        Authenticator authenticator = (route, response) -> {
-            String credential = Credentials.basic(username, password);
-            return response.request().newBuilder()
-                    .header("Proxy-Authorization", credential)
-                    .build();
-        };
-        clientBuilder.proxyAuthenticator(authenticator);
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            Authenticator authenticator = (route, response) -> {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+            clientBuilder.proxyAuthenticator(authenticator);
+        }
 
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
         clientBuilder.proxy(proxy);
@@ -129,6 +164,93 @@ public class OkHttpTool {
 
         OkHttpClient client = clientBuilder.build();
 
+        return client.newCall(request).execute();
+    }
+
+    public static Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                          Map<String, String> header, Map<String, String> params) throws IOException {
+        //处理参数
+        if (params != null && !params.isEmpty()) {
+            StringBuilder stringBuilder = new StringBuilder();
+            params.keySet().forEach(res -> {
+                if (StringUtils.isNotBlank(stringBuilder)) {
+                    stringBuilder.append("&");
+                } else {
+                    stringBuilder.append("?");
+                }
+                try {
+                    stringBuilder.append(String.format("%s=%s", res, URLEncoder.encode(params.get(res), "UTF-8")));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            });
+            // 拼接参数
+            targetUrl = targetUrl + stringBuilder;
+        }
+
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            Authenticator authenticator = (route, response) -> {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+            clientBuilder.proxyAuthenticator(authenticator);
+        }
+
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
+        clientBuilder.proxy(proxy);
+        clientBuilder.connectTimeout(5, TimeUnit.SECONDS)
+//                .callTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
+
+        Request.Builder builder = new Request.Builder()
+                .url(targetUrl);
+
+        if (header != null && !header.isEmpty()) {
+            header.forEach(builder::addHeader);
+        }
+        Request request = builder.get().build();
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
+    public static Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                           Map<String, String> header, JSONObject body) throws IOException {
+
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            Authenticator authenticator = (route, response) -> {
+                String credential = Credentials.basic(username, password);
+                return response.request().newBuilder()
+                        .header("Proxy-Authorization", credential)
+                        .build();
+            };
+            clientBuilder.proxyAuthenticator(authenticator);
+        }
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
+        clientBuilder.proxy(proxy);
+        clientBuilder.connectTimeout(5, TimeUnit.SECONDS)
+//                .callTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
+
+        Request.Builder builder = new Request.Builder().url(targetUrl);
+        if (header != null && !header.isEmpty()) {
+            header.forEach(builder::addHeader);
+        }
+
+        Request request;
+        if (body != null && !body.isEmpty()) {
+            RequestBody requestBody = RequestBody.create(MEDIA_TYPE, body.toString());
+            request = builder.post(requestBody).build();
+        } else {
+            request = builder.build();
+        }
+        OkHttpClient client = clientBuilder.build();
         return client.newCall(request).execute();
     }
 

@@ -121,7 +121,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
             //todo 使用短连接
             httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
             httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
-
+            // 引用计数 +1
             httpResponse.retain();
 
             if (uaChannel.isActive()) {
@@ -129,6 +129,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                         .addListener((ChannelFutureListener) future -> {
                             if (future.isSuccess()) {
                                 ctx.read();
+                                // 引用计数 -1
                                 ctx.fireChannelRead(msg);
 
                                 // todo 依然会执行两次，应该放入 attribute key
