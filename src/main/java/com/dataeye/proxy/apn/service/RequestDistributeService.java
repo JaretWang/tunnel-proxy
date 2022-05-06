@@ -280,7 +280,8 @@ public class RequestDistributeService {
 //                .option(ChannelOption.SO_TIMEOUT, tunnelInstance.getConnectTimeoutMillis())
 //                //todo 临时加上
 //                .option(ChannelOption.SO_KEEPALIVE,true)
-                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                // todo 测试错误  failed to allocate 2048 byte(s) of direct memory
+//                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .option(ChannelOption.AUTO_READ, false)
                 .handler(new DirectRelayChannelInitializer(apnHandlerParams, apnProxyRemote, uaChannel, remoteAddr, cb));
 
@@ -374,7 +375,8 @@ public class RequestDistributeService {
                 .option(ChannelOption.TCP_NODELAY, true)
 
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, tunnelInstance.getConnectTimeoutMillis())
-                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                // todo 测试错误  failed to allocate 2048 byte(s) of direct memory
+//                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .option(ChannelOption.AUTO_READ, false)
 //                //todo 临时加上
 //                .option(ChannelOption.SO_KEEPALIVE,true)
