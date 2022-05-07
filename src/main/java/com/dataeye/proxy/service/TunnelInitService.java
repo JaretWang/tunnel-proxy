@@ -4,13 +4,18 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
+import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -21,7 +26,7 @@ import java.util.stream.Collectors;
 @Service
 public class TunnelInitService {
 
-    public static final List<TunnelInstance> TUNNEL_INSTANCES = new LinkedList<>();
+    public static final ConcurrentHashMap<String, TunnelInstance> TUNNEL_INSTANCES_CACHE = new ConcurrentHashMap<>();
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelInitService");
     @Resource
     TunnelInitMapper tunnelInitMapper;
@@ -34,8 +39,9 @@ public class TunnelInitService {
      * @return 隧道实例配置列表
      */
     public List<TunnelInstance> getTunnelList() {
-        if (!TUNNEL_INSTANCES.isEmpty()) {
-            return TUNNEL_INSTANCES.stream().distinct().collect(Collectors.toList());
+        // 检查缓存
+        if (!TUNNEL_INSTANCES_CACHE.isEmpty()) {
+            return TUNNEL_INSTANCES_CACHE.values().stream().distinct().collect(Collectors.toList());
         }
         String eth0Inet4InnerIp;
         if ("local".equals(profile)) {
@@ -58,20 +64,41 @@ public class TunnelInitService {
                 .map(TunnelInstance::getAlias)
                 .collect(Collectors.toList());
         logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
-        TUNNEL_INSTANCES.addAll(enableList);
-        return TUNNEL_INSTANCES.stream().distinct().collect(Collectors.toList());
+
+        // add cache
+        enableList.forEach(instance -> TUNNEL_INSTANCES_CACHE.put(instance.getAlias(), instance));
+        return TUNNEL_INSTANCES_CACHE.values().stream().distinct().collect(Collectors.toList());
     }
 
     /**
      * 根据名称获取单个tunnel
      */
     public TunnelInstance getTunnel(String tunnelName) {
-        for (TunnelInstance element : getTunnelList()) {
-            if (tunnelName.equalsIgnoreCase(element.getAlias())) {
-                return element;
-            }
+        if (!TUNNEL_INSTANCES_CACHE.isEmpty() && TUNNEL_INSTANCES_CACHE.containsKey(tunnelName)) {
+            return TUNNEL_INSTANCES_CACHE.get(tunnelName);
         }
+        logger.error("get tunnel instance is null for [{}]", tunnelName);
         return null;
     }
 
+
+    /**
+     * 每 6s 定时更新隧道列表缓存
+     */
+    @Scheduled(cron = "0/6 * * * * ?")
+    public void schduleUpdateTunnelListCache() {
+        // get from db
+        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+        // check element and update
+        for (TunnelInstance tunnelInstance : tunnelInstances) {
+            String lastModified = tunnelInstance.getLastModified();
+            LocalDateTime lastUpdateTime = TimeUtils.str2LocalDate(lastModified);
+            boolean update = LocalDateTime.now().isBefore(lastUpdateTime.plusSeconds(5));
+            if (update) {
+                logger.info("更新隧道参数: {}", tunnelInstance);
+                String alias = tunnelInstance.getAlias();
+                TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
+            }
+        }
+    }
 }
