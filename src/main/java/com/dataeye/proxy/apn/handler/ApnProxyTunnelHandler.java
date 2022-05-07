@@ -90,9 +90,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
         super.channelInactive(ctx);
 //        ctx.fireChannelInactive();
-        // todo 为了测试 too many files
-//        ctx.channel().closeFuture().sync();
-//        ctx.channel().eventLoop().shutdownGracefully();
         ctx.close();
     }
 
@@ -106,9 +103,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
         IpMonitorUtils.invoke(requestMonitor, false, HANDLER_NAME);
 
-        // todo 为了测试 too many files
-//        ctx.channel().closeFuture().sync();
-//        ctx.channel().eventLoop().shutdownGracefully();
         ctx.close();
     }
 

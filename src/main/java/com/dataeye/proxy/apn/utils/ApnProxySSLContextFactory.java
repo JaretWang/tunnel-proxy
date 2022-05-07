@@ -74,9 +74,35 @@ public class ApnProxySSLContextFactory {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-
         return null;
+    }
 
+    public static SSLEngine createSslEngine(String keyStorePath, String keyStorePassword, String trustStorePath, String trustStorePassword) {
+        try {
+            SSLContext sslcontext = SSLContext.getInstance("TLS");
+
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+
+            KeyStore ks = KeyStore.getInstance("JKS");
+            KeyStore tks = KeyStore.getInstance("JKS");
+            ks.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
+            tks.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
+
+            kmf.init(ks, keyStorePassword.toCharArray());
+            tmf.init(tks);
+
+            sslcontext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+            SSLEngine sslEngine = sslcontext.createSSLEngine();
+            sslEngine.setUseClientMode(false);
+            // should config?
+            sslEngine.setNeedClientAuth(false);
+            return sslEngine;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+        return null;
     }
 
 }

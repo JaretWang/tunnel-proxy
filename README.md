@@ -1043,12 +1043,12 @@ ip池中的ProxyIp可以和IpMonitor可以合并到一起, 就不用同步ip池�
 
 ```
 ------------------- ip监控工具 ------------------------
-tail -3f adx-IpMonitorUtils.log | grep "success percent"
+tail -f adx-IpMonitorUtils.log | grep "success percent"
 cat adx-IpMonitorUtils.log | grep "ERROR"
 cat adx-IpMonitorUtils.log | grep "成功移除ip="
 cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
 ------------------- 请求监控工具 ------------------------
-cat adx-ReqMonitorUtils.log | grep "percent" | tail -10f | grep "success percent"
+tail -f adx-ReqMonitorUtils.log | grep "success percent"
 cat adx-ReqMonitorUtils.log | grep "ERROR"
 ------------------- ip池 ------------------------
 tail -3f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
@@ -1229,3 +1229,35 @@ netstat -n | grep 21332 | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}
 ss -lnt|grep 'Recv-Q\|21332'  (注: 21332为socket监听端口号)
 ```
 
+# netty ssl
+
+```shell
+第一步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
+keytool -genkey -alias securechat -keysize 2048 -validity 365 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
+ 
+第二步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
+keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
+ 
+第三步：生成客户端的私钥和证书仓库，用于将服务端的证书保存到客户端的授信证书仓库中 
+keytool -genkey -alias smcc -keysize 2048 -validity 365  -keyalg RSA -dname "CN=localhost" -keypass 123456  -storepass 123456 -keystore tunnel-client.jks
+ 
+第四步: 生成客户端自签名证书
+keytool -export -alias smcc -keystore tunnel-client.jks -storepass 123456 -file tunnel-client.cer
+ 
+第五步：将Netty服务端证书导入到客户端的证书仓库中
+keytool -import -trustcacerts -alias securechat -file tunnel-server.cer -storepass 123456 -keystore tunnel-client.jks
+ 
+第六步:将客户端的自签名证书导入到服务端的信任证书仓库中：
+keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123456 -keystore tunnel-server.jks
+ 
+ 
+-keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
+-validity 365 证书有效期365天
+-keyalg RSA 使用RSA非对称加密算法
+-dname "CN=localhost" 设置Common Name为localhost
+-keypass 123456 密钥的访问密码为123456
+-storepass 123456 密钥库的访问密码为123456（其实这两个密码也可以设置一样，通常都设置一样，方便记）
+-keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks
+```
+
+#  
