@@ -17,7 +17,7 @@ public class ApnProxySSLContextFactory {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
-    public static SSLEngine createClientSSLEnginForRemoteAddress(String host, int port) {
+    public static SSLEngine createSslEngine(String host, int port) {
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
             TrustManager[] trustManagers = null;
@@ -34,43 +34,6 @@ public class ApnProxySSLContextFactory {
 
             return sslcontext.createSSLEngine(host, port);
 
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-        return null;
-    }
-
-    public static SSLEngine createServerSSLSSLEngine() {
-
-        try {
-            SSLContext sslcontext = SSLContext.getInstance("TLS");
-
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-
-            KeyStore ks = KeyStore.getInstance("JKS");
-            KeyStore tks = KeyStore.getInstance("JKS");
-
-            String keyStorePath = ApnProxyConfig.getConfig().getKeyStorePath();
-            String keyStorePassword = ApnProxyConfig.getConfig().getKeyStroePassword();
-
-            String trustStorePath = ApnProxyConfig.getConfig().getTrustStorePath();
-            String trustStorePassword = ApnProxyConfig.getConfig().getKeyStroePassword();
-
-            ks.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
-            tks.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
-
-            String keyPassword = ApnProxyConfig.getConfig().getKeyStroePassword();
-            kmf.init(ks, keyPassword.toCharArray());
-            tmf.init(tks);
-
-            sslcontext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
-            SSLEngine sslEngine = sslcontext.createSSLEngine();
-            sslEngine.setUseClientMode(false);
-            sslEngine.setNeedClientAuth(false); //should config?
-
-            return sslEngine;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }

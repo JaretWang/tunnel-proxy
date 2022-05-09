@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2014 The APN-PROXY Project
- *
- * The APN-PROXY Project licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
@@ -32,13 +16,12 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.handler.HttpProxyHandler 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/5/9 15:41
  */
 public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.proxy";
-    //    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DirectRelayHandler");
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final Channel uaChannel;
     private final String remoteAddr;
@@ -62,55 +45,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
-        logger.info("DirectRelayHandler channelRead");
-
-//        HttpObject ho = (HttpObject) msg;
-//        logger.info("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
-//
-//        if (ho instanceof HttpResponse) {
-//            HttpResponse httpResponse = (HttpResponse) ho;
-//            logger.info("HttpProxyHandler -> HttpResponse:{}", httpResponse.toString());
-//            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-//            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
-//
-//            //todo 使用短连接
-////            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
-////            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
-//        }
-//
-//        if (ho instanceof HttpContent) {
-//            HttpContent httpContent = (HttpContent) ho;
-//            logger.info("HttpProxyHandler -> HttpContent retain:{}", httpContent.toString());
-//            httpContent.retain();
-////            ((HttpContent) ho).retain();
-//        }
-//        if (uaChannel.isActive()) {
-//            uaChannel.writeAndFlush(ho)
-//                    .addListener((ChannelFutureListener) future -> {
-//                        if (future.isSuccess()) {
-//                            ctx.read();
-//                            ctx.fireChannelRead(msg);
-//
-////                            // todo 临时补充
-////                            ctx.close();
-//                        } else {
-//                            ReferenceCountUtil.release(msg);
-//                            ctx.close();
-//                        }
-//
-//                        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-//                        requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-//                        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
-//                                requestMonitor.getCost(),
-//                                requestMonitor.isSuccess(),
-//                                requestMonitor.getTunnelName(),
-//                                requestMonitor.getProxyAddr(),
-//                                requestMonitor.getRequestType(),
-//                                requestMonitor.getTargetAddr(),
-//                                requestMonitor.getFailReason());
-//                    });
-//        }
-
+        logger.debug("DirectRelayHandler channelRead");
 
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse httpResponse = (FullHttpResponse) msg;
@@ -118,7 +53,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 //            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 //            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
 
-            //todo 使用短连接
+            // 使用短连接
             httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
             httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.CLOSE);
             // 引用计数 +1
@@ -132,9 +67,9 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                                 // 引用计数 -1
                                 ctx.fireChannelRead(msg);
 
-                                // todo 依然会执行两次，应该放入 attribute key
+                                // 依然会执行两次，应该放入 attribute key
                                 if (first) {
-                                    // todo 临时增加
+                                    // 临时增加
                                     requestMonitor.setSuccess(true);
                                     ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isSuccess");
                                     IpMonitorUtils.invoke(requestMonitor, true, "DirectRelayHandler isSuccess");
@@ -145,7 +80,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                                 ctx.close();
 
                                 if (first) {
-                                    // todo 临时增加
+                                    // 临时增加
                                     requestMonitor.setSuccess(false);
                                     requestMonitor.setFailReason(future.cause().getMessage());
                                     ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isError");
@@ -155,11 +90,11 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                             }
                         });
             } else {
-                //todo 临时增加, 修复 too many files
+                // 临时增加, 修复 too many files
                 ReferenceCountUtil.release(msg);
             }
         } else {
-            //todo 临时增加, 修复 too many files
+            // 临时增加, 修复 too many files
             ReferenceCountUtil.release(msg);
         }
     }
@@ -167,36 +102,22 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         logger.info("DirectRelayHandler channelReadComplete");
-
         super.channelReadComplete(ctx);
     }
 
     @Override
     public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
         logger.info("DirectRelayHandler channelInactive, Remote channel: {} inactive", remoteAddr);
-
         uaChannel.writeAndFlush(Unpooled.EMPTY_BUFFER)
                 .addListener((ChannelFutureListener) future ->
                         remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr));
         ctx.fireChannelInactive();
-
-//        //todo 增加
-//        ctx.channel().close();
-//        uaChannel.close();
         ctx.close();
-
-
-//        requestMonitor.setSuccess(true);
-//        ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler channelInactive");
-//        IpMonitorUtils.invoke(requestMonitor, true, "DirectRelayHandler channelInactive");
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("DirectRelayHandler exceptionCaught: {}",cause.getMessage());
-
-        //todo 增加
-//        ctx.channel().close();
+        logger.error("DirectRelayHandler exceptionCaught: {}", cause.getMessage());
         ctx.close();
 
         requestMonitor.setSuccess(false);

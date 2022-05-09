@@ -8,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -23,12 +22,29 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @AllArgsConstructor
 public class ApnHandlerParams {
 
+    /**
+     * 代理ip抽取工具
+     */
     ApnProxyRemoteChooser apnProxyRemoteChooser;
+    /**
+     * 隧道实例
+     */
     TunnelInstance tunnelInstance;
+    /**
+     * 请求分发服务
+     */
     RequestDistributeService requestDistributeService;
-    ThreadPoolTaskExecutor ioThreadPool;
+    /**
+     * 请求监控工具
+     */
     RequestMonitor requestMonitor;
+    /**
+     *限流处理器
+     */
     ConcurrentLimitHandler concurrentLimitHandler;
+    /**
+     * 带宽流量监控线程池
+     */
     ScheduledThreadPoolExecutor trafficScheduledThreadPool;
 
 }

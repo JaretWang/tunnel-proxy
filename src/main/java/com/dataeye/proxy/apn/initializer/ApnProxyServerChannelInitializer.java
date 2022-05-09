@@ -11,8 +11,8 @@ import io.netty.handler.timeout.IdleStateHandler;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/5/9 14:45
  */
 public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -27,7 +27,6 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
     public void initChannel(SocketChannel channel) {
         ChannelPipeline pipeline = channel.pipeline();
 
-//        pipeline.addLast("idlestate", new IdleStateHandler(0, 0, 3, TimeUnit.MINUTES));
         pipeline.addLast("idlestate", new IdleStateHandler(readerIdleTime, writerIdleTime, allIdleTime, TimeUnit.SECONDS));
         pipeline.addLast("idlehandler", new IdleHandler());
 //        pipeline.addLast("datalog", new LoggingHandler("PRE_BYTE_LOGGER", LogLevel.DEBUG));

@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2014 The APN-PROXY Project
- *
- * The APN-PROXY Project licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 package com.dataeye.proxy.apn.initializer;
 
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
@@ -21,7 +5,6 @@ import com.dataeye.proxy.apn.config.ApnProxyListenType;
 import com.dataeye.proxy.apn.handler.DirectRelayHandler;
 import com.dataeye.proxy.apn.handler.DirectRelayHandler.RemoteChannelInactiveCallback;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxySslRemote;
 import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -34,8 +17,8 @@ import io.netty.handler.ssl.SslHandler;
 import javax.net.ssl.SSLEngine;
 
 /**
- * @author xmx
- * @version $Id: com.dataeye.proxy.apn.initializer.HttpProxyChannelInitializer 14-1-8 16:13 (xmx) Exp $
+ * @author jaret
+ * @date 2022/5/9 15:41
  */
 public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -70,18 +53,14 @@ public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChan
     public void initChannel(SocketChannel channel) throws Exception {
 
         ChannelPipeline pipeline = channel.pipeline();
-
         if (apnProxyRemote.getRemoteListenType() == ApnProxyListenType.SSL) {
-            ApnProxySslRemote sslRemote = (ApnProxySslRemote) apnProxyRemote;
-            SSLEngine engine = ApnProxySSLContextFactory.createClientSSLEnginForRemoteAddress(
-                    sslRemote.getRemoteHost(), sslRemote.getRemotePort());
+            SSLEngine engine = ApnProxySSLContextFactory.createSslEngine(
+                    apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort());
             engine.setUseClientMode(true);
             pipeline.addLast("ssl", new SslHandler(engine));
         }
-
         pipeline.addLast("codec", new HttpClientCodec());
         pipeline.addLast("http_proxy_agg", new HttpObjectAggregator(1024*1204));
-
         pipeline.addLast(DirectRelayHandler.HANDLER_NAME, new DirectRelayHandler(apnHandlerParams, uaChannel, remoteAddr, remoteChannelInactiveCallback));
     }
 }

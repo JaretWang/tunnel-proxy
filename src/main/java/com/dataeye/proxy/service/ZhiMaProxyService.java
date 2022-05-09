@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 /**
  * @author jaret
  * @date 2022/4/1 19:30
- * @description 芝麻代理ip获取
+ * @description 从专门的ip拉取服务,获取芝麻代理ip
  */
 @Service
 public class ZhiMaProxyService implements InitializingBean {

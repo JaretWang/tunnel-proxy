@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ThreadPoolConfig {
 
     /**
-     * 自定义的线程工厂
+     * 自定义线程工厂
      */
     public static class TunnelThreadFactory implements ThreadFactory {
         private final ThreadGroup group;

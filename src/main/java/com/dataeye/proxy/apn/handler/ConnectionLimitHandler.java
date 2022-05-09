@@ -1,6 +1,6 @@
 package com.dataeye.proxy.apn.handler;
 
-import com.dataeye.proxy.apn.utils.HttpErrorUtil;
+import com.dataeye.proxy.apn.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.*;
@@ -60,9 +60,9 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
                 // send error response
                 String errorMsg = "超出每秒最大并发数 " + maxConcurrency + ", 请稍后重试";
                 logger.error(errorMsg);
-                HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
+                HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
                 channel.writeAndFlush(errorResponseMsg);
-                channel.pipeline().remove(ConnectionLimitHandler.HANDLER_NAME);
+                channel.pipeline().remove(HANDLER_NAME);
                 channel.pipeline().remove("bandwidth.monitor");
                 channel.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
                 channel.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);

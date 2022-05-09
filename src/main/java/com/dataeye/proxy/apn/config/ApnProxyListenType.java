@@ -16,23 +16,12 @@
 
 package com.dataeye.proxy.apn.config;
 
-import com.dataeye.proxy.apn.exception.ApnProxyConfigException;
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * @author jaret
  * @date 2022/4/14 10:42
  */
 public enum ApnProxyListenType {
-    SSL, PLAIN;
+    SSL,
+    PLAIN;
 
-    public static ApnProxyListenType fromString(String _listenType) {
-        if (StringUtils.equals(_listenType, "ssl")) {
-            return ApnProxyListenType.SSL;
-        } else if (StringUtils.equals(_listenType, "plain")) {
-            return ApnProxyListenType.PLAIN;
-        } else {
-            throw new ApnProxyConfigException("Unknown listen type");
-        }
-    }
 }

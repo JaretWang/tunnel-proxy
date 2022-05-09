@@ -7,6 +7,10 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @author jaret
+ * @date 2022/5/9 16:32
+ */
 public class HttpClient {
     public static void start(String host, int port) {
         EventLoopGroup group = new NioEventLoopGroup();

@@ -229,7 +229,7 @@ DirectRelayHandler exceptionCaught Connection reset by peer 107
 
 
 
-# 代理商
+# 代理商账号密码
 
 ```
 // 芝麻
@@ -962,7 +962,7 @@ IP=114.239.71.114:26559(2023-01-01 01:01:01), 并发=50, 成功=500, 失败=0, �
 
 
 
-## 价格
+## IP价格计算
 
 ```
 代理云一天14万个IP，21000一个月
@@ -976,18 +976,10 @@ IP=114.239.71.114:26559(2023-01-01 01:01:01), 并发=50, 成功=500, 失败=0, �
 
 游杰：每天10W IP，每月2.2W
 每天11W IP，每月2.2W
-
 10*10000*price*30=2.2*10000, price=0.0073元/ip
 ```
 
 
-
-# mysql
-
-```
-账号：
-密码：
-```
 
 
 
@@ -1041,25 +1033,6 @@ cpu disk 11点半到12点 出现尖刺，看看什么情况
 
 ip池中的ProxyIp可以和IpMonitor可以合并到一起, 就不用同步ip池中的ip和监控记录表里面的ip的状态了.
 
-```
-------------------- ip监控工具 ------------------------
-tail -f adx-IpMonitorUtils.log | grep "success percent"
-cat adx-IpMonitorUtils.log | grep "ERROR"
-cat adx-IpMonitorUtils.log | grep "成功移除ip="
-cat adx-IpMonitorUtils.log | grep "移除ip失败, ip池中不存在该ip"
-------------------- 请求监控工具 ------------------------
-tail -f adx-ReqMonitorUtils.log | grep "success percent"
-cat adx-ReqMonitorUtils.log | grep "ERROR"
-------------------- ip池 ------------------------
-tail -3f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
-cat adx-IpPoolScheduleService.log | grep "ERROR"
-cat adx-IpPoolScheduleService.log | grep "今日累计拉取IP数量"
-cat adx-IpPoolScheduleService.log | grep "IP池已满, 配置数量"
-注: 1小时,平均拉取250个ip. 24小时就是, 一天6000个ip
-------------------- 风控 ------------------------
-tail -f adx-ConcurrentLimitHandler.log
-```
-
 1.ip池
 
 如果服务中断, ip池数量会满了不会变化, 因为失效的ip不会被poll, 所以就一直存在里面, 然后程序检测有效ip不足, 就会往里面添加第二批有效的ip, 当第二批也失效, 就会循环添加,一直到最后, ip池可能可能因为没有释放掉, 而导致内存泄露
@@ -1074,47 +1047,7 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 
 
 
-
-
-
-
-
-
-
-
-# 配置总结
-
-```
-程序: 一个隧道10个ip, 500TPS限制, 2G堆内存 YoungGC 最多一分钟6次, 没有 FullGC
-请求方: 
-
-优量: 一天840万个请求, 每小时35W请求, 每秒100个请求, 每个请求响应大小20KB左右, 每秒带宽2MB, 每分钟带宽120MB
-阿里云机器: 16核CPU 32G运存 10Mbps带宽
-
-   7-> adx-crawl-007   172.18.211.168  120.25.162.186   16/32G   
-   8-> adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
-   
-   
-地址: 120.79.147.167
-端口: 21333
-用户名: dataeye
-密码: dataeye++123
-
-
-[2022-04-28 10:13:06] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=884
-[2022-04-28 10:13:16] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=349
-[2022-04-28 10:13:26] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=192
-[2022-04-28 10:13:36] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=81
-[2022-04-28 10:13:46] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=106
-[2022-04-28 10:13:56] [concurrent-limit-1] [ConcurrentLimitHandler.java:lambda$new$0:51] [INFO ] -> 每隔 10s 重置, connections=168
-
-```
-
-
-
-
-
-# 请求,广告量统计
+# 爬虫请求,广告量统计
 
 | 编号 | app        | 每小时请求量(成功) | 每小时请求量(失败) | 总请求量 | 每小时广告量 |
 | ---- | ---------- | ------------------ | ------------------ | -------- | ------------ |
@@ -1125,6 +1058,195 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 | 84   | 优量广告   | 40W                | 8W                 | 48W      | 25W          |
 
 
+
+# 问题
+
+
+
+### TCP连接CLOSE_WAIT状态数过多
+
+1.wireshark 抓包分析两次建立连接过程, 第一次调用方和隧道建立连接, 三次握手, 四次挥手正常. 第二次隧道和代理ip建立连接, 三次握手正常, 四次挥手异常, 被关闭方(ps: 可以是隧道,可以是代理商)偶尔会进入CLOSE_WAIT状态(ps: 连接代理ip失败的情况下才会出现, 因为95%以上都是连接成功的, 很难发现).
+
+2.[linux参数调优](https://blog.csdn.net/dandan2zhuzhu/article/details/78413946)
+
+### 打开文件描述符过多
+
+1.先确定进程打开的文件描述符是什么类型,大部分都是 socket 类型, 所以可以确定是连接未正常关闭
+
+2.采用 okhttp client 代替 netty client 发送请求,发现文件描述符回归正常
+
+3.再次检查代码,发现 netty clien 没有在连接代理ip失败的情况下,关闭sockt连接
+
+```shell
+查看服务启动后占用的句柄数
+cd /proc/5434/fd | ll | wc -l     (注: 5434为进程号)
+或者 lsof -p 10771 | wc -l
+
+建立的连接数
+netstat -n | grep 21332 | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}' 
+
+查看全连接队列
+ss -lnt|grep 'Recv-Q\|21332'  (注: 21332为socket监听端口号)
+```
+
+参考:
+
+[netty报Too many open files了（必看）看完将弄明白tcp通讯过程](https://blog.csdn.net/cowbin2012/article/details/110689676)
+
+
+
+# okhttp 转发 https
+
+### SSL证书生成
+
+```shell
+第一步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
+keytool -genkey -alias securechat -keysize 2048 -validity 365 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
+ 
+第二步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
+keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
+ 
+第三步：生成客户端的私钥和证书仓库，用于将服务端的证书保存到客户端的授信证书仓库中 
+keytool -genkey -alias smcc -keysize 2048 -validity 365  -keyalg RSA -dname "CN=localhost" -keypass 123456  -storepass 123456 -keystore tunnel-client.jks
+ 
+第四步: 生成客户端自签名证书
+keytool -export -alias smcc -keystore tunnel-client.jks -storepass 123456 -file tunnel-client.cer
+ 
+第五步：将Netty服务端证书导入到客户端的证书仓库中
+keytool -import -trustcacerts -alias securechat -file tunnel-server.cer -storepass 123456 -keystore tunnel-client.jks
+ 
+第六步:将客户端的自签名证书导入到服务端的信任证书仓库中：
+keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123456 -keystore tunnel-server.jks
+ 
+ 
+-keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
+-validity 365 证书有效期365天
+-keyalg RSA 使用RSA非对称加密算法
+-dname "CN=localhost" 设置Common Name为localhost
+-keypass 123456 密钥的访问密码为123456
+-storepass 123456 密钥库的访问密码为123456（其实这两个密码也可以设置一样，通常都设置一样，方便记）
+-keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks 
+```
+
+
+
+# 监控
+
+### 日常监控命令
+
+```shell
+------------------- ip监控工具 -------------------------
+tail -f adx-IpMonitorUtils.log | grep "success percent"
+grep "ERROR" adx-IpMonitorUtils.log
+grep "成功移除ip=" adx-IpMonitorUtils.log
+grep "移除ip失败, ip池中不存在该ip" adx-IpMonitorUtils.log
+
+------------------- 请求监控工具 ------------------------
+tail -f adx-ReqMonitorUtils.log | grep "success percent"
+grep "ERROR" adx-ReqMonitorUtils.log
+
+---------------------- 风控 ---------------------------
+tail -f adx-ConcurrentLimitHandler.log | grep "connections"
+
+------------------- ip池 ------------------------------
+tail -f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
+grep "ERROR" adx-IpPoolScheduleService.log
+grep "今日累计拉取" adx-IpPoolScheduleService.log
+grep "IP池已满" adx-IpPoolScheduleService.log
+```
+
+
+
+### 监控TCP连接数, CLOSE_WAIT状态数, 打开文件描述符个数, 并发送告警邮件
+
+```shell
+#!/bin/bash
+
+#netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}'
+
+DATETIME=`date +%Y%m%d-%H%M%S`
+
+TCP_CLOSE_WAIT_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '/^CLOSE_WAIT/ {print $2}'`
+TCP_TOTAL_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '{sum+=$2} END {print sum}'`
+PID=`/usr/local/jdk1.8.0_131/bin/jps -l | grep 'tunnel-proxy-service' | awk '{print $1}'`
+ULIMIT_COUNT=`ls -l /proc/${PID}/fd 2>/dev/null | wc -l`
+
+#echo ${TCP_CLOSE_WAIT_COUNT}
+#echo ${TCP_TOTAL_COUNT}
+#echo ${PID}
+#echo ${ULIMIT_COUNT}
+
+
+function send_mail(){
+    serverName=`hostname`
+    sendMsg=TCP%20Connections%20too%20many%20on%20${serverName}
+    url="http://172.18.248.80/innerservice/mail/send?subject=Tcp%20Connections%20Alert&content=${sendMsg}&to=chenghuajie@dataeye.com,wangchaojia@dataeye.com&isMime=false&needReceipt=false"
+    curl ${url}
+}
+
+
+if [[ ${TCP_CLOSE_WAIT_COUNT} -ge 30000 ]] || [[ ${TCP_TOTAL_COUNT} -ge 50000 ]] || [[ ${ULIMIT_COUNT} -ge 50000 ]];then
+   netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' > /data0/logs/tunnel-proxy/monitor-tcp-${DATETIME}.log
+   /usr/sbin/lsof -p ${PID} > /data0/logs/tunnel-proxy/monitor-lsof-${DATETIME}.log 2>/data0/logs/tunnel-proxy/monitor-lsof-error.log
+   mv /data0/logs/tunnel-proxy/console.log /data0/logs/tunnel-proxy/monitor-console.log-${DATETIME}
+   ## send mail and restart app
+   /usr/local/htdocs/tunnel-proxy/shell/deploy-restart.sh restart
+   send_mail
+fi
+```
+
+
+
+
+
+### 命令
+
+> 统计错误请求有多少个，以及每个错误占用有多少
+
+```shell
+cat adx-ReqMonitorUtils.log | grep 'false, pangolin' | awk -F ', ' '{print($2,$6)}' |awk -F '!' '{count[$1]++} END {for(i in count ){print(i,count[i])}}'
+```
+
+> 统计不同的ip+port有多少个
+
+```shell
+cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -F= ' {print($2)}' | awk -F, '{print $1}' | awk -F: '{print $1}'| sort | uniq -c  |wc -l
+```
+
+
+
+# 隧道配置
+
+### 代理IP
+
+```shell
+经过ip性能测试,以及性价比比对,最终采用芝麻和游杰的代理ip
+实测使用一个345kb的请求, 测出芝麻代理1个IP，20并发，带宽6MB左右为极限, 所以真实定制规则取一半，算作1个ip，10个并发，3MB带宽。
+```
+
+
+
+### 优量广告
+
+```shell
+请求方: 每秒 150-200 个请求(平均https请求30个左右), 每小时 54-72W 请求(平均60W左右), 每天 1296-1728W 个请求(平均1500W左右), 每个请求响应大小20KB-60KB(平均40KB左右, https会达到530KB), 每秒带宽12MB, https会达到530KB
+隧道方: 一个隧道10个ip, 300TPS限制, 堆内存2G, 堆外直接内存2G, YoungGC 频繁, 没有 FullGC
+阿里云机器: 16核CPU, 32G运存, 25Mbps带宽跑满
+adx-crawl-007   172.18.211.168  120.25.162.186   16/32G  
+adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
+```
+
+### edx-sale
+
+```shell
+3千万请求一天 1kb以下 EDX 销量更新
+edx-sale：每小时30w个请求，每秒83个请求，每个请求4KB
+
+隧道方: 
+请求方: 每小时30w个请求，每秒83个请求，每个请求4KB。
+阿里云机器:  
+adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
+```
 
 
 
@@ -1154,110 +1276,3 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 2.协议说明，如何支持http，https，socks5协议的，socks5协议的概述，以及好处
 
 3.后面的隧道需要做哪些优化
-
-
-
-# 问题
-
-### 命令
-
-> 统计错误请求有多少个，以及每个错误占用有多少
-
-```shell
-cat adx-ReqMonitorUtils.log | grep 'false, pangolin' | awk -F ', ' '{print($2,$6)}' |awk -F '!' '{count[$1]++} END {for(i in count ){print(i,count[i])}}'
-```
-
-> 统计不同的ip+port有多少个
-
-```shell
-cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -F= ' {print($2)}' | awk -F, '{print $1}' | awk -F: '{print $1}'| sort | uniq -c  |wc -l
-```
-
-
-
-### TCP连接数过多,CLOSE_WAIT状态过多
-
-1.监控脚本
-
-```
-#!/bin/bash
-
-#netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}'
-
-TCP_CLOSE_WAIT_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '/^CLOSE_WAIT/ {print $2}'`
-TCP_TOTAL_COUNT=`netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' | awk '{sum+=$2} END {print sum}'`
-
-#echo ${TCP_CLOSE_WAIT_COUNT}
-
-#echo ${TCP_TOTAL_COUNT}
-
-function send_mail(){
-    serverName=`hostname`
-    sendMsg=TCP%20Connections%20too%20many%20on%20${serverName}
-    url="http://172.18.248.80/innerservice/mail/send?subject=Tcp%20Connections%20Alert&content=${sendMsg}&to=chenghuajie@dataeye.com,wangchaojia@dataeye.com&isMime=false&needReceipt=false"
-    curl ${url}
-}
-
-
-if [[ ${TCP_CLOSE_WAIT_COUNT} -ge 30000 ]] || [[ ${TCP_TOTAL_COUNT} -ge 50000 ]];then
-   netstat -n | awk '/^tcp/ {++y[$NF]} END {for(w in y) print w, y[w]}' > /data0/logs/tunnel-proxy/tcp-count.log
-   ## send mail and restart app
-   /usr/local/htdocs/tunnel-proxy/shell/deploy-restart.sh restart
-   send_mail
-fi
-```
-
-
-
-2.linux参数设置
-
-https://blog.csdn.net/dandan2zhuzhu/article/details/78413946
-
-
-
-
-
-```
-查看服务启动后占用的句柄数
-cd /proc/5434/fd | ll | wc -l     (注: 5434为进程号)
-或者 lsof -p 10771 | wc -l
-
-建立的连接数
-netstat -n | grep 21332 | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}' 
-
-查看全连接队列
-ss -lnt|grep 'Recv-Q\|21332'  (注: 21332为socket监听端口号)
-```
-
-# netty ssl
-
-```shell
-第一步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
-keytool -genkey -alias securechat -keysize 2048 -validity 365 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
- 
-第二步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
-keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
- 
-第三步：生成客户端的私钥和证书仓库，用于将服务端的证书保存到客户端的授信证书仓库中 
-keytool -genkey -alias smcc -keysize 2048 -validity 365  -keyalg RSA -dname "CN=localhost" -keypass 123456  -storepass 123456 -keystore tunnel-client.jks
- 
-第四步: 生成客户端自签名证书
-keytool -export -alias smcc -keystore tunnel-client.jks -storepass 123456 -file tunnel-client.cer
- 
-第五步：将Netty服务端证书导入到客户端的证书仓库中
-keytool -import -trustcacerts -alias securechat -file tunnel-server.cer -storepass 123456 -keystore tunnel-client.jks
- 
-第六步:将客户端的自签名证书导入到服务端的信任证书仓库中：
-keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123456 -keystore tunnel-server.jks
- 
- 
--keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
--validity 365 证书有效期365天
--keyalg RSA 使用RSA非对称加密算法
--dname "CN=localhost" 设置Common Name为localhost
--keypass 123456 密钥的访问密码为123456
--storepass 123456 密钥库的访问密码为123456（其实这两个密码也可以设置一样，通常都设置一样，方便记）
--keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks
-```
-
-#  

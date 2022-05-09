@@ -7,6 +7,10 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @author jaret
+ * @date 2022/5/9 16:32
+ */
 @Slf4j
 public class HttpClientHandler extends ChannelInboundHandlerAdapter {
     @Override

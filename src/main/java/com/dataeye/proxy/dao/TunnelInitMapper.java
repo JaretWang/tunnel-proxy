@@ -15,7 +15,8 @@ public interface TunnelInitMapper {
 
     /**
      * 查询所有的隧道实例
-     * @return
+     *
+     * @return 隧道实例列表
      */
     List<TunnelInstance> queryAll();
 

@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.relay";
-    //    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelRelayHandler");
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final Channel relayChannel;
     private final String tag;
@@ -45,9 +44,11 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     @SneakyThrows
     public String convertByteBufToString(ByteBuf buf) {
         String str;
-        if (buf.hasArray()) { // 处理堆缓冲区
+        // 处理堆缓冲区
+        if (buf.hasArray()) {
             str = new String(buf.array(), buf.arrayOffset() + buf.readerIndex(), buf.readableBytes());
-        } else { // 处理直接缓冲区以及复合缓冲区
+        } else {
+            // 处理直接缓冲区以及复合缓冲区
             byte[] bytes = new byte[buf.readableBytes()];
             buf.getBytes(buf.readerIndex(), bytes);
             str = new String(bytes, 0, buf.readableBytes(), StandardCharsets.UTF_8);
@@ -57,27 +58,21 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.info("TunnelRelayHandler channelRead: {} : {}", tag, msg);
-//        System.out.println(msg);
-        //UnpooledByteBufAllocator(directByDefault: true)
-//        new UnpooledByteBufAllocator();
-//        ByteBuf buf = (ByteBuf) msg;
-//        System.out.println(convertByteBufToString(buf));
-
+        logger.debug("TunnelRelayHandler channelRead: {} : {}", tag, msg);
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg)
                     .addListener((ChannelFutureListener) future -> {
                         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
                             ctx.read();
                         }
-                        // TODO 临时添加
+                        // 临时添加
                         if (first) {
                             if (future.isSuccess()) {
                                 requestMonitor.setSuccess(true);
                                 ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler isSuccess");
                                 IpMonitorUtils.invoke(requestMonitor, true, "TunnelRelayHandler isSuccess");
                             } else {
-                                // todo 临时增加
+                                // 临时增加
                                 requestMonitor.setSuccess(false);
                                 requestMonitor.setFailReason(future.cause().getMessage());
                                 ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler isError");
@@ -94,31 +89,24 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        // 该方法会执行两次，因为要关闭两次， UA --> REMOTE | REMOTE --> UA
         logger.info("TunnelRelayHandler channelInactive: {} channel inactive", tag);
         if (relayChannel != null && relayChannel.isActive()) {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-
-//        // todo 会执行两次，因为要关闭两次， UA --> REMOTE | REMOTE --> UA
-//        requestMonitor.setSuccess(true);
-//        ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler channelInactive");
-//        IpMonitorUtils.invoke(requestMonitor, true, "TunnelRelayHandler channelInactive");
-
         ctx.fireChannelInactive();
-        //todo 补充
         ctx.close();
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("TunnelRelayHandler exceptionCaught: {}", cause.getMessage());
+        ctx.close();
 
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());
         ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler exceptionCaught");
         IpMonitorUtils.invoke(requestMonitor, false, "TunnelRelayHandler exceptionCaught");
-
-        ctx.close();
     }
 
 }

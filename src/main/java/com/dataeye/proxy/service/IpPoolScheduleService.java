@@ -133,7 +133,7 @@ public class IpPoolScheduleService {
             List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce, tunnelInstance);
 
 //            List<ProxyIp> data;
-//            //todo 优量使用芝麻   edx销量使用游杰
+//            // 优量使用芝麻   edx销量使用游杰
 //            String alias = tunnelInstance.getAlias();
 //            if ("youliang".equalsIgnoreCase(alias)) {
 //                data = zhiMaFetchServiceImpl.getIpList(numOnce);

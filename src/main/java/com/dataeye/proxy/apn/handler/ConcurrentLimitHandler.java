@@ -1,6 +1,6 @@
 package com.dataeye.proxy.apn.handler;
 
-import com.dataeye.proxy.apn.utils.HttpErrorUtil;
+import com.dataeye.proxy.apn.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -28,7 +28,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("concurrent-limit-"), new ThreadPoolExecutor.AbortPolicy());
     /**
-     * 每5秒,检查一次累计的连接数
+     * 每10秒,检查一次累计的连接数
      */
     private final int cycle = 10;
     /**
@@ -48,7 +48,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
         this.maxConcurrency = tunnelInstance.getConcurrency();
         this.frequnce = maxConcurrency * cycle;
         Runnable runnable = () -> {
-            logger.info("每隔 {}s 重置, connections={}", cycle, connections.get());
+            logger.info("{}s 以内, connections={}", cycle, connections.get());
             connections.set(0);
         };
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(runnable, 0, cycle, TimeUnit.SECONDS);
@@ -74,7 +74,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
 
             // send error response
             String errorMsg = "超出每秒最大并发数 " + maxConcurrency + ", 请稍后重试";
-            HttpMessage errorResponseMsg = HttpErrorUtil.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN, errorMsg);
+            HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.FORBIDDEN, errorMsg);
             channel.writeAndFlush(errorResponseMsg);
             channel.unsafe().closeForcibly();
         }

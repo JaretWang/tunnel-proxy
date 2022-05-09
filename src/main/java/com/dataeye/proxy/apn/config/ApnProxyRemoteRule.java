@@ -23,6 +23,7 @@ import java.util.List;
  * @date 2022/4/14 10:42
  */
 public class ApnProxyRemoteRule {
+
     private String remoteHost;
     private int remotePort;
     private String proxyUserName;

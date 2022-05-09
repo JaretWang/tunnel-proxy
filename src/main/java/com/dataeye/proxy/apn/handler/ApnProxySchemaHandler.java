@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2014 The APN-PROXY Project
- *
- * The APN-PROXY Project licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 package com.dataeye.proxy.apn.handler;
 
 
@@ -42,10 +26,8 @@ import java.util.Objects;
  */
 public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
-//    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxySchemaHandler");
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
-
     public static final String HANDLER_NAME = "apnproxy.schema";
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final ApnHandlerParams apnHandlerParams;
     private final RequestMonitor requestMonitor = new RequestMonitor();
     private boolean needAllocate = true;
@@ -83,8 +65,6 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         } else {
             logger.debug("needAllocate is false");
         }
-
-
         super.channelActive(ctx);
     }
 
@@ -104,8 +84,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             HttpRequest httpRequest = (HttpRequest) msg;
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
-            }
-            else {
+            } else {
                 //TODO 临时增加
                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
             }
@@ -131,7 +110,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("schema exceptionCaught: {}",cause.getMessage());
+        logger.error("schema exceptionCaught: {}", cause.getMessage());
 
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());
