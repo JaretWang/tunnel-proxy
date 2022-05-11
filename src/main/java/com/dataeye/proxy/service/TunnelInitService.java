@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -32,6 +33,16 @@ public class TunnelInitService {
     TunnelInitMapper tunnelInitMapper;
     @Value("${spring.profiles.active}")
     String profile;
+    String eth0Inet4InnerIp;
+
+    @PostConstruct
+    private void getEth0Inet4InnerIp() {
+        if ("local".equals(profile)) {
+            eth0Inet4InnerIp = "localhost";
+        } else {
+            eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
+        }
+    }
 
     /**
      * 获取所有隧道实例配置列表
@@ -42,12 +53,6 @@ public class TunnelInitService {
         // 检查缓存
         if (!TUNNEL_INSTANCES_CACHE.isEmpty()) {
             return TUNNEL_INSTANCES_CACHE.values().stream().distinct().collect(Collectors.toList());
-        }
-        String eth0Inet4InnerIp;
-        if ("local".equals(profile)) {
-            eth0Inet4InnerIp = "localhost";
-        } else {
-            eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
         }
         if (StringUtils.isBlank(eth0Inet4InnerIp)) {
             logger.error("获取本机eth0网卡ip地址失败");
@@ -93,8 +98,9 @@ public class TunnelInitService {
             String lastModified = tunnelInstance.getLastModified();
             LocalDateTime lastUpdateTime = TimeUtils.str2LocalDate(lastModified);
             boolean update = LocalDateTime.now().isBefore(lastUpdateTime.plusSeconds(5));
-            if (update) {
+            if (update && tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1) {
                 logger.info("更新隧道参数: {}", tunnelInstance);
+                // fixed bug: just update tunnel params on the machine
                 String alias = tunnelInstance.getAlias();
                 TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
             }

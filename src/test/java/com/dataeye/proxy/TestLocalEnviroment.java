@@ -203,7 +203,6 @@ public class TestLocalEnviroment {
                     out1.close();
                 }
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }

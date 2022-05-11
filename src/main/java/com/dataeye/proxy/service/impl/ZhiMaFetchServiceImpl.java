@@ -141,7 +141,6 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * @return 是否超过限制
      */
     public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance) {
-//        boolean status = FETCH_IP_NUM_NOW.get() > MAX_FETCH_IP_NUM_EVERY_DAY.get();
         boolean status = FETCH_IP_NUM_NOW.get() > tunnelInstance.getMaxFetchIpNumEveryDay();
         IS_SEND_ALARM_EMAIL.set(status);
         return status;

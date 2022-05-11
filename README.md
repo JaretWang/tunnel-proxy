@@ -1142,7 +1142,7 @@ grep "成功移除ip=" adx-IpMonitorUtils.log
 grep "移除ip失败, ip池中不存在该ip" adx-IpMonitorUtils.log
 
 ------------------- 请求监控工具 ------------------------
-tail -f adx-ReqMonitorUtils.log | grep "success percent"
+grep "success percent" adx-ReqMonitorUtils.log | tail -5 | grep "success percent"
 grep "ERROR" adx-ReqMonitorUtils.log
 
 ---------------------- 风控 ---------------------------
@@ -1151,7 +1151,7 @@ tail -f adx-ConcurrentLimitHandler.log | grep "connections"
 ------------------- ip池 ------------------------------
 tail -f adx-IpPoolScheduleService.log | grep "tunnel=youliang"
 grep "ERROR" adx-IpPoolScheduleService.log
-grep "今日累计拉取" adx-IpPoolScheduleService.log
+grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 grep "IP池已满" adx-IpPoolScheduleService.log
 ```
 

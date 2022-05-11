@@ -72,8 +72,6 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
             String[] split = ipAddr.split(":");
             String ip = split[0];
             int port = Integer.parseInt(split[1]);
-
-            // get one
             LocalDateTime localDateTime = TimeUtils.str2LocalDate(exptime);
             // 计数
             FETCH_IP_NUM_NOW.incrementAndGet();
@@ -96,7 +94,6 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
      * @return 是否超过限制
      */
     public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance) {
-//        boolean status = FETCH_IP_NUM_NOW.get() > MAX_FETCH_IP_NUM_EVERY_DAY.get();
         boolean status = FETCH_IP_NUM_NOW.get() > tunnelInstance.getMaxFetchIpNumEveryDay();
         IS_SEND_ALARM_EMAIL.set(status);
         return status;

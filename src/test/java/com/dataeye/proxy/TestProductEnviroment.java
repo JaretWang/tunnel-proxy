@@ -184,7 +184,6 @@ public class TestProductEnviroment {
                     out1.close();
                 }
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }

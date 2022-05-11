@@ -78,7 +78,7 @@ public class IpPoolScheduleService {
             if (queue == null || queue.isEmpty()) {
                 // 某个隧道对应的ip池中的所有ip同时失效，但可能性低
                 log.warn("id存在，但是ip循环队列为空");
-                ConcurrentLinkedQueue<ProxyIp> newQueue = new ConcurrentLinkedQueue<ProxyIp>();
+                ConcurrentLinkedQueue<ProxyIp> newQueue = new ConcurrentLinkedQueue<>();
                 getFixedNumIpAddr(newQueue, tunnelInstance, tunnelInstance.getFixedIpPoolSize());
                 proxyIpPool.put(tunnel, newQueue);
                 return;
