@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
 import okhttp3.Credentials;
+import okhttp3.Headers;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -299,14 +300,22 @@ public class RequestDistributeService {
     }
 
     DefaultFullHttpResponse getResponse(Response response, RequestMonitor requestMonitor) throws IOException {
+        // headers
+        Headers headers = response.headers();
+        Map<String, String> headerCollect = new HashMap<>(headers.size());
+        for (String key : headers.names()) {
+            String value = headers.get(key);
+            headerCollect.put(key, value);
+        }
+        headerCollect.put(HttpHeaders.Names.CONNECTION, "close");
+
+        // handle reponse
         int code = response.code();
         if (code == HttpResponseStatus.OK.code()) {
-            String result = Objects.requireNonNull(response.body()).string();
-            ByteBuf errorResponseContent = Unpooled.copiedBuffer(result, CharsetUtil.UTF_8);
-            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, errorResponseContent);
-            fullHttpResponse.headers().add(HttpHeaders.Names.CONTENT_ENCODING, CharsetUtil.UTF_8.name());
-            fullHttpResponse.headers().add(HttpHeaders.Names.CONTENT_LENGTH, errorResponseContent.readableBytes());
-            fullHttpResponse.headers().add(HttpHeaders.Names.CONNECTION, "close");
+            byte[] result = Objects.requireNonNull(response.body()).bytes();
+            ByteBuf responseContent = Unpooled.copiedBuffer(result);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
+            headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
             // 释放资源
             OkHttpTool.closeResponse(response);
 
@@ -322,11 +331,9 @@ public class RequestDistributeService {
             String errMsg = Objects.requireNonNull(response.body()).string();
             String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
             logger.error(msg);
-            ByteBuf errorResponseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
-            DefaultFullHttpResponse errorResponseMsg = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, errorResponseContent);
-            errorResponseMsg.headers().add(HttpHeaders.Names.CONTENT_ENCODING, CharsetUtil.UTF_8.name());
-            errorResponseMsg.headers().add(HttpHeaders.Names.CONTENT_LENGTH, errorResponseContent.readableBytes());
-            errorResponseMsg.headers().add(HttpHeaders.Names.CONNECTION, "close");
+            ByteBuf responseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, responseContent);
+            headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
             // 释放资源
             OkHttpTool.closeResponse(response);
 
@@ -334,7 +341,7 @@ public class RequestDistributeService {
             requestMonitor.setFailReason(msg);
             ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
             IpMonitorUtils.invoke(requestMonitor, false, "OK_HTTP_TOOL");
-            return errorResponseMsg;
+            return fullHttpResponse;
         }
     }
 
