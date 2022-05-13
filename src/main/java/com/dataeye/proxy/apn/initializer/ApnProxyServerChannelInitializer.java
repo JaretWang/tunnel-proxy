@@ -5,6 +5,8 @@ import com.dataeye.proxy.apn.handler.*;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.timeout.IdleStateHandler;
 
@@ -18,6 +20,10 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 
     private final ApnHandlerParams apnHandlerParams;
     long readerIdleTime = 5,  writerIdleTime = 5,  allIdleTime = 10;
+    public static final String SERVER_CODEC_NAME = "server.codec";
+    public static final String SERVER_REQUEST_AGG_NAME = "server.request.agg";
+    public static final String SERVER_REQUEST_DECOMPRESSOR_NAME = "server.request.decompressor";
+    public static final String SERVER_BANDWIDTH_MONITOR_NAME = "server.bandwidth.monitor";
 
     public ApnProxyServerChannelInitializer(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;
@@ -35,8 +41,9 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //            pipeline.addLast("apnproxy.encrypt", new SslHandler(engine));
 //        }
 //        pipeline.addLast("log", new LoggingHandler("BYTE_LOGGER", LogLevel.INFO));
-        pipeline.addLast("codec", new HttpServerCodec());
-//        pipeline.addLast("request_object_agg", new HttpObjectAggregator(1024*1024));
+        pipeline.addLast(SERVER_CODEC_NAME, new HttpServerCodec());
+        pipeline.addLast(SERVER_REQUEST_AGG_NAME, new HttpObjectAggregator(1024*1024));
+        pipeline.addLast(SERVER_REQUEST_DECOMPRESSOR_NAME, new HttpContentDecompressor());
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());
 
@@ -57,7 +64,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        long checkInterval = 1000;
 //        // 单位：毫秒
 //        long maxTime = 15000;
-//        pipeline.addLast("bandwidth.monitor", new GlobalChannelTrafficShapingHandler(apnHandlerParams.getTrafficScheduledThreadPool(),
+//        pipeline.addLast(SERVER_BANDWIDTH_MONITOR_NAME, new GlobalChannelTrafficShapingHandler(apnHandlerParams.getTrafficScheduledThreadPool(),
 //                writeGlobalLimit, readGlobalLimit, writeChannelLimit, readChannelLimit, checkInterval, maxTime));
 
         // 请求转发

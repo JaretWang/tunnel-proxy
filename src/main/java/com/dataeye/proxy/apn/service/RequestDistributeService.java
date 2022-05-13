@@ -1,11 +1,10 @@
 package com.dataeye.proxy.apn.service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.handler.*;
+import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.initializer.DirectRelayChannelInitializer;
 import com.dataeye.proxy.apn.initializer.TunnelRelayChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
@@ -35,7 +34,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.net.ssl.SSLEngine;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -149,14 +147,14 @@ public class RequestDistributeService {
     public void sendReqByOkHttp(final Channel uaChannel,
                                 ApnProxyRemote apnProxyRemote,
                                 ApnHandlerParams apnHandlerParams,
-                                List<HttpContent> httpContentBuffer,
-                                HttpRequest httpRequest) throws IOException {
+                                FullHttpRequest fullHttpRequest,
+                                String handler) throws IOException {
         // get headers
-        Map<String, String> headers = getReqHeaders(httpRequest);
+        Map<String, String> headers = getReqHeaders(fullHttpRequest);
 
         // get uri params
-        String method = httpRequest.method().name();
-        String uri = httpRequest.uri();
+        String method = fullHttpRequest.method().name();
+        String uri = fullHttpRequest.uri();
         String remoteHost = apnProxyRemote.getRemoteHost();
         int remotePort = apnProxyRemote.getRemotePort();
         String proxyUserName = apnProxyRemote.getProxyUserName();
@@ -164,7 +162,7 @@ public class RequestDistributeService {
 
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
-            Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, httpContentBuffer, headers);
+            Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
             // parse response
             DefaultFullHttpResponse responseMsg = getResponse(response, apnHandlerParams.getRequestMonitor());
             uaChannel.writeAndFlush(responseMsg);
@@ -186,6 +184,8 @@ public class RequestDistributeService {
                             // 使用其他的handler接收真实请求
                             uaChannel.pipeline().remove("idlestate");
                             uaChannel.pipeline().remove("idlehandler");
+                            uaChannel.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+                            uaChannel.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
                             uaChannel.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                             uaChannel.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
                             uaChannel.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
@@ -202,14 +202,14 @@ public class RequestDistributeService {
                                                 DefaultFullHttpRequest request = (DefaultFullHttpRequest) msg;
                                                 String url = request.uri();
                                                 String method = request.method().name();
-                                                Map<String, String> reqHeaders = getReqHeaders(httpRequest);
+                                                Map<String, String> reqHeaders = getReqHeaders(fullHttpRequest);
 
                                                 List<HttpContent> httpContents = new LinkedList<>();
                                                 HttpContent content = (HttpContent) msg;
                                                 httpContents.add(content);
                                                 // send real request
                                                 Response response = sendCommonReq(method, url, remoteHost, remotePort,
-                                                        proxyUserName, proxyPassword, httpContents, reqHeaders);
+                                                        proxyUserName, proxyPassword, reqHeaders, fullHttpRequest, handler);
                                                 DefaultFullHttpResponse responseMsg = getResponse(response, apnHandlerParams.getRequestMonitor());
                                                 uaChannel.writeAndFlush(responseMsg);
 
@@ -264,7 +264,7 @@ public class RequestDistributeService {
     }
 
     Response sendCommonReq(String method, String uri, String remoteHost, int remotePort, String proxyUserName,
-                           String proxyPassword, List<HttpContent> httpContentBuffer, Map<String, String> headers) throws IOException {
+                           String proxyPassword, Map<String, String> headers, FullHttpRequest fullHttpRequest, String handler) throws IOException {
         Response response;
         if ("get".equalsIgnoreCase(method)) {
             if (uri.startsWith("https")) {
@@ -273,16 +273,8 @@ public class RequestDistributeService {
                 response = OkHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
             }
         } else if ("post".equalsIgnoreCase(method)) {
-            JSONObject body = null;
-            if (httpContentBuffer != null && !httpContentBuffer.isEmpty()) {
-                StringBuilder builder = new StringBuilder();
-                for (HttpContent httpContent : httpContentBuffer) {
-                    ByteBuf content = httpContent.content();
-                    String str = content.toString(StandardCharsets.UTF_8);
-                    builder.append(str);
-                }
-                body = JSONObject.parseObject(JSON.toJSONString(builder));
-            }
+            // parse body
+            byte[] body = getContent(handler, fullHttpRequest);
             if (uri.startsWith("https")) {
                 response = OkHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             } else {
@@ -292,6 +284,18 @@ public class RequestDistributeService {
             throw new RuntimeException("不认识的请求方式: " + method);
         }
         return response;
+    }
+
+    byte[] getContent(String handler, FullHttpRequest fullHttpRequest) {
+        int len = fullHttpRequest.content().readableBytes();
+        if (len > 0) {
+            byte[] content = new byte[len];
+            fullHttpRequest.content().readBytes(content);
+            String contentStr = new String(content, StandardCharsets.UTF_8);
+            logger.info("{} 接收请求, 请求体: {}", handler, contentStr);
+            return content;
+        }
+        return null;
     }
 
     DefaultFullHttpResponse getResponse(Response response, RequestMonitor requestMonitor) throws IOException {
@@ -485,7 +489,10 @@ public class RequestDistributeService {
                         logger.info("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
                         if (apnProxyRemote.isAppleyRemoteRule()) {
                             // todo 线上一直报错,找不到这个handler
-                            ctx.pipeline().remove("codec");
+                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
                             ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
@@ -509,7 +516,11 @@ public class RequestDistributeService {
                             ctx.writeAndFlush(proxyConnectSuccessResponse)
                                     .addListener((ChannelFutureListener) future2 -> {
                                         // remove handlers
-                                        ctx.pipeline().remove("codec");
+                                        ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+                                        ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+                                        ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
+//                                        ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
+                                        ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                                         ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
                                         // add relay handler
                                         ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));

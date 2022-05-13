@@ -12,7 +12,7 @@ import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.*;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 
@@ -44,22 +44,20 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.info("tunnel channelRead");
 
-        if (msg instanceof HttpRequest) {
-            final HttpRequest httpRequest = (HttpRequest) msg;
-            logger.debug("tunnel 接收请求, 请求内容: {}", httpRequest.toString());
+        if (msg instanceof FullHttpRequest) {
+            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
+            logger.debug("tunnel 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-            if (Objects.nonNull(cacheIpResult)) {
-                logger.info("tunnel 检测到缓存ip: {}", JSON.toJSONString(cacheIpResult));
-                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                logger.info("转发 CONNECT 请求 to {} for {}", cacheIpResult.getRemote(), httpRequest.uri());
-                // send proxy request
-                requestDistributeService.forwardConnectReq(requestMonitor, ctx, httpRequest, cacheIpResult, tunnelInstance);
-            } else {
+            if (Objects.isNull(cacheIpResult)) {
                 throw new RuntimeException("tunnel 获取缓存ip为空");
             }
+            logger.info("转发 CONNECT 请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+            RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+            // send proxy request
+            requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, cacheIpResult, tunnelInstance);
         } else {
-            logger.info("tunnel: 非HttpRequest类型，具体：{}", msg.getClass());
+            logger.warn("tunnel 未识别类型: {}", msg.getClass());
         }
         ReferenceCountUtil.release(msg);
     }

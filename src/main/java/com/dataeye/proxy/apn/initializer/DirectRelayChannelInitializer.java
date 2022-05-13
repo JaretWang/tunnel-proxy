@@ -22,6 +22,8 @@ import javax.net.ssl.SSLEngine;
  */
 public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChannel> {
 
+    public static final String CLIENT_CODEC_NAME = "client.codec";
+    public static final String CLIENT_REQUEST_AGG_NAME = "client.request.agg";
     /**
      * 代理ip
      */
@@ -41,7 +43,7 @@ public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChan
     private final ApnHandlerParams apnHandlerParams;
 
     public DirectRelayChannelInitializer(ApnHandlerParams apnHandlerParams, ApnProxyRemote apnProxyRemote, Channel uaChannel,
-                                       String remtoeAddr, RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
+                                         String remtoeAddr, RemoteChannelInactiveCallback remoteChannelInactiveCallback) {
         this.apnHandlerParams = apnHandlerParams;
         this.apnProxyRemote = apnProxyRemote;
         this.uaChannel = uaChannel;
@@ -59,8 +61,8 @@ public class DirectRelayChannelInitializer extends ChannelInitializer<SocketChan
             engine.setUseClientMode(true);
             pipeline.addLast("ssl", new SslHandler(engine));
         }
-        pipeline.addLast("codec", new HttpClientCodec());
-        pipeline.addLast("http_proxy_agg", new HttpObjectAggregator(1024*1204));
+        pipeline.addLast(CLIENT_CODEC_NAME, new HttpClientCodec());
+        pipeline.addLast(CLIENT_REQUEST_AGG_NAME, new HttpObjectAggregator(1024 * 1204));
         pipeline.addLast(DirectRelayHandler.HANDLER_NAME, new DirectRelayHandler(apnHandlerParams, uaChannel, remoteAddr, remoteChannelInactiveCallback));
     }
 }

@@ -1,7 +1,6 @@
 package com.dataeye.proxy.apn.handler;
 
 
-import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.apn.cons.Global;
@@ -13,14 +12,11 @@ import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -31,7 +27,6 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.forward";
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
-    private final List<HttpContent> httpContentBuffer = new ArrayList<>();
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
 
@@ -51,28 +46,23 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
         logger.info("forward channelRead");
 
-        if (msg instanceof HttpRequest) {
-            HttpRequest httpRequest = (HttpRequest) msg;
-            logger.debug("forward 接收请求, 请求内容: {}", httpRequest.toString());
+        if (msg instanceof FullHttpRequest) {
+            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
+            logger.debug("forward 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
             ApnProxyRemote cacheIpResult = ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).get();
-            if (Objects.nonNull(cacheIpResult)) {
-                logger.debug("forward 检测到缓存的ip={}", JSON.toJSONString(cacheIpResult));
-                final Channel uaChannel = ctx.channel();
-                logger.info("转发普通请求 to {} for {}", cacheIpResult.getRemote(), httpRequest.uri());
-                // send proxy request
-//                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-//                requestDistributeService.forwardCommonReq(uaChannel, apnHandlerParams, cacheIpResult, tunnelInstance, httpContentBuffer, msg);
-                requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, httpContentBuffer, httpRequest);
-            } else {
+            if (Objects.isNull(cacheIpResult)) {
                 throw new RuntimeException("forward 获取缓存ip为空");
             }
-            ReferenceCountUtil.release(msg);
+            final Channel uaChannel = ctx.channel();
+            logger.info("转发普通请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+            // send proxy request
+//            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+//            requestDistributeService.forwardCommonReq(uaChannel, apnHandlerParams, cacheIpResult, tunnelInstance, httpContentBuffer, msg);
+            requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, fullHttpRequest, "forward");
         } else {
-            HttpContent hc = ((HttpContent) msg);
-            httpContentBuffer.add(hc);
-            logger.info("缓存HttpContent, size: {}, msg 类型：{}", httpContentBuffer.size(), msg.getClass());
+            logger.warn("forward 未识别类型: {}", msg.getClass());
         }
-
+        ReferenceCountUtil.release(msg);
     }
 
     @Override

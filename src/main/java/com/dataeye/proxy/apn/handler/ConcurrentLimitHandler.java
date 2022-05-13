@@ -1,5 +1,6 @@
 package com.dataeye.proxy.apn.handler;
 
+import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -66,8 +67,10 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
             channel.config().setOption(ChannelOption.SO_LINGER, 0);
 
             // remove
+            channel.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+            channel.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
             channel.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
-//            channel.pipeline().remove("bandwidth.monitor");
+//            channel.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
             channel.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
             channel.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             channel.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);

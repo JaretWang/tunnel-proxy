@@ -1,15 +1,16 @@
 package com.dataeye.proxy;
 
+import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.OkHttpTool;
 import okhttp3.*;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -32,16 +33,25 @@ public class TestIpConcurrent {
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
 
-    public static void main(String[] args) throws InterruptedException {
-        int totalThread = 20;
-        int totalTask = 30;
-        ExecutorService executorService = Executors.newFixedThreadPool(totalThread);
-        CountDownLatch countDownLatch = new CountDownLatch(totalTask);
-        for (int i = 0; i < totalTask; i++) {
-            executorService.submit(new TestTask(countDownLatch));
-        }
-        countDownLatch.await();
-        executorService.shutdownNow();
+    public static void main(String[] args) throws InterruptedException, IOException {
+        HashMap<java.lang.String, java.lang.String> headers = new HashMap<>();
+        headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36");
+        headers.put("Connection", "close");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("wcj", "123");
+        OkHttpTool.sendPostByProxy("https://www.baidu.com", "127.0.0.1", 21332,
+                "", "", headers, jsonObject.toJSONString().getBytes());
+
+
+//        int totalThread = 20;
+//        int totalTask = 30;
+//        ExecutorService executorService = Executors.newFixedThreadPool(totalThread);
+//        CountDownLatch countDownLatch = new CountDownLatch(totalTask);
+//        for (int i = 0; i < totalTask; i++) {
+//            executorService.submit(new TestTask(countDownLatch));
+//        }
+//        countDownLatch.await();
+//        executorService.shutdownNow();
     }
 
     public static Response sendByOkHttp(boolean isHttps) throws IOException {
