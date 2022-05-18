@@ -1060,6 +1060,8 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 
 2.[linux参数调优](https://blog.csdn.net/dandan2zhuzhu/article/details/78413946)
 
+
+
 ### 打开文件描述符过多
 
 1.先确定进程打开的文件描述符是什么类型,大部分都是 socket 类型, 所以可以确定是连接未正常关闭
@@ -1083,6 +1085,92 @@ ss -lnt|grep 'Recv-Q\|21332'  (注: 21332为socket监听端口号)
 参考:
 
 [netty报Too many open files了（必看）看完将弄明白tcp通讯过程](https://blog.csdn.net/cowbin2012/article/details/110689676)
+
+
+
+### unable to create new native thread
+
+这个错误是多个服务的进程使用同一个用户，给部署到了一台机器上，然后每个进程下各自启动的线程数，会接近1000个左右的数量，4个服务加起来会到4000左右，但是机器的默认线程开启的线程数为4096, 所以导致不能创建新的线程，然后开始报如下错误：
+
+```
+[2022-05-18 13:14:08] [nioEventLoopGroup-3-122] [ReqMonitorUtils.java:cost:40] [INFO ] -> 0 ms, false, youliang, apnproxy.forward, 59.59.163.80:4213, unable to create new native thread, null, null
+```
+
+隧道服务新接收的请求就会一直占用socket文件句柄，但是却不能有正常的新的线程去处理请求，所以由于线程资源达到限制4096，但是又没有新的线程可以被创建，最终导致报错：open too many files
+
+
+
+### ByteBuf.release() was not called
+
+1.通过zabbix查看机制资源使用情况。tcp连接数正常，内存使用到警戒线。
+
+![image-20220518145220829](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220518145220829.png)
+
+
+
+2.阿里云观察机器CPU，内存，磁盘读写，带宽大小均正常。
+
+![image-20220518145445273](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220518145445273.png)
+
+其中带宽大小相比较与另外一个进程（如下图所示）的带宽使用量正常。
+
+![image-20220518145644141](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220518145644141.png)
+
+
+
+3.再使用top -p 16625 （回车后，按大写H）查看进程内部的线程运行情况，看到所有的线程都处于sleeping状态
+
+![image-20220518143305666](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220518143305666.png)
+
+4.查看请求运行日志，发现问题所在，日志报错：failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912)
+
+![image-20220518143647425](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220518143647425.png)
+
+```shell script
+[2022-05-18 14:24:49] [nioEventLoopGroup-3-336] [ReqMonitorUtils.java:cost:40] [INFO ] -> 1 ms, false, pangolin, apnproxy.forward, 113.141.222.56:4231, failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912), null, null
+[2022-05-18 14:24:50] [nioEventLoopGroup-3-337] [ReqMonitorUtils.java:cost:40] [INFO ] -> 1 ms, false, pangolin, apnproxy.schema, 59.59.158.95:4231, failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912), null, null
+[2022-05-18 14:24:50] [nioEventLoopGroup-3-337] [ReqMonitorUtils.java:cost:40] [INFO ] -> 1 ms, false, pangolin, apnproxy.forward, 59.59.158.95:4231, failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912), null, null
+[2022-05-18 14:24:51] [nioEventLoopGroup-3-338] [ReqMonitorUtils.java:cost:40] [INFO ] -> 0 ms, false, pangolin, apnproxy.schema, 113.228.108.54:4231, failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912), null, null
+[2022-05-18 14:24:51] [nioEventLoopGroup-3-338] [ReqMonitorUtils.java:cost:40] [INFO ] -> 0 ms, false, pangolin, apnproxy.forward, 113.228.108.54:4231, failed to allocate 16777216 byte(s) of direct memory (used: 520093703, max: 536870912), null, null
+```
+
+堆外内存不够分配，导致不能正常处理请求（netty零拷贝机制），导致该结果的原因为如下（主控制台启动日志里面报这个错误），所以可能是代码没有释放对外内存的引用。
+
+```shell script
+io.netty.util.ResourceLeakDetector - LEAK: ByteBuf.release() was not called before it's garbage-collected. See https://netty.io/wiki/reference-counted-objects.html for more information.
+Recent access records: 
+Created at:
+	io.netty.buffer.SimpleLeakAwareByteBuf.unwrappedDerived(SimpleLeakAwareByteBuf.java:143)
+	io.netty.buffer.SimpleLeakAwareByteBuf.readRetainedSlice(SimpleLeakAwareByteBuf.java:67)
+	io.netty.handler.codec.http.HttpObjectDecoder.decode(HttpObjectDecoder.java:336)
+	io.netty.handler.codec.http.HttpServerCodec$HttpServerRequestDecoder.decode(HttpServerCodec.java:123)
+	io.netty.handler.codec.ByteToMessageDecoder.decodeRemovalReentryProtection(ByteToMessageDecoder.java:508)
+	io.netty.handler.codec.ByteToMessageDecoder.callDecode(ByteToMessageDecoder.java:447)
+	io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:276)
+	io.netty.channel.CombinedChannelDuplexHandler.channelRead(CombinedChannelDuplexHandler.java:251)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+	io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+	io.netty.handler.timeout.IdleStateHandler.channelRead(IdleStateHandler.java:286)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+	io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+	io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1410)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+	io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+	io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:919)
+	io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:166)
+	io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:719)
+	io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:655)
+	io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:581)
+	io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:493)
+	io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:989)
+	io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	java.lang.Thread.run(Thread.java:750) 
+```
+
+5.最后检查代码
 
 
 
@@ -1126,24 +1214,21 @@ keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123
 ### 日常监控命令
 
 ```shell
-------------------- ip监控工具 -------------------------
+------------------- ip监控 -------------------------
 tail -f adx-IpMonitorUtils.log | grep "success percent"
-grep "ERROR" adx-IpMonitorUtils.log
-grep "成功移除ip=" adx-IpMonitorUtils.log
-grep "移除ip失败, ip池中不存在该ip" adx-IpMonitorUtils.log
+grep "成功移除ip	" adx-IpMonitorUtils.log | wc -l
+grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 
-------------------- 请求监控工具 ------------------------
+------------------- 请求监控 ------------------------
 grep "success percent" adx-ReqMonitorUtils.log | tail -5 | grep "success percent"
-grep "ERROR" adx-ReqMonitorUtils.log
 
 ---------------------- 风控 ---------------------------
 tail -f adx-ConcurrentLimitHandler.log | grep "connections"
 
 ------------------- ip池 ------------------------------
 tail -f adx-IpPoolScheduleService.log | grep "tunnel="
-grep "ERROR" adx-IpPoolScheduleService.log
-grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
-grep "IP池已满" adx-IpPoolScheduleService.log
+
+------------------- ip池 ------------------------------
 ```
 
 
@@ -1271,11 +1356,15 @@ adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
 
 ### 常见协议支持
 
+协议说明，如何支持http，https，socks5协议的，socks5协议的概述，以及好处
+
 ### 后续隧道优化
 
-2.协议说明，如何支持http，https，socks5协议的，socks5协议的概述，以及好处
+优化ip的平均使用率：新加入的ip后续会出现使用率很低，导致浪费ip的有效时间。
 
-3.后面的隧道需要做哪些优化
+请求成功率：细化ip失败的原因列表，请求失败的原因列表，确保用少量ip达到高质量的请求成功率。
+
+调研并扩展socks5协议：
 
 
 

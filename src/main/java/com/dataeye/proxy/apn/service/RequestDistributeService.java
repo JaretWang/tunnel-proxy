@@ -535,7 +535,7 @@ public class RequestDistributeService {
                         }
                     } else {
                         String errorMessage = future1.cause().getMessage();
-                        logger.info("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
+                        logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
 
                         // 统计
                         requestMonitor.setSuccess(false);

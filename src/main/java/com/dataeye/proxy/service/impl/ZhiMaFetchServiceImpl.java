@@ -171,7 +171,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     /**
      * 每隔1小时,打印一次当日累计拉取ip数量
      */
-    @Scheduled(cron = "0 0 0/1 * * ?")
+    @Scheduled(cron = "0 0/30 * * * ?")
     void getIpFetchNumNow() {
         logger.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
         // 获取剩余数量

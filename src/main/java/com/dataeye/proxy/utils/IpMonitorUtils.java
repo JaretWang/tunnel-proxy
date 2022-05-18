@@ -120,7 +120,7 @@ public class IpMonitorUtils {
      */
     @PostConstruct
     public void schedule() {
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new GetIpUseTask(), 0, 2, TimeUnit.SECONDS);
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);
     }
 
     /**
@@ -138,12 +138,11 @@ public class IpMonitorUtils {
             for (ProxyIp item : ipPool) {
                 if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
                     item.getValid().set(false);
-                    // 并添加一个新IP
                     String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
-                    // 移除完之后，再添加一个
+                    // 移除完之后，再添加一个新 ip
                     ipPoolScheduleService.checkBeforeUpdate(ipPool, tunnelInstance, 1);
-                    // 并且再移除监控记录
+                    // 移除监控记录
                     IP_MONITOR_MAP.remove(ip);
                     return;
                 }
@@ -156,7 +155,7 @@ public class IpMonitorUtils {
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
     }
 
-    class GetIpUseTask implements Runnable {
+    class IpUseMonitorTask implements Runnable {
 
         @Override
         public void run() {
