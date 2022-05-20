@@ -36,7 +36,7 @@ public class TestLocalEnvByConcurrent {
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
     // 本地限流阈值
-    private static final int totalNum = 1;
+    private static final int totalNum = 10;
     private static final int totalTask = totalNum * 1;
     private static final CountDownLatch countDownLatch = new CountDownLatch(totalTask);
     private static final ConcurrentHashMap<String, ReqCount> map = new ConcurrentHashMap<>();
@@ -70,8 +70,8 @@ public class TestLocalEnvByConcurrent {
         for (int i = 0; i < totalTask; i++) {
             executorService.submit(() -> {
                 try {
-//                    Response response = OkHttpTool.sendGetByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, params);
-                    Response response = OkHttpTool.sendPostByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, null);
+                    Response response = OkHttpTool.sendGetByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, params);
+//                    Response response = OkHttpTool.sendPostByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, null);
                     String result = response.body().string();
                     System.out.println(result);
                     int length = result.getBytes().length;

@@ -81,7 +81,7 @@ public class ReqMonitorUtils {
                 double reqSize;
                 double respSize;
                 String percent;
-                if (COST_TOTAL.get() == 0 || total == 0 || errorVal == 0 || REQ_SIZE.get() == 0 || RESP_SIZE.get() == 0) {
+                if (COST_TOTAL.get() == 0 || total == 0) {
                     costAvg = 0;
                     reqSize = 0;
                     respSize = 0;
