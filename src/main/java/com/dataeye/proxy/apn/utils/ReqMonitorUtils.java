@@ -95,7 +95,8 @@ public class ReqMonitorUtils {
                     BigDecimal reqTotal = new BigDecimal(total);
                     costAvg = cost.divide(reqTotal, 2, BigDecimal.ROUND_HALF_UP).doubleValue();
 
-                    BigDecimal byteUnit = new BigDecimal(1024);
+                    // 1024 * 5分钟
+                    BigDecimal byteUnit = new BigDecimal(1024 * INTERVAL * 60);
                     // req size
                     BigDecimal reqValue = new BigDecimal(REQ_SIZE.get());
                     reqSize = reqValue.divide(byteUnit, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -106,7 +107,7 @@ public class ReqMonitorUtils {
                 }
 
 //                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
-                logger.info("{} min, total={}, ok={}, error={}, success percent={}%，avg time={} ms, reqSize={} kb, respSize={} kb",
+                logger.info("{} min, total={}, ok={}, error={}, success percent={}%，avg time={} ms, reqSize={} kb/s, respSize={} kb/s",
                         INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize);
                 //重置
                 OK_TIMES.set(0);
