@@ -71,14 +71,14 @@ public class ZhiMaProxyService implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
-        try {
-            refresh();
-            LOG.info("init success");
-        } catch (Exception e) {
-            LOG.error("init fail :  ", e);
-        } finally {
-            REFRESH_EXECUTOR.scheduleAtFixedRate(this::refresh, 0, 5, TimeUnit.SECONDS);
-        }
+//        try {
+//            refresh();
+//            LOG.info("init success");
+//        } catch (Exception e) {
+//            LOG.error("init fail :  ", e);
+//        } finally {
+//            REFRESH_EXECUTOR.scheduleAtFixedRate(this::refresh, 0, 5, TimeUnit.SECONDS);
+//        }
     }
 
     public void refresh() {

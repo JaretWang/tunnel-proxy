@@ -1228,7 +1228,9 @@ tail -f adx-ConcurrentLimitHandler.log | grep "connections"
 ------------------- ip池 ------------------------------
 tail -f adx-IpPoolScheduleService.log | grep "tunnel="
 
-------------------- ip池 ------------------------------
+------------------- 查看机器总的tcp连接状态数 ------------------------------
+netstat -anpt | wc -l
+netstat -anpt | grep "CLOSE_WAIT" | wc -l
 ```
 
 
@@ -1409,3 +1411,12 @@ adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
 密码：G9KjWYDg+&-TVlE
 ```
 
+
+```shell script
+-Dcom.sun.management.jmxremote
+-Dcom.sun.management.jmxremote.ssl=false
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.port=12345
+-Djava.rmi.server.hostname=10.1.2.201
+-Dio.netty.leakDetectionLevel=paranoid
+```

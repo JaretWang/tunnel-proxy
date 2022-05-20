@@ -163,11 +163,10 @@ public class RequestDistributeService {
 
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
+            //System.out.println("sendReqByOkHttp fullHttpRequest refCnt=" + fullHttpRequest.refCnt());
             Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
-            // parse response
-            DefaultFullHttpResponse responseMsg = getResponse(response, apnHandlerParams.getRequestMonitor());
-            uaChannel.writeAndFlush(responseMsg);
-            SocksServerUtils.closeOnFlush(uaChannel);
+            // parse okhttp response and send netty response
+            constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
         } else if ("connect".equalsIgnoreCase(method)) {
             // add ssl
             // todo 待测试,暂时没有调通
@@ -211,13 +210,11 @@ public class RequestDistributeService {
                                                 // send real request
                                                 Response response = sendCommonReq(method, url, remoteHost, remotePort,
                                                         proxyUserName, proxyPassword, reqHeaders, fullHttpRequest, handler);
-                                                DefaultFullHttpResponse responseMsg = getResponse(response, apnHandlerParams.getRequestMonitor());
-                                                uaChannel.writeAndFlush(responseMsg);
+                                                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
 
                                                 // close
                                                 httpContents.clear();
                                                 OkHttpTool.closeResponse(response);
-                                                SocksServerUtils.closeOnFlush(uaChannel);
                                             }
                                         }
                                     });
@@ -276,6 +273,7 @@ public class RequestDistributeService {
         } else if ("post".equalsIgnoreCase(method)) {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
+            //System.out.println("sendReqByOkHttp getContent refCnt=" + fullHttpRequest.refCnt());
             if (uri.startsWith("https")) {
                 response = OkHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             } else {
@@ -299,7 +297,7 @@ public class RequestDistributeService {
         return null;
     }
 
-    DefaultFullHttpResponse getResponse(Response response, RequestMonitor requestMonitor) throws IOException {
+    void constructResponseAndSend(Channel uaChannel, Response response, RequestMonitor requestMonitor) throws IOException {
         // headers
         Headers headers = response.headers();
         Map<String, String> headerCollect = new HashMap<>(headers.size());
@@ -312,17 +310,24 @@ public class RequestDistributeService {
         // handle reponse
         int code = response.code();
         if (code == HttpResponseStatus.OK.code()) {
+            // set reponse size
             byte[] result = Objects.requireNonNull(response.body()).bytes();
+            requestMonitor.getReponseSize().addAndGet(result.length);
+
+            // collect headers and construct netty response
             ByteBuf responseContent = Unpooled.copiedBuffer(result);
             DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
             headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
-            // 释放资源
-            OkHttpTool.closeResponse(response);
+            //System.out.println("ok responseContent refCnt=" + responseContent.refCnt());
+            //System.out.println("ok fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
+            uaChannel.writeAndFlush(fullHttpResponse);
 
+            // 监控
             requestMonitor.setSuccess(true);
             ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
             IpMonitorUtils.invoke(requestMonitor, true, "OK_HTTP_TOOL");
-            return fullHttpResponse;
+            //System.out.println("ok responseContent2 refCnt=" + responseContent.refCnt());
+            //System.out.println("ok fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
         } else {
             HttpResponseStatus httpResponseStatus = HttpResponseStatus.valueOf(code);
             if (httpResponseStatus == null) {
@@ -331,18 +336,26 @@ public class RequestDistributeService {
             String errMsg = Objects.requireNonNull(response.body()).string();
             String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
             logger.error(msg);
+
+            // 模拟 netty 响应
             ByteBuf responseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
             DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, responseContent);
             headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
-            // 释放资源
-            OkHttpTool.closeResponse(response);
+            //System.out.println("error responseContent refCnt=" + responseContent.refCnt());
+            //System.out.println("error fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
+            uaChannel.writeAndFlush(fullHttpResponse);
 
+            // 监控
             requestMonitor.setSuccess(false);
             requestMonitor.setFailReason(msg);
             ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
             IpMonitorUtils.invoke(requestMonitor, false, "OK_HTTP_TOOL");
-            return fullHttpResponse;
+            //System.out.println("error responseContent2 refCnt=" + responseContent.refCnt());
+            //System.out.println("error fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
         }
+        // 释放资源
+        OkHttpTool.closeResponse(response);
+        SocksServerUtils.closeOnFlush(uaChannel);
     }
 
     DefaultFullHttpResponse buildConnectionResp() {
@@ -463,7 +476,7 @@ public class RequestDistributeService {
      */
     public void forwardConnectReq(RequestMonitor requestMonitor,
                                   final ChannelHandlerContext ctx,
-                                  HttpRequest httpRequest,
+                                  FullHttpRequest httpRequest,
                                   ApnProxyRemote apnProxyRemote,
                                   TunnelInstance tunnelInstance) {
         long begin = System.currentTimeMillis();
@@ -495,25 +508,41 @@ public class RequestDistributeService {
                     if (future1.isSuccess()) {
                         logger.info("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
                         if (apnProxyRemote.isAppleyRemoteRule()) {
-                            // todo 线上一直报错,找不到这个handler
+                            // remove之前
+                            //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
+                            //ctx.pipeline().toMap().keySet().forEach(System.out::println);
+
+                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
+                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
-//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
+                            //ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
                             ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
+                            ctx.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
+
+                            // remove之后
+                            //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
+                            //ctx.pipeline().toMap().keySet().forEach(System.out::println);
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
-                            logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
+                            logger.info("tunnel_handler 重新构造请求之前：{}", httpRequest);
                             String newConnectRequest = constructReqForConnect(httpRequest, apnProxyRemote);
-                            logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
+                            logger.info("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
 
+                            ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
+                            // ReferenceCountUtil.releaseLater() will keep the reference of buf,
+                            // and then release it when the test thread is terminated.
+                            // ReferenceCountUtil.releaseLater(reqContent);
+                            //System.out.println("out: httpRequest refCnt=" + httpRequest.refCnt() + ", reqContent refCnt=" + reqContent.refCnt());
                             future1.channel()
-                                    .writeAndFlush(Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8))
+                                    .writeAndFlush(reqContent)
                                     .addListener((ChannelFutureListener) future2 -> {
                                         if (!future2.channel().config().getOption(ChannelOption.AUTO_READ)) {
                                             future2.channel().read();
                                         }
+                                        //System.out.println("addListener: httpRequest refCnt=" + httpRequest.refCnt() + ", reqContent refCnt=" + reqContent.refCnt());
                                     });
                         } else {
                             logger.info("tunnel_handler 使用本地ip转发");
@@ -526,7 +555,7 @@ public class RequestDistributeService {
                                         ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
                                         ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
                                         ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
-//                                        ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
+                                        //ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
                                         ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                                         ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
                                         // add relay handler
@@ -537,7 +566,7 @@ public class RequestDistributeService {
                         String errorMessage = future1.cause().getMessage();
                         logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
 
-                        // 统计
+                        // 监控统计
                         requestMonitor.setSuccess(false);
                         requestMonitor.setFailReason(errorMessage);
                         ReqMonitorUtils.cost(requestMonitor, "sendTunnelReq");
@@ -589,14 +618,14 @@ public class RequestDistributeService {
     class TunnelRequestTask implements Runnable {
 
         private final ChannelHandlerContext ctx;
-        private final HttpRequest httpRequest;
+        private final FullHttpRequest httpRequest;
         private final ApnProxyRemote apnProxyRemote;
         private final TunnelInstance tunnelInstance;
         private final RequestMonitor requestMonitor;
 
         public TunnelRequestTask(RequestMonitor requestMonitor,
                                  final ChannelHandlerContext ctx,
-                                 HttpRequest httpRequest,
+                                 FullHttpRequest httpRequest,
                                  ApnProxyRemote apnProxyRemote,
                                  TunnelInstance tunnelInstance) {
             this.requestMonitor = requestMonitor;

@@ -24,6 +24,8 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
     public static final String SERVER_REQUEST_AGG_NAME = "server.request.agg";
     public static final String SERVER_REQUEST_DECOMPRESSOR_NAME = "server.request.decompressor";
     public static final String SERVER_BANDWIDTH_MONITOR_NAME = "server.bandwidth.monitor";
+    public static final String SERVER_IDLE_STATE_NAME = "idlestate";
+    public static final String SERVER_IDLE_HANDLER_NAME = "idlehandler";
 
     public ApnProxyServerChannelInitializer(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;

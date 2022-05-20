@@ -13,9 +13,8 @@ import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.LastHttpContent;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -39,7 +38,6 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.info("schema channelActive");
-
         if (needAllocate) {
             logger.debug("needAllocate is true");
             // 分配ip
@@ -68,54 +66,44 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         super.channelActive(ctx);
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("schema channelInactive");
-
-        super.channelInactive(ctx);
-    }
+//    @Override
+//    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+//        logger.info("schema channelInactive");
+//
+//        super.channelInactive(ctx);
+//    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws Exception {
         logger.info("schema channelRead");
-
-        int bandwidth = 0;
-        if (msg instanceof HttpRequest) {
-            HttpRequest httpRequest = (HttpRequest) msg;
+        if (msg instanceof FullHttpRequest) {
+            FullHttpRequest httpRequest = (FullHttpRequest) msg;
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             } else {
                 //TODO 临时增加
                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
             }
-            bandwidth += httpRequest.toString().getBytes().length;
             requestMonitor.setRequestType(httpRequest.method().name());
             requestMonitor.setTargetAddr(httpRequest.uri());
+        } else {
+            logger.warn("schema 未识别类型: {}", msg.getClass());
         }
-
-        // 计算请求大小
-        if (msg instanceof LastHttpContent) {
-            requestMonitor.setBandwidth(bandwidth);
-        }
-
         ctx.fireChannelRead(msg);
     }
 
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        logger.info("schema channelReadComplete");
-
-        super.channelReadComplete(ctx);
-    }
+//    @Override
+//    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+//        logger.info("schema channelReadComplete");
+//        super.channelReadComplete(ctx);
+//    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("schema exceptionCaught: {}", cause.getMessage());
-
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());
         ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
-
         super.exceptionCaught(ctx, cause);
     }
 }

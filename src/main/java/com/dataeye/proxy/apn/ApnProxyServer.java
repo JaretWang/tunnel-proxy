@@ -15,6 +15,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.ResourceLeakDetector;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -54,6 +55,10 @@ public class ApnProxyServer {
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
         // 创建实例
         startByConfig(tunnelList);
+        // 堆外内存： 查看当前Netty程序是否使用noCleaner策略
+//        PlatformDependent.useDirectBufferNoCleaner();
+        // 该类会采样应用程序中%1的buffer分配，并进行跟踪。检测堆外内存的泄露。目前检测级别有4种：DISABLE, SIMPLE(默认),ADVANCED, PARANOID
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
     }
 
     /**

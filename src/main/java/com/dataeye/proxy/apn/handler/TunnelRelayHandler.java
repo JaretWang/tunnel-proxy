@@ -57,14 +57,21 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(final ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.debug("TunnelRelayHandler channelRead: {} : {}", tag, msg);
+        // 转为bytebuf，然后再求响应大小，最后再设置在 ReqMonitorUtils 里面
+        ByteBuf byteBuf = (ByteBuf) msg;
+        requestMonitor.getReponseSize().addAndGet(byteBuf.readableBytes());
+        //System.out.println("TunnelRelayHandler msg refCnt=" + byteBuf.refCnt());
+
         if (relayChannel.isActive()) {
             relayChannel.writeAndFlush(msg)
                     .addListener((ChannelFutureListener) future -> {
                         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
                             ctx.read();
                         }
+                        //System.out.println("TunnelRelayHandler addListener byteBuf refCnt=" + byteBuf.refCnt());
+
                         // 临时添加
                         if (first) {
                             if (future.isSuccess()) {
@@ -88,7 +95,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         // 该方法会执行两次，因为要关闭两次， UA --> REMOTE | REMOTE --> UA
         logger.info("TunnelRelayHandler channelInactive: {} channel inactive", tag);
         if (relayChannel != null && relayChannel.isActive()) {
@@ -99,14 +106,13 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         logger.error("TunnelRelayHandler exceptionCaught: {}", cause.getMessage());
-        ctx.close();
-
         requestMonitor.setSuccess(false);
         requestMonitor.setFailReason(cause.getMessage());
         ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler exceptionCaught");
         IpMonitorUtils.invoke(requestMonitor, false, "TunnelRelayHandler exceptionCaught");
+        ctx.close();
     }
 
 }
