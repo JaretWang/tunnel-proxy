@@ -77,14 +77,14 @@ public class ReqMonitorUtils {
                 long okVal = OK_TIMES.longValue();
                 long errorVal = ERROR_TIMES.longValue();
                 long total = ERROR_TIMES.addAndGet(okVal);
-                double costAvg;
-                double reqSize;
-                double respSize;
+                double costAvg, reqSize, respSize, reqBandwidth, respBandwidth;
                 String percent;
                 if (COST_TOTAL.get() == 0 || total == 0) {
                     costAvg = 0;
                     reqSize = 0;
                     respSize = 0;
+                    reqBandwidth = 0;
+                    respBandwidth = 0;
                     percent = "0";
                     logger.error("数值统计异常, OK_TIMES={}, ERROR_TIMES={}, total={}", okVal, errorVal, total);
                 } else {
@@ -95,20 +95,23 @@ public class ReqMonitorUtils {
                     BigDecimal reqTotal = new BigDecimal(total);
                     costAvg = cost.divide(reqTotal, 2, BigDecimal.ROUND_HALF_UP).doubleValue();
 
-                    // 1024 * 5分钟
-                    BigDecimal byteUnit = new BigDecimal(1024 * INTERVAL * 60);
-                    // req size
-                    BigDecimal reqValue = new BigDecimal(REQ_SIZE.get());
-                    reqSize = reqValue.divide(byteUnit, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    BigDecimal reqBytes = new BigDecimal(REQ_SIZE.get());
+                    BigDecimal respBytes = new BigDecimal(RESP_SIZE.get());
+                    BigDecimal unit1 = new BigDecimal(1024 * total);
+                    BigDecimal unit2 = new BigDecimal(1024 * INTERVAL * 60);
 
-                    // resp size
-                    BigDecimal respValue = new BigDecimal(RESP_SIZE.get());
-                    respSize = respValue.divide(byteUnit, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    // avg_req_size
+                    reqSize = reqBytes.divide(unit1, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    // avg_resp_size
+                    respSize = respBytes.divide(unit1, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    // avg_req_bandwidth
+                    reqBandwidth = reqBytes.divide(unit2, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    // avg_resp_bandwidth
+                    respBandwidth = respBytes.divide(unit2, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
                 }
 
-//                logger.info("{} 分钟内, 请求总数={}, 成功={}, 失败={}, 成功率={}%，平均耗时={} ms", INTERVAL, total, okVal, errorVal, percent, costAvg);
-                logger.info("{} min, total={}, ok={}, error={}, success percent={}%，avg time={} ms, reqSize={} kb/s, respSize={} kb/s",
-                        INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize);
+                logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
+                        INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);

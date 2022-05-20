@@ -56,8 +56,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 // send proxy request
 //            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
 //            requestDistributeService.forwardCommonReq(uaChannel, apnHandlerParams, cacheIpResult, tunnelInstance, httpContentBuffer, msg);
-                apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
-//                apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
+//                apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
+                apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, fullHttpRequest, "forward");
             } else {
                 logger.warn("forward 未识别类型: {}", msg.getClass());
