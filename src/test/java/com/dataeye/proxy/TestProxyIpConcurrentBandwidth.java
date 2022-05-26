@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @SpringBootTest
 @RunWith(SpringRunner.class)
-public class TestIpConcurrentBandwidth {
+public class TestProxyIpConcurrentBandwidth {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TestIpConcurrentBandwidth");
 
@@ -105,6 +105,30 @@ public class TestIpConcurrentBandwidth {
      */
     @Test
     public void testDailiCloud() throws InterruptedException {
+        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
+            System.out.println("----------------------- 并发数：" + i + " ------------------------");
+            long begin = System.currentTimeMillis();
+            ApnProxyRemote apnProxyRemote = dailiCloudFetchService.apnProxyRemoteAdapter();
+            singleConcurrent(i, apnProxyRemote);
+            long cost = (System.currentTimeMillis() - begin) / 1000;
+            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
+        }
+    }
+
+    @Test
+    public void testDailiCloud2() throws InterruptedException {
+        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
+            System.out.println("----------------------- 并发数：" + i + " ------------------------");
+            long begin = System.currentTimeMillis();
+            ApnProxyRemote apnProxyRemote = dailiCloudFetchService.apnProxyRemoteAdapter();
+            singleConcurrent(i, apnProxyRemote);
+            long cost = (System.currentTimeMillis() - begin) / 1000;
+            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
+        }
+    }
+
+    @Test
+    public void testDailiCloud3() throws InterruptedException {
         for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();

@@ -200,9 +200,10 @@ public class IpMonitorUtils {
                         log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
                                 ip, monitorExpireTime, useTimes, errorTimes, percent);
 
-                        // 根据某个ip的使用失败情况，在ip池中剔除
+                        // 在一定数量下的请求成功率低于阈值时，需要从ip池钟剔除
+                        // 隧道启动后，如果一直不用，监控工具不应该按照成功百分比剔除掉ip，因为ip的成功率都是0
                         double percentValue = Double.parseDouble(percent);
-                        if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp()) {
+                        if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp() && useTimes.intValue() >= tunnelInstance.getMinUseTimesForRemoveIp()) {
                             removeHighErrorPercent(ip, tunnelInstance);
                         }
                     }

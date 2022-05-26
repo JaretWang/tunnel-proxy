@@ -1,5 +1,7 @@
 package com.dataeye.proxy.service.impl;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.DailiCloudConfig;
@@ -29,32 +31,43 @@ public class DailiCloudFetchServiceImpl implements ProxyFetchService {
     DailiCloudConfig dailiCloudConfig;
 
     @Override
-    public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
+    public ProxyIp getOne(TunnelInstance tunnelInstance) {
         String ipFectchUrl = dailiCloudConfig.getIpFectchUrl();
         String data = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         if (StringUtils.isBlank(data)) {
-            throw new RuntimeException("代理云获取ip为空");
+            logger.error("代理云 - api接口返回为空, respone={}", data);
+            return null;
 //            logger.error("代理云获取ip为空，3秒后重试");
 //            Thread.sleep(3000L);
 //            return getOne();
         }
-        String[] split = data.split(System.lineSeparator());
-        if (split.length <= 0) {
-            logger.error("使用换行符 {} 获取分割ip失败", System.lineSeparator());
+        JSONObject result = JSONObject.parseObject(data);
+        if (!result.getBooleanValue("success")) {
+            logger.error("代理云 - 拉取ip失败, respone={}", data);
+            return null;
         }
-        String[] split2 = split[0].split(",");
-        String ip = split2[0].split(":")[0];
-        String port = split2[0].split(":")[1];
-        long expireTime = Long.parseLong(split2[split2.length - 1]);
-        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(expireTime, 0, ZoneOffset.ofHours(8));
-
-        return ProxyIp.builder()
-                .host(ip)
-                .port(Integer.parseInt(port))
-                .expireTime(dateTime)
-                .userName(dailiCloudConfig.getUsername())
-                .password(dailiCloudConfig.getPassword())
-                .build();
+        JSONArray array = result.getJSONArray("result");
+        if (array.isEmpty()) {
+            logger.error("代理云 - 获取ip列表为空, respone={}", data);
+            return null;
+        }
+        for (Object element : array) {
+            if (element instanceof JSONObject) {
+                JSONObject item = (JSONObject) element;
+                String ip = item.getString("ip");
+                int port = item.getIntValue("port");
+                int expireTime = item.getIntValue("ltime");
+                LocalDateTime dateTime = LocalDateTime.ofEpochSecond(expireTime, 0, ZoneOffset.ofHours(8));
+                return ProxyIp.builder()
+                        .host(ip)
+                        .port(port)
+                        .expireTime(dateTime)
+                        .userName(dailiCloudConfig.getUsername())
+                        .password(dailiCloudConfig.getPassword())
+                        .build();
+            }
+        }
+        return null;
     }
 
 }

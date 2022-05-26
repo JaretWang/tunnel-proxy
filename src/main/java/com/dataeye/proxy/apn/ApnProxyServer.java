@@ -137,7 +137,8 @@ public class ApnProxyServer {
                 .childOption(ChannelOption.TCP_NODELAY, true);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            LOG.info("代理服务器 [{}] 启动成功, port: {}", alias, port);
+            LOG.info("隧道服务 [{}] 启动成功, port: {}", alias, port);
+            System.out.println("隧道服务 [" + alias + "] 启动成功, port: " + port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             LOG.error("启动代理服务器时，出现异常：{}", e.getMessage());

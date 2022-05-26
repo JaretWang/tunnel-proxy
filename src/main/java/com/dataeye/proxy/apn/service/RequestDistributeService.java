@@ -164,6 +164,7 @@ public class RequestDistributeService {
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
             //System.out.println("sendReqByOkHttp fullHttpRequest refCnt=" + fullHttpRequest.refCnt());
+//            System.out.println("fullHttpRequest===============" + fullHttpRequest.toString());
             Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
             // parse okhttp response and send netty response
             constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
@@ -274,6 +275,7 @@ public class RequestDistributeService {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
             //System.out.println("sendReqByOkHttp getContent refCnt=" + fullHttpRequest.refCnt());
+//            System.out.println("netty body===============" + new String(body, StandardCharsets.UTF_8));
             if (uri.startsWith("https")) {
                 response = OkHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             } else {
@@ -310,8 +312,9 @@ public class RequestDistributeService {
         // handle reponse
         int code = response.code();
         if (code == HttpResponseStatus.OK.code()) {
-            // set reponse size
+            // 注意：response.body().bytes() 被调用完，就会close
             byte[] result = Objects.requireNonNull(response.body()).bytes();
+//            System.out.println("响应=====" + new String(result, StandardCharsets.UTF_8) + ", result====" + result.length);
             requestMonitor.getReponseSize().addAndGet(result.length);
 
             // collect headers and construct netty response

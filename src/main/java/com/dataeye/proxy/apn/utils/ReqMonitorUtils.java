@@ -9,11 +9,10 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * @author jaret
@@ -29,6 +28,7 @@ public class ReqMonitorUtils {
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
     private static final AtomicLong REQ_SIZE = new AtomicLong(0);
     private static final AtomicLong RESP_SIZE = new AtomicLong(0);
+    private static final CopyOnWriteArrayList<String> ERROR_LIST = new CopyOnWriteArrayList<>();
     private static final int INTERVAL = 5;
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
@@ -48,6 +48,7 @@ public class ReqMonitorUtils {
                 requestMonitor.getFailReason(),
                 requestMonitor.getRequestType(),
                 requestMonitor.getTargetAddr());
+        ERROR_LIST.add(requestMonitor.getFailReason());
         // 不用加安全机制，因为在handler是线程安全的
         boolean success = requestMonitor.isSuccess();
         if (success) {
@@ -112,12 +113,17 @@ public class ReqMonitorUtils {
 
                 logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
                         INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
+                List<String> collect = ERROR_LIST.stream().distinct().collect(Collectors.toList());
+                logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), collect);
+
                 //重置
                 OK_TIMES.set(0);
                 ERROR_TIMES.set(0);
                 COST_TOTAL.set(0);
                 REQ_SIZE.set(0);
                 RESP_SIZE.set(0);
+                ERROR_LIST.clear();
+                collect.clear();
             } catch (Throwable e) {
                 logger.error("ReqMonitorUtils error={}", e.getMessage());
             }

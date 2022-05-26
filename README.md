@@ -1170,7 +1170,34 @@ Created at:
 	java.lang.Thread.run(Thread.java:750) 
 ```
 
+4.使用visual vm远程查看堆外内存
+
+先给 visual vm 安装Buffer Pools插件和MBeans插件，再使用如下启动参数启动服务。
+
+```shell
+-Dcom.sun.management.jmxremote #启用jmx
+-Dcom.sun.management.jmxremote.ssl=false #不需要ssl链接
+-Dcom.sun.management.jmxremote.authenticate=false #不需要权限密码链接
+-Dcom.sun.management.jmxremote.port=12345 #设置jmx链接端口
+-Djava.rmi.server.hostname=10.1.2.201  #设置jmx指定服务器Ip(如果不设置，则默认是本地localhost)
+-Dio.netty.leakDetectionLevel=paranoid #netty堆外内存泄露检测级别
+```
+
 5.最后检查代码
+
+UnPooled.copiedBuffer()没有正确释放。另外抛出异常时，ReferenceUtil.release()没有正确调用，放入finally中即可。
+
+> 参考文献
+
+https://netty.io/wiki/reference-counted-objects.html
+
+https://www.xianglong.work/blog/17
+
+https://gorden5566.com/post/1029.html
+
+https://stackoverflow.com/questions/42651707/how-to-find-a-root-cause-of-the-following-netty-error-io-netty-util-internal-ou
+
+https://jiangguilong2000.blog.csdn.net/article/details/42297873?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-42297873-blog-117027246.pc_relevant_paycolumn_v3&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-42297873-blog-117027246.pc_relevant_paycolumn_v3&utm_relevant_index=1
 
 
 
@@ -1220,7 +1247,7 @@ grep "成功移除ip	" adx-IpMonitorUtils.log | wc -l
 grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
-grep "success percent" adx-ReqMonitorUtils.log | tail -5 | grep "success percent"
+grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"
 
 ---------------------- 风控 ---------------------------
 tail -f adx-ConcurrentLimitHandler.log | grep "connections"
@@ -1291,14 +1318,13 @@ cat adx-ReqMonitorUtils.log | grep 'false, pangolin' | awk -F ', ' '{print($2,$6
 cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -F= ' {print($2)}' | awk -F, '{print $1}' | awk -F: '{print $1}'| sort | uniq -c  |wc -l
 ```
 
+> win10 杀死端口占用的进程查看所有进程：netstat -nao
+>
 
-
-# 其他
-
-win10 杀死端口占用的进程
-查看所有进程：netstat -nao
+```shell
 查找指定端口进程： netstat -nao|find "8080" （这里的8080指要查找的端口号）
 终止指定PID进程：taskkill /pid 8548 -F（这里的8548指要终止进程对应的PID号）
+```
 
 
 
@@ -1374,7 +1400,7 @@ adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
 
 ### mysql
 
-```sql
+```shell script
 # SSH通道
 主机：120.77.156.230
 端口：2222
@@ -1409,14 +1435,4 @@ adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
 数据库：ad_adx
 用户名：readonly
 密码：G9KjWYDg+&-TVlE
-```
-
-
-```shell script
--Dcom.sun.management.jmxremote
--Dcom.sun.management.jmxremote.ssl=false
--Dcom.sun.management.jmxremote.authenticate=false
--Dcom.sun.management.jmxremote.port=12345
--Djava.rmi.server.hostname=10.1.2.201
--Dio.netty.leakDetectionLevel=paranoid
 ```

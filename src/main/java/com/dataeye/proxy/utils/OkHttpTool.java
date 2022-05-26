@@ -13,7 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URLEncoder;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -109,7 +109,42 @@ public class OkHttpTool {
     public static Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                           Map<String, String> header, Map<String, String> params) throws IOException {
 
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
+        // 问号拼接参数
+        appendParams(targetUrl, params);
+        // auth
+        buildAuth(clientBuilder, username, password);
+        // proxy
+        buildProxy(clientBuilder, proxyIp, proxyPort);
+        // request
+        Request request = buildGetRequest(targetUrl, header);
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
+    /**
+     * 使用代理ip发送get请求（带body）
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param params    请求参数
+     * @return
+     * @throws IOException
+     */
+    public static Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                          Map<String, String> header, Map<String, String> params, byte[] body) throws IOException {
+
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
         // 问号拼接参数
         appendParams(targetUrl, params);
         // auth
@@ -138,13 +173,18 @@ public class OkHttpTool {
     public static Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                            Map<String, String> header, byte[] body) throws IOException {
 
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
         // auth
         buildAuth(clientBuilder, username, password);
         // proxy
         buildProxy(clientBuilder, proxyIp, proxyPort);
         // request
         Request request = buildPostRequest(targetUrl, header, body);
+//        System.out.println("okhttp===============" + request.toString());
+//        System.out.println("okhttp body===============" + new String(body, StandardCharsets.UTF_8));
         OkHttpClient client = clientBuilder.build();
         return client.newCall(request).execute();
     }
@@ -209,6 +249,30 @@ public class OkHttpTool {
         return builder.build();
     }
 
+    private static Request buildGetRequestWithBody(String url, Map<String, String> headers, byte[] body) {
+        Request.Builder builder = new Request.Builder()
+                .url(url)
+//                .patch()
+//                .put()
+                .get();
+        if (headers != null && !headers.isEmpty()) {
+            builder.headers(Headers.of(headers));
+        }
+//        if (body != null && body.length > 0 && headers != null && !headers.isEmpty()) {
+//            String contentType = headers.getOrDefault("Content-Type", "");
+//            MediaType mediaType;
+//            if (StringUtils.isNotBlank(contentType)) {
+//                mediaType = MediaType.get(contentType);
+//                builder.setBody$okhttp(RequestBody.create(mediaType, body));
+//            } else {
+//                mediaType = DEFAULT_MEDIA_TYPE;
+//                builder.setBody$okhttp(RequestBody.create(mediaType, Arrays.toString(body))).build();
+//            }
+//        }
+        Request build = builder.build();
+        return build;
+    }
+
     private static Request buildPostRequest(String url, Map<String, String> headers, byte[] body) {
         Request.Builder builder = new Request.Builder()
                 .url(url);
@@ -216,14 +280,23 @@ public class OkHttpTool {
             builder.headers(Headers.of(headers));
         }
         if (body != null && body.length > 0 && headers != null && !headers.isEmpty()) {
-            String contentType = headers.getOrDefault("Content-Type", "");
+            // 为了避免Content-Type为小写，却get不到这个值
+            String contentType = "";
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                String key = entry.getKey();
+                if ("Content-Type".equalsIgnoreCase(key)) {
+                    contentType = entry.getValue();
+                    break;
+                }
+            }
             MediaType mediaType;
             if (StringUtils.isNotBlank(contentType)) {
                 mediaType = MediaType.get(contentType);
                 builder.post(RequestBody.create(mediaType, body)).build();
             } else {
                 mediaType = DEFAULT_MEDIA_TYPE;
-                builder.post(RequestBody.create(mediaType, Arrays.toString(body))).build();
+                String bodyJson = new String(body, StandardCharsets.UTF_8);
+                builder.post(RequestBody.create(mediaType, bodyJson)).build();
             }
         }
         return builder.build();
