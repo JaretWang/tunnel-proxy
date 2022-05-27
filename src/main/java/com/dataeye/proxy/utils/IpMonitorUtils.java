@@ -55,46 +55,44 @@ public class IpMonitorUtils {
         }
         log.debug("handler={}, 使用结果={}, 监控IP个数={}", handler, ok, IP_MONITOR_MAP.size());
         String proxyIp = requestMonitor.getProxyAddr();
-        if (IP_MONITOR_MAP.containsKey(proxyIp)) {
-            IpMonitor ipMonitor = IP_MONITOR_MAP.get(proxyIp);
+        IpMonitor oldIpMonitor = IP_MONITOR_MAP.putIfAbsent(proxyIp, buildVal(requestMonitor, ok));
+        if (oldIpMonitor != null) {
             // 只能是请求结束后触发
             if (!isInitAdd) {
                 if (ok) {
-                    AtomicLong okTimes = ipMonitor.getOkTimes();
-                    okTimes.incrementAndGet();
+                    oldIpMonitor.getOkTimes().incrementAndGet();
                 } else {
-                    AtomicLong errorTimes = ipMonitor.getErrorTimes();
-                    errorTimes.incrementAndGet();
+                    oldIpMonitor.getErrorTimes().incrementAndGet();
                 }
             }
 
             // 只能再第一次添加触发
             if (isInitAdd) {
                 // 使用次数
-                AtomicLong useTimes = ipMonitor.getUseTimes();
-                useTimes.incrementAndGet();
+                oldIpMonitor.getUseTimes().incrementAndGet();
                 // 请求报文的大小
-                AtomicLong bandwidth = ipMonitor.getBandwidth();
-                bandwidth.addAndGet(requestMonitor.getBandwidth() / 1024);
-                ipMonitor.setExpireTime(requestMonitor.getExpireTime());
+                oldIpMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
+                oldIpMonitor.setExpireTime(requestMonitor.getExpireTime());
             }
-            IP_MONITOR_MAP.putIfAbsent(proxyIp, ipMonitor);
-        } else {
-            IpMonitor ipMonitor = new IpMonitor();
-            ipMonitor.setTunnelName(requestMonitor.getTunnelName());
-            ipMonitor.setProxyIp(proxyIp);
-            ipMonitor.setBandwidth(new AtomicLong(requestMonitor.getBandwidth() / 1024));
-            if (ok) {
-                ipMonitor.setOkTimes(new AtomicLong(1));
-                ipMonitor.setErrorTimes(new AtomicLong(0));
-            } else {
-                ipMonitor.setOkTimes(new AtomicLong(0));
-                ipMonitor.setErrorTimes(new AtomicLong(1));
-            }
-            ipMonitor.setUseTimes(new AtomicLong(1));
-            ipMonitor.setExpireTime(requestMonitor.getExpireTime());
-            IP_MONITOR_MAP.putIfAbsent(proxyIp, ipMonitor);
+            IP_MONITOR_MAP.put(proxyIp, oldIpMonitor);
         }
+    }
+
+    static IpMonitor buildVal(RequestMonitor requestMonitor, boolean ok){
+        IpMonitor ipMonitor = new IpMonitor();
+        ipMonitor.setTunnelName(requestMonitor.getTunnelName());
+        ipMonitor.setProxyIp(requestMonitor.getProxyAddr());
+        ipMonitor.setBandwidth(new AtomicLong(requestMonitor.getBandwidth() / 1024));
+        if (ok) {
+            ipMonitor.setOkTimes(new AtomicLong(1));
+            ipMonitor.setErrorTimes(new AtomicLong(0));
+        } else {
+            ipMonitor.setOkTimes(new AtomicLong(0));
+            ipMonitor.setErrorTimes(new AtomicLong(1));
+        }
+        ipMonitor.setUseTimes(new AtomicLong(1));
+        ipMonitor.setExpireTime(requestMonitor.getExpireTime());
+        return ipMonitor;
     }
 
     /**

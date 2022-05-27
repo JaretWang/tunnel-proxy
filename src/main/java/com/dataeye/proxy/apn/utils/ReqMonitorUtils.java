@@ -4,15 +4,14 @@ import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * @author jaret
@@ -28,7 +27,7 @@ public class ReqMonitorUtils {
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
     private static final AtomicLong REQ_SIZE = new AtomicLong(0);
     private static final AtomicLong RESP_SIZE = new AtomicLong(0);
-    private static final CopyOnWriteArrayList<String> ERROR_LIST = new CopyOnWriteArrayList<>();
+    private static final ConcurrentHashMap<String, Integer> ERROR_LIST = new ConcurrentHashMap<>();
     private static final int INTERVAL = 5;
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
@@ -48,7 +47,14 @@ public class ReqMonitorUtils {
                 requestMonitor.getFailReason(),
                 requestMonitor.getRequestType(),
                 requestMonitor.getTargetAddr());
-        ERROR_LIST.add(requestMonitor.getFailReason());
+        String failReason = requestMonitor.getFailReason();
+        if (StringUtils.isNotBlank(failReason)) {
+            Integer integer = ERROR_LIST.putIfAbsent(failReason, 1);
+            // null 表示之前不存在
+            if (integer != null) {
+                ERROR_LIST.put(failReason, ++integer);
+            }
+        }
         // 不用加安全机制，因为在handler是线程安全的
         boolean success = requestMonitor.isSuccess();
         if (success) {
@@ -113,8 +119,7 @@ public class ReqMonitorUtils {
 
                 logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
                         INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
-                List<String> collect = ERROR_LIST.stream().distinct().collect(Collectors.toList());
-                logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), collect);
+                logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), ERROR_LIST);
 
                 //重置
                 OK_TIMES.set(0);
@@ -123,7 +128,6 @@ public class ReqMonitorUtils {
                 REQ_SIZE.set(0);
                 RESP_SIZE.set(0);
                 ERROR_LIST.clear();
-                collect.clear();
             } catch (Throwable e) {
                 logger.error("ReqMonitorUtils error={}", e.getMessage());
             }

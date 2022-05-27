@@ -1248,6 +1248,7 @@ grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
 grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"
+grep "错误原因列表" adx-ReqMonitorUtils.log
 
 ---------------------- 风控 ---------------------------
 tail -f adx-ConcurrentLimitHandler.log | grep "connections"

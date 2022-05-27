@@ -16,6 +16,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -41,7 +42,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 //    }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, final Object msg) {
+    public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
         logger.info("forward channelRead");
         try {
             if (msg instanceof FullHttpRequest) {
@@ -62,9 +63,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
             } else {
                 logger.warn("forward 未识别类型: {}", msg.getClass());
             }
-        } catch (Throwable e) {
-            logger.error("forward channelRead exception: {}", e.getMessage());
-        } finally {
+        }  finally {
             boolean release = ReferenceCountUtil.release(msg);
 //            System.out.println("forward release=" + release);
         }

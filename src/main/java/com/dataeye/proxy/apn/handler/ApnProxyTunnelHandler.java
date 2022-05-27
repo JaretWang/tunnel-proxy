@@ -60,8 +60,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
             } else {
                 logger.warn("tunnel 未识别类型: {}", msg.getClass());
             }
-        } catch (Throwable e) {
-            logger.error("tunnel channelRead exception: {}", e.getMessage());
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
             boolean release = ReferenceCountUtil.release(msg);
