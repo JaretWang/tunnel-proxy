@@ -116,6 +116,8 @@ public class ReqMonitorUtils {
             }
         } catch (Exception e) {
             logger.error("检查ip连接超时错误失败, 原因={}", e.getMessage());
+        } finally {
+            IP_CONNECT_TIME_OUT.clear();
         }
     }
 

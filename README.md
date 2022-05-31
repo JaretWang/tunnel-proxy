@@ -1243,13 +1243,14 @@ keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123
 ```shell
 ------------------- ip监控 -------------------------
 tail -f adx-IpMonitorUtils.log | grep "success percent"
-grep "成功移除ip	" adx-IpMonitorUtils.log | wc -l
+grep "成功移除ip" adx-IpMonitorUtils.log | wc -l
 grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 grep "套餐每日剩余ip数量=" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
 grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"
 grep "错误原因列表" adx-ReqMonitorUtils.log
+grep "连接超时次数=" adx-ReqMonitorUtils.log | tail -5 | grep "连接超时次数="
 
 ---------------------- 风控 ---------------------------
 tail -f adx-ConcurrentLimitHandler.log | grep "connections"
