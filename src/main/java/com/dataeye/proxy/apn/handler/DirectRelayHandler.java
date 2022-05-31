@@ -70,9 +70,8 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
                                 // 依然会执行两次，应该放入 attribute key
                                 if (first) {
                                     // 临时增加
-                                    requestMonitor.setSuccess(true);
-                                    ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isSuccess");
-                                    IpMonitorUtils.invoke(requestMonitor, true, "DirectRelayHandler isSuccess");
+                                    ReqMonitorUtils.ok(requestMonitor, "DirectRelayHandler isSuccess");
+                                    IpMonitorUtils.ok(requestMonitor, "DirectRelayHandler isSuccess");
                                     first = false;
                                 }
                             } else {
@@ -81,10 +80,8 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
                                 if (first) {
                                     // 临时增加
-                                    requestMonitor.setSuccess(false);
-                                    requestMonitor.setFailReason(future.cause().getMessage());
-                                    ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler isError");
-                                    IpMonitorUtils.invoke(requestMonitor, false, "DirectRelayHandler isError");
+                                    ReqMonitorUtils.error(requestMonitor, "DirectRelayHandler isError", future.cause().getMessage());
+                                    IpMonitorUtils.error(requestMonitor, "DirectRelayHandler isError", future.cause().getMessage());
                                     first = false;
                                 }
                             }
@@ -119,11 +116,8 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("DirectRelayHandler exceptionCaught: {}", cause.getMessage());
         ctx.close();
-
-        requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(cause.getMessage());
-        ReqMonitorUtils.cost(requestMonitor, "DirectRelayHandler exceptionCaught");
-        IpMonitorUtils.invoke(requestMonitor, false, "DirectRelayHandler exceptionCaught");
+        ReqMonitorUtils.error(requestMonitor, "DirectRelayHandler exceptionCaught", cause.getMessage());
+        IpMonitorUtils.error(requestMonitor, "DirectRelayHandler exceptionCaught",cause.getMessage());
     }
 
     public interface RemoteChannelInactiveCallback {

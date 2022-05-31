@@ -114,6 +114,7 @@ public class IpPoolScheduleService {
      * ps: 因为会拉取到重复的ip或者过期的ip，所以ip池在更新的时候ip量总是小于10个，所以需要边轮询，边检查ip池数量是不是达到了固定的10个，不能只做简单的轮询10次
      */
     void getFixedNumIpAddr(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
+        //TODO ip池数量不能减小的bug
         int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
         while (getValidIpSize(queue) < fixedIpPoolSize) {
             log.warn("当前ip池数量={}, 实际有效ip数={}, 小于规定的 {} 个, 即将重试", queue.size(), getValidIpSize(queue), fixedIpPoolSize);

@@ -29,7 +29,6 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final ApnHandlerParams apnHandlerParams;
     private final RequestMonitor requestMonitor = new RequestMonitor();
-    private boolean needAllocate = true;
 
     public ApnProxySchemaHandler(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;
@@ -38,40 +37,27 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.info("schema channelActive");
-        if (needAllocate) {
-            logger.debug("needAllocate is true");
-            // 分配ip
-            ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-            RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();
-            ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-            if (Objects.isNull(apnProxyRemote)) {
-                requestDistributeService.handleProxyIpIsEmpty(ctx);
-            }
-            logger.info("schema 分配ip结果：{}", apnProxyRemote);
-            ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
-
-            apnHandlerParams.setRequestMonitor(requestMonitor);
-            requestMonitor.setTunnelName(tunnelInstance.getAlias());
-            requestMonitor.setBegin(System.currentTimeMillis());
-            requestMonitor.setProxyAddr(apnProxyRemote.getIpAddr());
-            requestMonitor.setExpireTime(apnProxyRemote.getExpireTime());
-            requestMonitor.setSuccess(true);
-            IpMonitorUtils.invoke(true, requestMonitor, true, HANDLER_NAME);
-
-            needAllocate = false;
-        } else {
-            logger.debug("needAllocate is false");
+        // 分配ip
+        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
+        RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();
+        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
+        if (Objects.isNull(apnProxyRemote)) {
+            requestDistributeService.handleProxyIpIsEmpty(ctx);
         }
+        logger.info("schema 分配ip结果：{}", apnProxyRemote);
+        ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
+
+        // ip, 请求监控
+        requestMonitor.setTunnelName(tunnelInstance.getAlias());
+        requestMonitor.setBegin(System.currentTimeMillis());
+        requestMonitor.setProxyAddr(apnProxyRemote.getIpAddr());
+        requestMonitor.setExpireTime(apnProxyRemote.getExpireTime());
+        requestMonitor.setSuccess(true);
+        apnHandlerParams.setRequestMonitor(requestMonitor);
+        IpMonitorUtils.invoke(true, requestMonitor, true, HANDLER_NAME);
         super.channelActive(ctx);
     }
-
-//    @Override
-//    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("schema channelInactive");
-//
-//        super.channelInactive(ctx);
-//    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws Exception {
@@ -81,29 +67,18 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {
                 ctx.pipeline().remove(ApnProxyForwardHandler.HANDLER_NAME);
             } else {
-                //TODO 临时增加
                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
             }
-            requestMonitor.setRequestType(httpRequest.method().name());
-            requestMonitor.setTargetAddr(httpRequest.uri());
-        } else {
-            logger.warn("schema 未识别类型: {}", msg.getClass());
+            apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
+            apnHandlerParams.getRequestMonitor().setTargetAddr(httpRequest.uri());
         }
         ctx.fireChannelRead(msg);
     }
 
-//    @Override
-//    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("schema channelReadComplete");
-//        super.channelReadComplete(ctx);
-//    }
-
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("schema exceptionCaught: {}", cause.getMessage());
-        requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(cause.getMessage());
-        ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
+        ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         super.exceptionCaught(ctx, cause);
     }
 }

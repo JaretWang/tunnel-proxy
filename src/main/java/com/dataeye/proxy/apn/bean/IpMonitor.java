@@ -22,9 +22,9 @@ public class IpMonitor {
     String tunnelName;
     String proxyIp;
     LocalDateTime expireTime;
-    AtomicLong useTimes;
-    AtomicLong okTimes;
-    AtomicLong errorTimes;
-    AtomicLong bandwidth;
+    AtomicLong useTimes = new AtomicLong(0);
+    AtomicLong okTimes = new AtomicLong(0);
+    AtomicLong errorTimes = new AtomicLong(0);
+    AtomicLong bandwidth = new AtomicLong(0);
 
 }

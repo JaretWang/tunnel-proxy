@@ -33,11 +33,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         this.apnHandlerParams = apnHandlerParams;
     }
 
-//    @Override
-//    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("tunnel channelActive");
-//    }
-
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.info("tunnel channelRead");
@@ -54,24 +49,14 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
                 // send proxy request
                 requestMonitor.getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
-//                requestMonitor.getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
+                //requestMonitor.getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, cacheIpResult, tunnelInstance);
-                //System.out.println("tunnel channelRead fullHttpRequest refCnt=" + fullHttpRequest.refCnt());
-            } else {
-                logger.warn("tunnel 未识别类型: {}", msg.getClass());
             }
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
-            boolean release = ReferenceCountUtil.release(msg);
-//            System.out.println("tunnel release=" + release);
+            ReferenceCountUtil.release(msg);
         }
     }
-
-//    @Override
-//    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("tunnel channelReadComplete");
-//        super.channelReadComplete(ctx);
-//    }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -83,11 +68,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("tunnel exceptionCaught：{}", cause.getMessage());
-        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(cause.getMessage());
-        ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
-        IpMonitorUtils.invoke(requestMonitor, false, HANDLER_NAME);
+        ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
+        IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         ctx.close();
     }
 

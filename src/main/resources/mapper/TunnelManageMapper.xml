@@ -13,7 +13,6 @@
         <result column="password" jdbcType="VARCHAR" property="password"/>
         <result column="boss_thread_size" jdbcType="INTEGER" property="bossThreadSize"/>
         <result column="worker_thread_size" jdbcType="INTEGER" property="workerThreadSize"/>
-        <result column="business_thread_size" jdbcType="INTEGER" property="businessThreadSize"/>
         <result column="concurrency" jdbcType="INTEGER" property="concurrency"/>
         <result column="max_net_bandwidth" jdbcType="INTEGER" property="maxNetBandwidth"/>
         <result column="max_slow_req_size" jdbcType="INTEGER" property="maxSlowReqSize"/>

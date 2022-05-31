@@ -1245,6 +1245,7 @@ keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123
 tail -f adx-IpMonitorUtils.log | grep "success percent"
 grep "成功移除ip	" adx-IpMonitorUtils.log | wc -l
 grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
+grep "套餐每日剩余ip数量=" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
 grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"

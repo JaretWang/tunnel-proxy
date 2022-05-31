@@ -163,8 +163,6 @@ public class RequestDistributeService {
 
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
-            //System.out.println("sendReqByOkHttp fullHttpRequest refCnt=" + fullHttpRequest.refCnt());
-//            System.out.println("fullHttpRequest===============" + fullHttpRequest.toString());
             Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
             // parse okhttp response and send netty response
             constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
@@ -225,11 +223,8 @@ public class RequestDistributeService {
                             uaChannel.writeAndFlush(errorMsg);
                             SocksServerUtils.closeOnFlush(uaChannel);
 
-                            RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                            requestMonitor.setSuccess(false);
-                            requestMonitor.setFailReason(errorMsg);
-                            ReqMonitorUtils.cost(requestMonitor, "okhttp send connection established fail");
-                            IpMonitorUtils.invoke(requestMonitor, false, "okhttp send connection established fail");
+                            ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), "okhttp send connection established fail", errorMsg);
+                            IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), "okhttp send connection established fail", errorMsg);
                         }
                     });
 
@@ -274,8 +269,6 @@ public class RequestDistributeService {
         } else if ("post".equalsIgnoreCase(method)) {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
-            //System.out.println("sendReqByOkHttp getContent refCnt=" + fullHttpRequest.refCnt());
-//            System.out.println("netty body===============" + new String(body, StandardCharsets.UTF_8));
             if (uri.startsWith("https")) {
                 response = OkHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             } else {
@@ -314,7 +307,7 @@ public class RequestDistributeService {
         if (code == HttpResponseStatus.OK.code()) {
             // 注意：response.body().bytes() 被调用完，就会close
             byte[] result = Objects.requireNonNull(response.body()).bytes();
-//            System.out.println("响应=====" + new String(result, StandardCharsets.UTF_8) + ", result====" + result.length);
+            //System.out.println("响应=====" + new String(result, StandardCharsets.UTF_8) + ", result====" + result.length);
             requestMonitor.getReponseSize().addAndGet(result.length);
 
             // collect headers and construct netty response
@@ -326,9 +319,8 @@ public class RequestDistributeService {
             uaChannel.writeAndFlush(fullHttpResponse);
 
             // 监控
-            requestMonitor.setSuccess(true);
-            ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
-            IpMonitorUtils.invoke(requestMonitor, true, "OK_HTTP_TOOL");
+            ReqMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
+            IpMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
             //System.out.println("ok responseContent2 refCnt=" + responseContent.refCnt());
             //System.out.println("ok fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
         } else {
@@ -349,10 +341,8 @@ public class RequestDistributeService {
             uaChannel.writeAndFlush(fullHttpResponse);
 
             // 监控
-            requestMonitor.setSuccess(false);
-            requestMonitor.setFailReason(msg);
-            ReqMonitorUtils.cost(requestMonitor, "OK_HTTP_TOOL");
-            IpMonitorUtils.invoke(requestMonitor, false, "OK_HTTP_TOOL");
+            ReqMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
+            IpMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
             //System.out.println("error responseContent2 refCnt=" + responseContent.refCnt());
             //System.out.println("error fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
         }
@@ -455,10 +445,8 @@ public class RequestDistributeService {
                         uaChannel.writeAndFlush(errorResponseMsg);
 
                         // 统计
-                        requestMonitor.setSuccess(false);
-                        requestMonitor.setFailReason(errorMsg);
-                        ReqMonitorUtils.cost(requestMonitor, "sendForwardReq");
-                        IpMonitorUtils.invoke(requestMonitor, false, "sendForwardReq");
+                        ReqMonitorUtils.error(requestMonitor, "sendForwardReq", errorMsg);
+                        IpMonitorUtils.error(requestMonitor, "sendForwardReq", errorMsg);
 
                         // 关闭资源
                         SocksServerUtils.closeOnFlush(uaChannel);
@@ -570,10 +558,8 @@ public class RequestDistributeService {
                         logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
 
                         // 监控统计
-                        requestMonitor.setSuccess(false);
-                        requestMonitor.setFailReason(errorMessage);
-                        ReqMonitorUtils.cost(requestMonitor, "sendTunnelReq");
-                        IpMonitorUtils.invoke(requestMonitor, false, "sendTunnelReq");
+                        ReqMonitorUtils.error(requestMonitor, "sendTunnelReq",errorMessage);
+                        IpMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);
 
                         // 关闭资源
                         SocksServerUtils.closeOnFlush(ctx.channel());

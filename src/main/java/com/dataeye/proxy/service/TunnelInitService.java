@@ -29,6 +29,7 @@ public class TunnelInitService {
 
     public static final ConcurrentHashMap<String, TunnelInstance> TUNNEL_INSTANCES_CACHE = new ConcurrentHashMap<>();
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelInitService");
+    private static String DEFAULT_TUNNEL_NAME;
     @Resource
     TunnelInitMapper tunnelInitMapper;
     @Value("${spring.profiles.active}")
@@ -68,6 +69,8 @@ public class TunnelInitService {
         List<String> nameList = enableList.stream()
                 .map(TunnelInstance::getAlias)
                 .collect(Collectors.toList());
+        // 理论上一个机器只有一个隧道，所以只用取第一个
+        DEFAULT_TUNNEL_NAME = nameList.get(0);
         logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
 
         // add cache
@@ -86,10 +89,14 @@ public class TunnelInitService {
         return null;
     }
 
+    public TunnelInstance getDefaultTunnel(){
+        return getTunnel(DEFAULT_TUNNEL_NAME);
+    }
+
     /**
      * 每 6s 定时更新隧道列表缓存
      */
-    @Scheduled(cron = "0/6 * * * * ?")
+    @Scheduled(cron = "0/5 * * * * ?")
     public void schduleUpdateTunnelListCache() {
         // get from db
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();

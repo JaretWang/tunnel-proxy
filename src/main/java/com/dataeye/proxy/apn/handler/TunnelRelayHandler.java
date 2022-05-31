@@ -75,15 +75,12 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
                         // 临时添加
                         if (first) {
                             if (future.isSuccess()) {
-                                requestMonitor.setSuccess(true);
-                                ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler isSuccess");
-                                IpMonitorUtils.invoke(requestMonitor, true, "TunnelRelayHandler isSuccess");
+                                ReqMonitorUtils.ok(requestMonitor, "TunnelRelayHandler isSuccess");
+                                IpMonitorUtils.ok(requestMonitor, "TunnelRelayHandler isSuccess");
                             } else {
                                 // 临时增加
-                                requestMonitor.setSuccess(false);
-                                requestMonitor.setFailReason(future.cause().getMessage());
-                                ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler isError");
-                                IpMonitorUtils.invoke(requestMonitor, false, "TunnelRelayHandler isError");
+                                ReqMonitorUtils.error(requestMonitor, "TunnelRelayHandler isError", future.cause().getMessage());
+                                IpMonitorUtils.error(requestMonitor, "TunnelRelayHandler isError", future.cause().getMessage());
                             }
                             first = false;
                         }
@@ -108,10 +105,8 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         logger.error("TunnelRelayHandler exceptionCaught: {}", cause.getMessage());
-        requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(cause.getMessage());
-        ReqMonitorUtils.cost(requestMonitor, "TunnelRelayHandler exceptionCaught");
-        IpMonitorUtils.invoke(requestMonitor, false, "TunnelRelayHandler exceptionCaught");
+        ReqMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
+        IpMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         ctx.close();
     }
 

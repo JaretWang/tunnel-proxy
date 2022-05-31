@@ -65,10 +65,9 @@ public class ApnProxyServer {
      * 根据配置参数启动
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
-        int size = tunnelInstances.size();
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(size, "tunnel_create_");
-        tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(new CreateProxyServerTask(instance)));
-        LOG.info("根据配置参数共启动 [{}] 个 proxy server", tunnelInstances.size());
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(tunnelInstances.size(), "tunnel_create_");
+        tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(() -> startProxyServer(instance)));
+        System.out.println("根据配置参数共启动 " + tunnelInstances.size() + " 个隧道server");
     }
 
     /**
@@ -91,7 +90,6 @@ public class ApnProxyServer {
         pool.setThreadNamePrefix(threadNamePrefix);
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         pool.initialize();
-        LOG.info("隧道初始化线程池创建完成");
         return pool;
     }
 
@@ -137,32 +135,14 @@ public class ApnProxyServer {
                 .childOption(ChannelOption.TCP_NODELAY, true);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            LOG.info("隧道服务 [{}] 启动成功, port: {}", alias, port);
-            System.out.println("隧道服务 [" + alias + "] 启动成功, port: " + port);
+            System.out.println("隧道服务 [" + alias + "] 启动成功, port=" + port);
             future.channel().closeFuture().sync();
         } catch (Exception e) {
-            LOG.error("启动代理服务器时，出现异常：{}", e.getMessage());
             e.printStackTrace();
+            System.out.println("启动代理服务器时，出现异常=" + e.getMessage());
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
-        }
-    }
-
-    /**
-     * 创建 proxy server
-     */
-    class CreateProxyServerTask implements Runnable {
-
-        private final TunnelInstance tunnelInstance;
-
-        public CreateProxyServerTask(TunnelInstance tunnelInstance) {
-            this.tunnelInstance = tunnelInstance;
-        }
-
-        @Override
-        public void run() {
-            startProxyServer(tunnelInstance);
         }
     }
 

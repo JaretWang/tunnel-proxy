@@ -35,12 +35,6 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
         this.apnHandlerParams = apnHandlerParams;
     }
 
-//    @Override
-//    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("forward channelActive");
-//        super.channelActive(ctx);
-//    }
-
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
         logger.info("forward channelRead");
@@ -55,25 +49,13 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 final Channel uaChannel = ctx.channel();
                 logger.info("转发普通请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
                 // send proxy request
-//            TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-//            requestDistributeService.forwardCommonReq(uaChannel, apnHandlerParams, cacheIpResult, tunnelInstance, httpContentBuffer, msg);
-//                apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
                 apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, fullHttpRequest, "forward");
-            } else {
-                logger.warn("forward 未识别类型: {}", msg.getClass());
             }
-        }  finally {
-            boolean release = ReferenceCountUtil.release(msg);
-//            System.out.println("forward release=" + release);
+        } finally {
+            ReferenceCountUtil.release(msg);
         }
     }
-
-//    @Override
-//    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-//        logger.info("forward channelReadComplete");
-//        super.channelReadComplete(ctx);
-//    }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -84,11 +66,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("forward exceptionCaught：{}", cause.getMessage());
-        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        requestMonitor.setSuccess(false);
-        requestMonitor.setFailReason(cause.getMessage());
-        ReqMonitorUtils.cost(requestMonitor, HANDLER_NAME);
-        IpMonitorUtils.invoke(requestMonitor, false, HANDLER_NAME);
+        ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
+        IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         ctx.close();
     }
 

@@ -28,7 +28,7 @@ public class IpMonitorUtils {
 
     public static final ConcurrentHashMap<String, IpMonitor> IP_MONITOR_MAP = new ConcurrentHashMap<>();
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitorUtils");
-    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
 
     @Resource
@@ -36,8 +36,14 @@ public class IpMonitorUtils {
     @Resource
     TunnelInitService tunnelInitService;
 
-    public static void invoke(RequestMonitor requestMonitor, boolean ok, String handler) {
-        invoke(false, requestMonitor, ok, handler);
+    public static void error(RequestMonitor requestMonitor, String handler, String errorMsg) {
+        requestMonitor.setSuccess(false);
+        requestMonitor.setFailReason(errorMsg);
+        invoke(false, requestMonitor, false, handler);
+    }
+
+    public static void ok(RequestMonitor requestMonitor, String handler) {
+        invoke(false, requestMonitor, true, handler);
     }
 
     /**
@@ -48,15 +54,23 @@ public class IpMonitorUtils {
      * @param ok             本地调用ip是否成功
      * @param handler        调用此监控方法的处理器
      */
-    public synchronized static void invoke(boolean isInitAdd, RequestMonitor requestMonitor, boolean ok, String handler) {
+    public static void invoke(boolean isInitAdd, RequestMonitor requestMonitor, boolean ok, String handler) {
         if (requestMonitor == null) {
             log.error("requestMonitor is null");
             return;
         }
-        log.debug("handler={}, 使用结果={}, 监控IP个数={}", handler, ok, IP_MONITOR_MAP.size());
         String proxyIp = requestMonitor.getProxyAddr();
         IpMonitor oldIpMonitor = IP_MONITOR_MAP.putIfAbsent(proxyIp, buildVal(requestMonitor, ok));
         if (oldIpMonitor != null) {
+            // 只能在第一次初始化添加触发
+            if (isInitAdd) {
+                // 使用次数
+                oldIpMonitor.getUseTimes().incrementAndGet();
+                // 请求报文的大小
+                oldIpMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
+                oldIpMonitor.setExpireTime(requestMonitor.getExpireTime());
+            }
+
             // 只能是请求结束后触发
             if (!isInitAdd) {
                 if (ok) {
@@ -64,15 +78,6 @@ public class IpMonitorUtils {
                 } else {
                     oldIpMonitor.getErrorTimes().incrementAndGet();
                 }
-            }
-
-            // 只能再第一次添加触发
-            if (isInitAdd) {
-                // 使用次数
-                oldIpMonitor.getUseTimes().incrementAndGet();
-                // 请求报文的大小
-                oldIpMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
-                oldIpMonitor.setExpireTime(requestMonitor.getExpireTime());
             }
             IP_MONITOR_MAP.put(proxyIp, oldIpMonitor);
         }
@@ -82,15 +87,13 @@ public class IpMonitorUtils {
         IpMonitor ipMonitor = new IpMonitor();
         ipMonitor.setTunnelName(requestMonitor.getTunnelName());
         ipMonitor.setProxyIp(requestMonitor.getProxyAddr());
-        ipMonitor.setBandwidth(new AtomicLong(requestMonitor.getBandwidth() / 1024));
+        ipMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
         if (ok) {
-            ipMonitor.setOkTimes(new AtomicLong(1));
-            ipMonitor.setErrorTimes(new AtomicLong(0));
+            ipMonitor.getOkTimes().incrementAndGet();
         } else {
-            ipMonitor.setOkTimes(new AtomicLong(0));
-            ipMonitor.setErrorTimes(new AtomicLong(1));
+            ipMonitor.getErrorTimes().incrementAndGet();
         }
-        ipMonitor.setUseTimes(new AtomicLong(1));
+        ipMonitor.getUseTimes().incrementAndGet();
         ipMonitor.setExpireTime(requestMonitor.getExpireTime());
         return ipMonitor;
     }
@@ -124,7 +127,7 @@ public class IpMonitorUtils {
     /**
      * 从ip池移除高错误率的ip
      */
-    private void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance) throws InterruptedException {
+    public static void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpPoolScheduleService ipPoolScheduleService) throws InterruptedException {
         String tunnelName = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
@@ -202,7 +205,7 @@ public class IpMonitorUtils {
                         // 隧道启动后，如果一直不用，监控工具不应该按照成功百分比剔除掉ip，因为ip的成功率都是0
                         double percentValue = Double.parseDouble(percent);
                         if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp() && useTimes.intValue() >= tunnelInstance.getMinUseTimesForRemoveIp()) {
-                            removeHighErrorPercent(ip, tunnelInstance);
+                            removeHighErrorPercent(ip, tunnelInstance, ipPoolScheduleService);
                         }
                     }
                 } catch (Throwable e) {
