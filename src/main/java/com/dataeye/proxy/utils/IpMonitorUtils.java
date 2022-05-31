@@ -1,7 +1,7 @@
 package com.dataeye.proxy.utils;
 
-import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.IpMonitor;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -83,7 +83,7 @@ public class IpMonitorUtils {
         }
     }
 
-    static IpMonitor buildVal(RequestMonitor requestMonitor, boolean ok){
+    static IpMonitor buildVal(RequestMonitor requestMonitor, boolean ok) {
         IpMonitor ipMonitor = new IpMonitor();
         ipMonitor.setTunnelName(requestMonitor.getTunnelName());
         ipMonitor.setProxyIp(requestMonitor.getProxyAddr());
@@ -117,14 +117,6 @@ public class IpMonitorUtils {
     }
 
     /**
-     * ip监控列表，定时任务
-     */
-    @PostConstruct
-    public void schedule() {
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);
-    }
-
-    /**
      * 从ip池移除高错误率的ip
      */
     public static void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpPoolScheduleService ipPoolScheduleService) throws InterruptedException {
@@ -154,6 +146,14 @@ public class IpMonitorUtils {
             return;
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
+    }
+
+    /**
+     * ip监控列表，定时任务
+     */
+    @PostConstruct
+    public void schedule() {
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);
     }
 
     class IpUseMonitorTask implements Runnable {
@@ -198,14 +198,17 @@ public class IpMonitorUtils {
                             continue;
                         }
                         String percent = getPercent(okTimes, useTimes.longValue());
-                        log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
-                                ip, monitorExpireTime, useTimes, errorTimes, percent);
-
                         // 在一定数量下的请求成功率低于阈值时，需要从ip池钟剔除
                         // 隧道启动后，如果一直不用，监控工具不应该按照成功百分比剔除掉ip，因为ip的成功率都是0
                         double percentValue = Double.parseDouble(percent);
                         if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp() && useTimes.intValue() >= tunnelInstance.getMinUseTimesForRemoveIp()) {
+                            log.warn("剔除ip, 最低成功率限制={}%, 实际成功率={}%, 最小使用次数限制={}, 实际使用次数={}",
+                                    tunnelInstance.getMinSuccessPercentForRemoveIp(), percentValue, tunnelInstance.getMinUseTimesForRemoveIp(), useTimes.intValue());
                             removeHighErrorPercent(ip, tunnelInstance, ipPoolScheduleService);
+                        } else {
+                            // 为了不让监控日志中看到被剔除的ip
+                            log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
+                                    ip, monitorExpireTime, useTimes, errorTimes, percent);
                         }
                     }
                 } catch (Throwable e) {
