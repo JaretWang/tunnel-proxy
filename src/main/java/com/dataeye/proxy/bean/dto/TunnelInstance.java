@@ -30,6 +30,10 @@ public class TunnelInstance implements Serializable {
      */
     private int enable;
     /**
+     * 隧道域名地址
+     */
+    private String domain;
+    /**
      * 隧道启动端口
      */
     private int port;

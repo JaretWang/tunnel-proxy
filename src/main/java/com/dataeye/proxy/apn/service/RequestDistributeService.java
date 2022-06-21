@@ -112,16 +112,16 @@ public class RequestDistributeService {
 
         Set<String> headerNames = httpRequest.headers().names();
         for (String headerName : headerNames) {
-            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
-                continue;
-            }
-            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
-                continue;
-            }
-            // 临时增加
-            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
-                continue;
-            }
+//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+//                continue;
+//            }
+//            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+//                continue;
+//            }
+//            // 临时增加
+//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
+//                continue;
+//            }
             for (String headerValue : httpRequest.headers().getAll(headerName)) {
                 sb.append(headerName).append(": ").append(headerValue).append(CRLF);
             }
@@ -503,7 +503,8 @@ public class RequestDistributeService {
                             //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
                             //ctx.pipeline().toMap().keySet().forEach(System.out::println);
 
-                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
+                            // todo console总是会报没有这个handler
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
                             ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);

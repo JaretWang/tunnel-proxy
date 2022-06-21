@@ -8,6 +8,7 @@
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
         <result column="location" jdbcType="VARCHAR" property="location"/>
         <result column="enable" jdbcType="TINYINT" property="enable"/>
+        <result column="domain" jdbcType="VARCHAR" property="domain"/>
         <result column="port" jdbcType="INTEGER" property="port"/>
         <result column="username" jdbcType="VARCHAR" property="username"/>
         <result column="password" jdbcType="VARCHAR" property="password"/>

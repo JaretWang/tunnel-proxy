@@ -76,14 +76,14 @@ public class ReqMonitorUtils {
             if (integer != null) {
                 ERROR_LIST.put(failReason, ++integer);
             }
-            // 记录超时错误
-            if (failReason.contains("Failed to connect to")) {
-                String proxyAddr = requestMonitor.getProxyAddr();
-                Integer count = IP_CONNECT_TIME_OUT.putIfAbsent(proxyAddr, 1);
-                if (count != null) {
-                    IP_CONNECT_TIME_OUT.put(proxyAddr, ++count);
-                }
-            }
+//            // 记录超时错误
+//            if (failReason.contains("Failed to connect to") || failReason.contains("connect timed out")) {
+//                String proxyAddr = requestMonitor.getProxyAddr();
+//                Integer count = IP_CONNECT_TIME_OUT.putIfAbsent(proxyAddr, 1);
+//                if (count != null) {
+//                    IP_CONNECT_TIME_OUT.put(proxyAddr, ++count);
+//                }
+//            }
         }
         // 不用加安全机制，因为在handler是线程安全的
         boolean success = requestMonitor.isSuccess();
@@ -124,9 +124,10 @@ public class ReqMonitorUtils {
     @PostConstruct
     public void schedule() {
         int reqMonitorCheckInterval = 5;
-        int checkIpConnectTimeOutErrorInterval = 10;
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> reqMonitorTask(reqMonitorCheckInterval), 0, reqMonitorCheckInterval, TimeUnit.MINUTES);
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkIpConnectTimeOutError, 0, checkIpConnectTimeOutErrorInterval, TimeUnit.SECONDS);
+        // todo 实际上就是ip的问题，有效时间本身就不能达到30min
+//        int checkIpConnectTimeOutErrorInterval = 10;
+//        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkIpConnectTimeOutError, 0, checkIpConnectTimeOutErrorInterval, TimeUnit.SECONDS);
     }
 
     void reqMonitorTask(int checkInterval) {

@@ -135,14 +135,11 @@ public class IpMonitorUtils {
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个新 ip
                     ipPoolScheduleService.checkBeforeUpdate(ipPool, tunnelInstance, 1);
-                    // 移除监控记录
-                    IP_MONITOR_MAP.remove(ip);
                     return;
                 }
             }
             // ip池中不存在该ip,就应该移除对该ip的监控
             log.warn("移除ip失败, ip池中不存在该ip={}, 即将移除对该ip的监控记录", ip);
-            IP_MONITOR_MAP.remove(ip);
             return;
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
@@ -202,9 +199,11 @@ public class IpMonitorUtils {
                         // 隧道启动后，如果一直不用，监控工具不应该按照成功百分比剔除掉ip，因为ip的成功率都是0
                         double percentValue = Double.parseDouble(percent);
                         if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp() && useTimes.intValue() >= tunnelInstance.getMinUseTimesForRemoveIp()) {
-                            log.warn("剔除ip, 最低成功率限制={}%, 实际成功率={}%, 最小使用次数限制={}, 实际使用次数={}",
-                                    tunnelInstance.getMinSuccessPercentForRemoveIp(), percentValue, tunnelInstance.getMinUseTimesForRemoveIp(), useTimes.intValue());
+                            log.warn("剔除ip={}, 最低成功率限制={}%, 实际成功率={}%, 最小使用次数限制={}, 实际使用次数={}",
+                                    ip, tunnelInstance.getMinSuccessPercentForRemoveIp(), percentValue, tunnelInstance.getMinUseTimesForRemoveIp(), useTimes.intValue());
                             removeHighErrorPercent(ip, tunnelInstance, ipPoolScheduleService);
+                            // 移除监控记录
+                            IP_MONITOR_MAP.remove(ip);
                         } else {
                             // 为了不让监控日志中看到被剔除的ip
                             log.info("ip={}, expireTime={}, useTimes={}, errorTimes={}, success percent={}%",
