@@ -118,10 +118,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             JSONObject ipElement = JSONObject.parseObject(datum.toString());
             String ip = ipElement.getString("ip");
             int port = ipElement.getIntValue("port");
-            // todo 芝麻官方说我们买的是套餐，有效时间只有1-5min，所以返回的有效时间实际上是没有什么作用的
-//            String expireTime = ipElement.getString("expire_time");
-//            LocalDateTime time = LocalDateTime.parse(expireTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            LocalDateTime time = LocalDateTime.now().plusMinutes(6);
+            String expireTime = ipElement.getString("expire_time");
+            LocalDateTime time = LocalDateTime.parse(expireTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             // 计数
             FETCH_IP_NUM_NOW.incrementAndGet();
             ProxyIp proxyIp = ProxyIp.builder()
