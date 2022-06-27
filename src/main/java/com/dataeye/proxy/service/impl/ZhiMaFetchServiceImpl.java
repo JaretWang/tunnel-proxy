@@ -7,6 +7,7 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
+import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
 import org.apache.commons.lang3.StringUtils;
@@ -18,9 +19,13 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * 直接从芝麻代理官网拉取ip，有效时间：25min-3h
@@ -42,36 +47,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     ZhiMaConfig zhiMaConfig;
     @Autowired
     SendMailService sendMailService;
-
-    /**
-     * 伪造拉取的数据
-     *
-     * @return
-     */
-    private static String buildIpPoolJson(int num) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("code", 0);
-        jsonObject.put("msg", "0");
-        jsonObject.put("success", true);
-        LinkedList<JSONObject> data = new LinkedList<>();
-        Random random = new Random();
-        int initVal = 10;
-        int total = initVal + num;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        for (int i = initVal; i <= total; i++) {
-            int ip_val = random.nextInt(6553);
-            int min_val = random.nextInt(10);
-            int nanos_val = random.nextInt(100);
-            String expire_time = LocalDateTime.now().plusMinutes(min_val).plusNanos(nanos_val).format(formatter);
-            JSONObject element = new JSONObject();
-            element.put("ip", "10.10.10." + i);
-            element.put("port", ip_val);
-            element.put("expire_time", expire_time);
-            data.add(element);
-        }
-        jsonObject.put("data", data);
-        return jsonObject.toJSONString();
-    }
+    @Resource
+    TunnelInitService tunnelInitService;
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
@@ -86,7 +63,6 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
         String url = zhiMaConfig.getDirectGetUrl() + "&num=" + num;
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
-//        String json = buildIpPoolJson(num);
         if (StringUtils.isBlank(json)) {
             logger.error("芝麻代理拉取ip为空");
             return Collections.emptyList();
@@ -153,7 +129,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 //    void sendAlarmEmail() {
 //        if (IS_SEND_ALARM_EMAIL.get()) {
 //            String subject = "芝麻代理IP拉取数量告警";
-//            String content = "已拉取ip数=" + FETCH_IP_NUM_NOW.get() + ", 每日最大ip数限制=" + MAX_FETCH_IP_NUM_EVERY_DAY.get();
+//            List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
+//            List<String> collect = tunnelList.stream().map(TunnelInstance::getAlias).distinct().collect(Collectors.toList());
+//            String content = "隧道=" + collect.toString() + ", 已拉取ip数=" + FETCH_IP_NUM_NOW.get() + ", 每日最大ip数限制=" + MAX_FETCH_IP_NUM_EVERY_DAY.get();
 //            sendMailService.sendMail(subject, content);
 //        }
 //    }

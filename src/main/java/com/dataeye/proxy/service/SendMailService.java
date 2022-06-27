@@ -1,10 +1,10 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.logback.LogbackRollingFileUtil;
+import com.dataeye.proxy.utils.TimeUtils;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.simple.SimpleHttpClient;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 
 @Service
 public class SendMailService {
@@ -23,8 +24,9 @@ public class SendMailService {
     private SimpleHttpClient simpleHttpClient;
 
     public void sendMail(String subject, String content) {
-        String sendContent = MessageFormat.format("时间：{0} ,  出现：{1}", DateTime.now().toString("yyyy-MM-dd HH:mm:ss"), content);
-        logger.info("send email-->subject:{},content:{}", subject, sendContent);
+        String time = TimeUtils.formatLocalDate(LocalDateTime.now());
+        String sendContent = MessageFormat.format("时间：{0} ,  出现：{1}", time, content);
+        logger.info("send email --> 主题={}, 内容={}", subject, sendContent);
         try {
             subject = URLEncoder.encode(subject, "UTF-8");
             String to = URLEncoder.encode(ACCOUNT, "UTF-8");
@@ -34,9 +36,9 @@ public class SendMailService {
                 logger.info("send complete --> {}", response.getResponseContent());
                 return;
             }
-            logger.info("send failure --> {}", response.getStatusCode());
+            logger.info("send failure --> code:{}", response.getStatusCode());
         } catch (UnsupportedEncodingException e) {
-            logger.error("fail to send msg--->{}", subject, e);
+            logger.error("send email error ---> {}", subject, e);
         }
     }
 }

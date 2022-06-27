@@ -116,7 +116,8 @@ public class IpPoolScheduleService {
     void getFixedNumIpAddr(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
         //TODO ip池数量不能减小的bug
         int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
-        while (getValidIpSize(queue) < fixedIpPoolSize) {
+        // 去除while 死循环
+        if (getValidIpSize(queue) < fixedIpPoolSize) {
             log.warn("当前ip池数量={}, 实际有效ip数={}, 小于规定的 {} 个, 即将重试", queue.size(), getValidIpSize(queue), fixedIpPoolSize);
             checkBeforeUpdate(queue, tunnelInstance, numOnce);
         }
