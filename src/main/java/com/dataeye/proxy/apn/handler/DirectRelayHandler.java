@@ -98,13 +98,13 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        logger.info("DirectRelayHandler channelReadComplete");
+        logger.debug("DirectRelayHandler channelReadComplete");
         super.channelReadComplete(ctx);
     }
 
     @Override
     public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
-        logger.info("DirectRelayHandler channelInactive, Remote channel: {} inactive", remoteAddr);
+        logger.debug("DirectRelayHandler channelInactive, Remote channel: {} inactive", remoteAddr);
         uaChannel.writeAndFlush(Unpooled.EMPTY_BUFFER)
                 .addListener((ChannelFutureListener) future ->
                         remoteChannelInactiveCallback.remoteChannelInactiveCallback(ctx, remoteAddr));

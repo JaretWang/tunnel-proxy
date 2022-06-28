@@ -62,7 +62,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
         if (!control) {
             super.channelActive(ctx);
         } else {
-            logger.info("触发限流，当前连接数={}, 每秒最大并发数={}", connections.get(), maxConcurrency);
+            logger.warn("触发限流，当前连接数={}, 每秒最大并发数={}", connections.get(), maxConcurrency);
             // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
             channel.config().setOption(ChannelOption.SO_LINGER, 0);
 

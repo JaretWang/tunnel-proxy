@@ -195,7 +195,7 @@ public class RequestDistributeService {
                                     .addLast(new SimpleChannelInboundHandler<Object>() {
                                         @Override
                                         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                            logger.info("okhttp channelRead0");
+                                            logger.debug("okhttp channelRead0");
                                             // get uri params
                                             if (msg instanceof DefaultFullHttpRequest) {
                                                 DefaultFullHttpRequest request = (DefaultFullHttpRequest) msg;
@@ -376,7 +376,7 @@ public class RequestDistributeService {
         String remoteAddr = apnProxyRemote.getRemote();
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         DirectRelayHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
-            logger.info("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
+            logger.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
             uaChannel.close();
         };
 
@@ -415,7 +415,7 @@ public class RequestDistributeService {
                         logger.debug("forward_handler 构造请求之后：{}", newRequest);
                         future.channel().write(newRequest);
 
-                        logger.info("httpContentBuffer size={}", httpContentBuffer.size());
+                        logger.debug("httpContentBuffer size={}", httpContentBuffer.size());
                         for (HttpContent hc : httpContentBuffer) {
                             future.channel().writeAndFlush(hc);
                         }
@@ -537,7 +537,7 @@ public class RequestDistributeService {
                                         //System.out.println("addListener: httpRequest refCnt=" + httpRequest.refCnt() + ", reqContent refCnt=" + reqContent.refCnt());
                                     });
                         } else {
-                            logger.info("tunnel_handler 使用本地ip转发");
+                            logger.debug("tunnel_handler 使用本地ip转发");
                             // send connect success msg to UA
                             HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
                                     new HttpResponseStatus(200, "Connection established"));

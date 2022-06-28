@@ -31,7 +31,7 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("Remote channel: " + remoteAddr + " active");
+        logger.debug("Remote channel: " + remoteAddr + " active");
         ctx.read();
     }
 
@@ -39,11 +39,11 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
 
         HttpObject ho = (HttpObject) msg;
-        logger.info("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
+        logger.debug("Recive From: " + remoteAddr + ", " + ho.getClass().getName());
 
         if (ho instanceof HttpResponse) {
             HttpResponse httpResponse = (HttpResponse) ho;
-            logger.info("HttpProxyHandler -> HttpResponse:{}", httpResponse.toString());
+            logger.debug("HttpProxyHandler -> HttpResponse:{}", httpResponse.toString());
             httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
             httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
 
@@ -54,7 +54,7 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
 
         if (ho instanceof HttpContent) {
             HttpContent httpContent = (HttpContent) ho;
-            logger.info("HttpProxyHandler -> HttpContent retain:{}", httpContent.toString());
+            logger.debug("HttpProxyHandler -> HttpContent retain:{}", httpContent.toString());
             httpContent.retain();
 //            ((HttpContent) ho).retain();
         }
@@ -74,7 +74,7 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
 
 //                        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
 //                        requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-//                        logger.info("{} ms, {}, {}, {}, {}, {}, {}",
+//                        logger.debug("{} ms, {}, {}, {}, {}, {}, {}",
 //                                requestMonitor.getCost(),
 //                                requestMonitor.isSuccess(),
 //                                requestMonitor.getTunnelName(),
@@ -88,7 +88,7 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
 
 //        if (msg instanceof FullHttpResponse) {
 //            FullHttpResponse httpResponse = (FullHttpResponse) msg;
-////            logger.info("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
+////            logger.debug("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
 //            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 //            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
 //
@@ -116,7 +116,7 @@ public class TempHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
-        logger.info("Remote channel: " + remoteAddr + " inactive");
+        logger.debug("Remote channel: " + remoteAddr + " inactive");
 
         uaChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(new ChannelFutureListener() {
             @Override

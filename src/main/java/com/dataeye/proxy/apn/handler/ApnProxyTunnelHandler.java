@@ -35,7 +35,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
-        logger.info("tunnel channelRead");
+        logger.debug("tunnel channelRead");
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
@@ -60,7 +60,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("tunnel channelInactive");
+        logger.debug("tunnel channelInactive");
         super.channelInactive(ctx);
         ctx.close();
     }

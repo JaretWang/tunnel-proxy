@@ -35,7 +35,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("TunnelRelayHandler channelActive: {} channel active", tag);
+        logger.debug("TunnelRelayHandler channelActive: {} channel active", tag);
         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
             ctx.read();
         }
@@ -94,7 +94,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         // 该方法会执行两次，因为要关闭两次， UA --> REMOTE | REMOTE --> UA
-        logger.info("TunnelRelayHandler channelInactive: {} channel inactive", tag);
+        logger.debug("TunnelRelayHandler channelInactive: {} channel inactive", tag);
         if (relayChannel != null && relayChannel.isActive()) {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }

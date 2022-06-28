@@ -37,7 +37,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
-        logger.info("forward channelRead");
+        logger.debug("forward channelRead");
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
@@ -59,7 +59,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("forward channelInactive");
+        logger.debug("forward channelInactive");
         ctx.close();
     }
 

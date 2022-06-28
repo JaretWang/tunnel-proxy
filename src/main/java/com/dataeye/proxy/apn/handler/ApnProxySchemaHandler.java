@@ -36,7 +36,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("schema channelActive");
+        logger.debug("schema channelActive");
         // 分配ip
         ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
         RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -61,7 +61,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws Exception {
-        logger.info("schema channelRead");
+        logger.debug("schema channelRead");
         if (msg instanceof FullHttpRequest) {
             FullHttpRequest httpRequest = (FullHttpRequest) msg;
             if (httpRequest.method().equals(HttpMethod.CONNECT)) {

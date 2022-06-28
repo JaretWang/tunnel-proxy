@@ -51,9 +51,9 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
                 });
                 super.channelRead(ctx, msg);
                 ctx.fireChannelRead(msg);
-                logger.info("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
+                logger.debug("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
             } else {
-                logger.info("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
+                logger.debug("当前连接数 {}, 最大并发数 {}", conn, maxConcurrency);
                 numConnections.decrementAndGet();
                 // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
                 channel.config().setOption(ChannelOption.SO_LINGER, 0);
@@ -88,7 +88,7 @@ public class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
         // 计算总和，然后重置
         final long dropped = numDroppedConnections.sumThenReset();
         if (dropped > 0) {
-            logger.info("断开连接数 [{}], 最大并发数 [{}]", dropped, maxConcurrency);
+            logger.debug("断开连接数 [{}], 最大并发数 [{}]", dropped, maxConcurrency);
         }
     }
 
