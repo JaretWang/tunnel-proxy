@@ -37,7 +37,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ApnProxyServer {
 
     private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
-    private static final String LOCAL_ADDRESS = "0.0.0.0";
+    private static final java.lang.String LOCAL_ADDRESS = "0.0.0.0";
 
     @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;

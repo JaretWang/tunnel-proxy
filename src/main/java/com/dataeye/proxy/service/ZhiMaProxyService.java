@@ -23,14 +23,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
  * @author jaret
  * @date 2022/4/1 19:30
- * @description 从专门的ip拉取服务,获取芝麻代理ip
+ * @description 从专门的ip拉取服务获取芝麻代理ip
  */
 @Service
 public class ZhiMaProxyService implements InitializingBean {

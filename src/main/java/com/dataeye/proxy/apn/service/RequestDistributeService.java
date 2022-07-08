@@ -505,10 +505,10 @@ public class RequestDistributeService {
 
                             // todo console总是会报没有这个handler
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
-                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
-                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
-                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
-                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
                             //ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
                             ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
                             ctx.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);

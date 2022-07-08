@@ -1248,7 +1248,7 @@ grep "今日累计拉取" adx-ZhiMaFetchServiceImpl.log
 grep "套餐每日剩余ip数量=" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
-grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"
+grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"    
 grep "错误原因列表" adx-ReqMonitorUtils.log
 grep "连接超时次数=" adx-ReqMonitorUtils.log | tail -5 | grep "连接超时次数="
 
@@ -1327,6 +1327,23 @@ cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -
 ```shell
 查找指定端口进程： netstat -nao|find "8080" （这里的8080指要查找的端口号）
 终止指定PID进程：taskkill /pid 8548 -F（这里的8548指要终止进程对应的PID号）
+```
+
+
+
+### 监控脚本
+
+```shell
+#!/bin/bash
+cd /data0/logs/tunnel-proxy
+cat adx-ZhiMaFetchServiceImpl.log | grep "今日累计拉取" | tail -1 | awk -F '-> ' '{print$2}'
+cat adx-ZhiMaFetchServiceImpl.log | grep "套餐每日剩余ip数量=" | tail -1 | awk -F '-> ' '{print$2}'
+cat adx-IpPoolScheduleService.log | grep "tunnel=" | tail -1 | awk -F '-> ' '{print$2}' | awk -F ', ip-pool-list=' '{print$1}'
+cat adx-ConcurrentLimitHandler.log | grep "connections" | tail -5 | awk -F '-> ' '{print$2}'
+cat adx-IpMonitorUtils.log | grep "success percent" | tail -5 | awk -F '-> ' '{print$2}'
+grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | awk -F '-> ' '{print$2}'
+net_conn=`netstat -ant | wc -l`
+echo "net_conn=$net_conn"
 ```
 
 
