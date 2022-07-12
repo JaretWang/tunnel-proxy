@@ -35,6 +35,7 @@ public class ReqMonitorUtils {
      */
     public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
+    private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
@@ -192,7 +193,7 @@ public class ReqMonitorUtils {
             logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
 
             // 动态调整ip数,用以保证成功率
-            adjustIpPoolByDynamicPlan(percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
+            adjustIpPoolByDynamicPlan(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
             // 重置
             OK_TIMES.set(0);
             ERROR_TIMES.set(0);
@@ -218,7 +219,7 @@ public class ReqMonitorUtils {
      * @param checkInterval      检查时间间隔,单位:秒
      * @throws InterruptedException
      */
-    void adjustIpPoolByDynamicPlan(String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
+    void adjustIpPoolByDynamicPlan(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         if (defaultTunnel == null) {
             logger.error("隧道为空");

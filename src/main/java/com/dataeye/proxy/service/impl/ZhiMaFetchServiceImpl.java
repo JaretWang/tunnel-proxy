@@ -234,7 +234,6 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
         // 套餐每日剩余ip数
         int surplusIpSize = SURPLUS_IP_SIZE.get();
-        logger.info("surplusIpSize={}", surplusIpSize);
         // 所有隧道当日最少需要ip数之和
         int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
                 .stream()
