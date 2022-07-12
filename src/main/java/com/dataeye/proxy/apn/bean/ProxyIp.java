@@ -27,6 +27,9 @@ public class ProxyIp {
     AtomicLong useTimes;
     AtomicLong okTimes;
     AtomicLong errorTimes;
+//    boolean applyRemoteRule = false;
+//    ApnProxyListenType remoteListenType;
+//    AtomicDouble okPercent;
 
     public String getIpAddr() {
         return this.host + ":" + this.port;

@@ -14,7 +14,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class TunnelInstance implements Serializable {
+public class TunnelInstance implements Serializable, Cloneable {
 
     private int id;
     /**
@@ -66,9 +66,13 @@ public class TunnelInstance implements Serializable {
      */
     private int maxSlowReqSize;
     /**
-     * 代理ip池的大小, 单位: 个
+     * 核心ip数
      */
-    private int fixedIpPoolSize;
+    private int coreIpSize;
+    /**
+     * 最大ip数
+     */
+    private int maxIpSize;
     /**
      * 检查ip池的时间间隔，单位：秒
      */

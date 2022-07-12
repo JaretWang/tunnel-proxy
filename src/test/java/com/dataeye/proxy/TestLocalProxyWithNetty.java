@@ -1,12 +1,6 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.arloor.handler.RelayHandler;
-import com.dataeye.proxy.arloor.handler.SessionHandShakeHandler;
-import com.dataeye.proxy.arloor.trace.TraceConstant;
-import com.dataeye.proxy.arloor.util.RequestUtils;
-import com.dataeye.proxy.arloor.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -15,10 +9,6 @@ import io.netty.handler.codec.http.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.net.InetSocketAddress;
-
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 
 /**
  * @author jaret

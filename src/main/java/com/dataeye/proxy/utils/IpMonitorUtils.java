@@ -4,10 +4,12 @@ import com.dataeye.proxy.apn.bean.IpMonitor;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.TunnelInitService;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -35,6 +37,8 @@ public class IpMonitorUtils {
     IpPoolScheduleService ipPoolScheduleService;
     @Resource
     TunnelInitService tunnelInitService;
+    @Autowired
+    ProxyServerConfig proxyServerConfig;
 
     public static void error(RequestMonitor requestMonitor, String handler, String errorMsg) {
         requestMonitor.setSuccess(false);
@@ -150,6 +154,9 @@ public class IpMonitorUtils {
      */
     @PostConstruct
     public void schedule() {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);
     }
 

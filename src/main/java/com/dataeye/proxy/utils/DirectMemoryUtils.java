@@ -1,8 +1,10 @@
 package com.dataeye.proxy.utils;
 
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import io.netty.util.internal.PlatformDependent;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
@@ -25,9 +27,14 @@ public class DirectMemoryUtils {
     private static final ScheduledThreadPoolExecutor SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("direct-memory-monitor-"), new ThreadPoolExecutor.AbortPolicy());
     private static AtomicLong DIRECT_MEM = new AtomicLong(0);
+    @Autowired
+    ProxyServerConfig proxyServerConfig;
 
     @PostConstruct
     public void init() throws IllegalAccessException {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
         Field field = ReflectionUtils.findField(PlatformDependent.class, "DIRECT_MEMORY_COUNTER");
         if (field == null) {
             throw new RuntimeException("DIRECT_MEMORY_COUNTER is null");

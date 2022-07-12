@@ -20,4 +20,11 @@ public interface TunnelInitMapper {
      */
     List<TunnelInstance> queryAll();
 
+    /**
+     * 更新隧道参数
+     * @param tunnelInstance
+     * @return
+     */
+    int updateTunnel(TunnelInstance tunnelInstance);
+
 }

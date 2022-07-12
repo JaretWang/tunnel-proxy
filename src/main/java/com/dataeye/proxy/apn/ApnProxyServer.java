@@ -6,6 +6,7 @@ import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
@@ -40,6 +41,8 @@ public class ApnProxyServer {
     private static final java.lang.String LOCAL_ADDRESS = "0.0.0.0";
 
     @Autowired
+    ProxyServerConfig proxyServerConfig;
+    @Autowired
     ApnProxyRemoteChooser apnProxyRemoteChooser;
     @Autowired
     RequestDistributeService requestDistributeService;
@@ -51,6 +54,9 @@ public class ApnProxyServer {
      */
     @PostConstruct
     public void initMultiTunnel() {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
         // 创建实例

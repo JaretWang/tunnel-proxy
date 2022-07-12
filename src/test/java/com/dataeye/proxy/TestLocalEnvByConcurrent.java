@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import okhttp3.Response;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -45,7 +46,7 @@ public class TestLocalEnvByConcurrent {
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
     // 本地限流阈值
-    private static final int totalNum = 1;
+    private static final int totalNum = 200;
     private static final int totalTask = totalNum * 1;
     private static final CountDownLatch countDownLatch = new CountDownLatch(totalTask);
     private static final ConcurrentHashMap<String, ReqCount> map = new ConcurrentHashMap<>();
@@ -65,6 +66,8 @@ public class TestLocalEnvByConcurrent {
         for (int i = 0; i < totalTask; i++) {
             executorService.submit(() -> {
                 try {
+                    int time = new SecureRandom().nextInt(30);
+                    Thread.sleep(time*1000);
                     Response response = OkHttpTool.sendGetByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, params);
 //                    Response response = OkHttpTool.sendPostByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, null);
                     String result = response.body().string();

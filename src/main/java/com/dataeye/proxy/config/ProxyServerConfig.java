@@ -15,6 +15,10 @@ import org.springframework.stereotype.Component;
 public class ProxyServerConfig {
 
     /**
+     * 是否开启隧道(本地调试用)
+     */
+    private boolean enable;
+    /**
      * 循环检查ip池的时间间隔
      */
     private int cycleCheckTime;
@@ -26,5 +30,13 @@ public class ProxyServerConfig {
      * 提前判定ip为失效状态的最小时间间隔
      */
     private int judgeExpiredIpMinSeconds;
+    /**
+     * 邮件发送接口
+     */
+    private String mailSendAddr;
+    /**
+     * 接收方邮件地址(负责人)
+     */
+    private String principal;
 
 }

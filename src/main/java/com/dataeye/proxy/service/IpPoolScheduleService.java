@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -24,6 +23,8 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
+ * ip池
+ *
  * @author jaret
  * @date 2022/4/14 10:52
  */
@@ -35,9 +36,13 @@ public class IpPoolScheduleService {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
             new ThreadPoolConfig.TunnelThreadFactory("ip-pool-schedule-"), new ThreadPoolExecutor.AbortPolicy());
     /**
-     * ip池
+     * 普通ip池
      */
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
+    /**
+     * 带优先级的ip池
+     */
+//    private final ConcurrentHashMap<String, PriorityBlockingQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Autowired
@@ -48,7 +53,10 @@ public class IpPoolScheduleService {
     TunnelInitService tunnelInitService;
 
     @PostConstruct
-    public void init() throws IOException, InterruptedException {
+    public void init() throws InterruptedException {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
         checkAndUpdateIp();
         // ip池定时更新
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new ScheduleUpdateTask(), 0, 3, TimeUnit.SECONDS);
@@ -56,12 +64,9 @@ public class IpPoolScheduleService {
 
     /**
      * 检查和更新代理IP列表
-     *
-     * @throws IOException
      */
-    public void checkAndUpdateIp() throws IOException, InterruptedException {
-        List<TunnelInstance> tunnelInstanceList = tunnelInitService.getTunnelList();
-        for (TunnelInstance tunnelInstance : tunnelInstanceList) {
+    public void checkAndUpdateIp() throws InterruptedException {
+        for (TunnelInstance tunnelInstance : tunnelInitService.getTunnelList()) {
             initSingleServer(tunnelInstance);
         }
     }
@@ -79,7 +84,7 @@ public class IpPoolScheduleService {
                 // 某个隧道对应的ip池中的所有ip同时失效，但可能性低
                 log.warn("id存在，但是ip循环队列为空");
                 ConcurrentLinkedQueue<ProxyIp> newQueue = new ConcurrentLinkedQueue<>();
-                getFixedNumIpAddr(newQueue, tunnelInstance, tunnelInstance.getFixedIpPoolSize());
+                getFixedNumIpAddr(newQueue, tunnelInstance, tunnelInstance.getCoreIpSize());
                 proxyIpPool.put(tunnel, newQueue);
                 return;
             }
@@ -93,10 +98,9 @@ public class IpPoolScheduleService {
                 }
             }
 
-            // 会有一段时间的ip池数量不足
-            // 如果queue中的有效ip数不够数量,则需要继续添加
+            // 会有一段时间的ip池数量不足, 果queue中的有效ip数不够数量,则需要继续添加
             int validIpSize = getValidIpSize(queue);
-            int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
+            int fixedIpPoolSize = tunnelInstance.getCoreIpSize();
             if (validIpSize < fixedIpPoolSize) {
                 int fetchSize = fixedIpPoolSize - validIpSize;
                 getFixedNumIpAddr(queue, tunnelInstance, fetchSize);
@@ -104,7 +108,7 @@ public class IpPoolScheduleService {
         } else {
             log.warn("实例 {} 的ip池不存在，即将初始化", tunnelInstance.getAlias());
             ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
-            getFixedNumIpAddr(queue, tunnelInstance, tunnelInstance.getFixedIpPoolSize());
+            getFixedNumIpAddr(queue, tunnelInstance, tunnelInstance.getCoreIpSize());
             proxyIpPool.put(tunnel, queue);
         }
     }
@@ -114,9 +118,8 @@ public class IpPoolScheduleService {
      * ps: 因为会拉取到重复的ip或者过期的ip，所以ip池在更新的时候ip量总是小于10个，所以需要边轮询，边检查ip池数量是不是达到了固定的10个，不能只做简单的轮询10次
      */
     void getFixedNumIpAddr(ConcurrentLinkedQueue<ProxyIp> queue, TunnelInstance tunnelInstance, int numOnce) throws InterruptedException {
-        //TODO ip池数量不能减小的bug
-        int fixedIpPoolSize = tunnelInstance.getFixedIpPoolSize();
-        // 去除while 死循环
+        // TODO 存在ip池数量不能减小的bug,只能等待时间过期
+        int fixedIpPoolSize = tunnelInstance.getCoreIpSize();
         if (getValidIpSize(queue) < fixedIpPoolSize) {
             log.warn("当前ip池数量={}, 实际有效ip数={}, 小于规定的 {} 个, 即将重试", queue.size(), getValidIpSize(queue), fixedIpPoolSize);
             checkBeforeUpdate(queue, tunnelInstance, numOnce);
@@ -133,24 +136,10 @@ public class IpPoolScheduleService {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
             List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(numOnce, tunnelInstance);
-
-//            List<ProxyIp> data;
-//            // 优量使用芝麻   edx销量使用游杰
-//            String alias = tunnelInstance.getAlias();
-//            if ("youliang".equalsIgnoreCase(alias)) {
-//                data = zhiMaFetchServiceImpl.getIpList(numOnce);
-//            } else if ("edx-sale".equalsIgnoreCase(alias)) {
-//                data = zhiMaFetchServiceImpl.getIpList(numOnce);
-////                data = youJieFetchServiceImpl.getIpList(numOnce);
-//            } else {
-//                throw new RuntimeException("未知隧道名: " + alias);
-//            }
-
             if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空, 即将重试");
                 continue;
             }
-
             for (ProxyIp newProxyIp : data) {
                 if (isExpired(newProxyIp)) {
                     log.warn("拉取的ip={} 已过期, 时间={}", newProxyIp.getIpAddr(), newProxyIp.getExpireTime());
@@ -164,14 +153,58 @@ public class IpPoolScheduleService {
                 }
                 // ip池满的就不用添加
                 int validIpSize = getValidIpSize(queue);
-                if (validIpSize >= tunnelInstance.getFixedIpPoolSize()) {
-                    log.warn("IP池已满, 配置数量={}, 有效数量={}, 取消添加", tunnelInstance.getFixedIpPoolSize(), validIpSize);
+                if (validIpSize >= tunnelInstance.getCoreIpSize()) {
+                    log.warn("IP池已满, 配置数量={}, 有效数量={}, 取消添加", tunnelInstance.getCoreIpSize(), validIpSize);
                     continue;
                 }
                 queue.offer(newProxyIp);
             }
             break;
         }
+    }
+
+    public boolean addIp(int num, ConcurrentLinkedQueue<ProxyIp> queue) throws InterruptedException {
+        List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(num, tunnelInitService.getDefaultTunnel());
+        boolean status = false;
+        int count = 0;
+        if (Objects.isNull(data) || data.isEmpty()) {
+            log.error("从代理商获取ip结果为空, 即将重试");
+            return false;
+        }
+        for (ProxyIp newProxyIp : data) {
+            if (isExpired(newProxyIp)) {
+                log.warn("拉取的ip={} 已过期, 时间={}", newProxyIp.getIpAddr(), newProxyIp.getExpireTime());
+                continue;
+            }
+            // 还需要检查ip是否在ip池中重复了
+            if (queue.contains(newProxyIp)) {
+                log.warn("拉取的IP={} 在IP池中已存在，即将重试", newProxyIp.getIpAddr());
+                continue;
+            }
+            queue.offer(newProxyIp);
+            count++;
+        }
+        if (count == data.size()) {
+            status = true;
+        }
+        return status;
+    }
+
+    /**
+     * 随机1个移除ip
+     *
+     * @param queue
+     */
+    public boolean removeIp(int num, ConcurrentLinkedQueue<ProxyIp> queue) {
+        if (queue == null || num <= 0) {
+            return false;
+        }
+        // 随机移除ip
+        // TODO 优化点: 此处剔除成功率最低的一个ip
+        for (int i = 0; i < num; i++) {
+            queue.poll();
+        }
+        return true;
     }
 
     /**

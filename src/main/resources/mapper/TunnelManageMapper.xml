@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.dataeye.proxy.dao.TunnelInitMapper">
-
     <!--column不做限制，可以为任意表的字段，而property须为type 定义的pojo属性-->
     <resultMap id="select_all" type="com.dataeye.proxy.bean.dto.TunnelInstance">
-        <id column="id" jdbcType="INTEGER" property="id" />
+        <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
         <result column="location" jdbcType="VARCHAR" property="location"/>
         <result column="enable" jdbcType="TINYINT" property="enable"/>
@@ -17,7 +16,8 @@
         <result column="concurrency" jdbcType="INTEGER" property="concurrency"/>
         <result column="max_net_bandwidth" jdbcType="INTEGER" property="maxNetBandwidth"/>
         <result column="max_slow_req_size" jdbcType="INTEGER" property="maxSlowReqSize"/>
-        <result column="fixed_ip_pool_size" jdbcType="INTEGER" property="fixedIpPoolSize"/>
+        <result column="core_ip_size" jdbcType="INTEGER" property="coreIpSize"/>
+        <result column="max_ip_size" jdbcType="INTEGER" property="maxIpSize"/>
         <result column="check_ip_pool_interval_seconds" jdbcType="INTEGER" property="checkIpPoolIntervalSeconds"/>
         <result column="min_success_percent_for_remove_ip" jdbcType="INTEGER" property="minSuccessPercentForRemoveIp"/>
         <result column="min_use_times_for_remove_ip" jdbcType="INTEGER" property="minUseTimesForRemoveIp"/>
@@ -32,4 +32,32 @@
     <select id="queryAll" resultMap="select_all">
         SELECT * FROM tunnel_manage
     </select>
+
+    <update id="updateTunnel" parameterType="com.dataeye.proxy.bean.dto.TunnelInstance">
+        update tunnel_manage
+        set location = #{location},
+        enable = #{enable},
+        `domain` = #{domain},
+        port = #{port},
+        username = #{username},
+        password = #{password},
+        boss_thread_size = #{bossThreadSize},
+        worker_thread_size = #{workerThreadSize},
+        concurrency = #{concurrency},
+        max_net_bandwidth = #{maxNetBandwidth},
+        max_slow_req_size = #{maxSlowReqSize},
+        core_ip_size = #{coreIpSize},
+        max_ip_size = #{maxIpSize},
+        check_ip_pool_interval_seconds = #{checkIpPoolIntervalSeconds},
+        min_success_percent_for_remove_ip = #{minSuccessPercentForRemoveIp},
+        min_use_times_for_remove_ip = #{minUseTimesForRemoveIp},
+        max_fetch_ip_num_every_day = #{maxFetchIpNumEveryDay},
+        connect_timeout_millis = #{connectTimeoutMillis},
+        retry_count = #{retryCount},
+        last_modified = #{lastModified},
+        create_time = #{createTime},
+        description = #{description}
+        where alias = #{alias}
+    </update>
+
 </mapper>

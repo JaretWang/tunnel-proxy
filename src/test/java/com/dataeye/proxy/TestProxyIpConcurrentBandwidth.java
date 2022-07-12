@@ -207,35 +207,35 @@ public class TestProxyIpConcurrentBandwidth {
         }
     }
 
-    /**
-     * 测试单次指定并发数
-     *
-     * @param concurrency
-     */
-    void singleConcurrent(int concurrency) throws InterruptedException {
-        ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
-        List<String> resultList = new LinkedList<>();
-
-        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
-        for (int i = 0; i < round; i++) {
-            ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstances.get(0));
-            // 保证测试过程 ip 都在有效期内
-            LocalDateTime expireTime = proxyConfig.getExpireTime();
-            LocalDateTime validTime = LocalDateTime.now().plusMinutes(minIpValidMinute);
-            boolean valid = validTime.isBefore(expireTime);
-            String result = "";
-            if (valid) {
-                result = testConcurrentBandwidth(proxyConfig, concurrency, executorService);
-            } else {
-                System.out.println("ip " + proxyConfig.getRemote() + " 有效期小于" + minIpValidMinute + "分钟，重新拉取");
-            }
-            if (StringUtils.isNotBlank(result)) {
-                resultList.add(result);
-            }
-        }
-        resultList.forEach(System.out::println);
-        executorService.shutdown();
-    }
+//    /**
+//     * 测试单次指定并发数
+//     *
+//     * @param concurrency
+//     */
+//    void singleConcurrent(int concurrency) throws InterruptedException {
+//        ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
+//        List<String> resultList = new LinkedList<>();
+//
+//        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
+//        for (int i = 0; i < round; i++) {
+//            ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstances.get(0));
+//            // 保证测试过程 ip 都在有效期内
+//            LocalDateTime expireTime = proxyConfig.getExpireTime();
+//            LocalDateTime validTime = LocalDateTime.now().plusMinutes(minIpValidMinute);
+//            boolean valid = validTime.isBefore(expireTime);
+//            String result = "";
+//            if (valid) {
+//                result = testConcurrentBandwidth(proxyConfig, concurrency, executorService);
+//            } else {
+//                System.out.println("ip " + proxyConfig.getRemote() + " 有效期小于" + minIpValidMinute + "分钟，重新拉取");
+//            }
+//            if (StringUtils.isNotBlank(result)) {
+//                resultList.add(result);
+//            }
+//        }
+//        resultList.forEach(System.out::println);
+//        executorService.shutdown();
+//    }
 
     void singleConcurrentForYiNiuCloud(int concurrency, ApnProxyRemote proxyConfig, int num, String path) throws InterruptedException, IOException {
         ExecutorService executorService = Executors.newFixedThreadPool(concurrency);

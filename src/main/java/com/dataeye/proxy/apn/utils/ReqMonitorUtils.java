@@ -1,8 +1,10 @@
 package com.dataeye.proxy.apn.utils;
 
 import com.alibaba.fastjson.JSON;
+import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.TunnelInitService;
@@ -10,13 +12,14 @@ import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -27,6 +30,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class ReqMonitorUtils {
 
+    /**
+     * 单位时间内拉取的ip数
+     */
+    public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
@@ -34,14 +41,19 @@ public class ReqMonitorUtils {
     private static final AtomicLong REQ_SIZE = new AtomicLong(0);
     private static final AtomicLong RESP_SIZE = new AtomicLong(0);
     private static final ConcurrentHashMap<String, Integer> ERROR_LIST = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Integer> IP_CONNECT_TIME_OUT = new ConcurrentHashMap<>();
+    //    private static final ConcurrentHashMap<String, Integer> IP_CONNECT_TIME_OUT = new ConcurrentHashMap<>();
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
+    private static final int ERROR_LIST_THRESHOLD = 200;
+    private static final int CHECK_INTERVAL = 5;
+    private static final TimeUnit CHECK_TIME_UNIT = TimeUnit.MINUTES;
 
     @Resource
     IpPoolScheduleService ipPoolScheduleService;
     @Resource
     TunnelInitService tunnelInitService;
+    @Autowired
+    ProxyServerConfig proxyServerConfig;
 
     public static void ok(RequestMonitor requestMonitor, String handler) {
         requestMonitor.setSuccess(true);
@@ -71,6 +83,11 @@ public class ReqMonitorUtils {
                 requestMonitor.getTargetAddr());
         String failReason = requestMonitor.getFailReason();
         if (StringUtils.isNotBlank(failReason)) {
+            // 释放内存,防止错误日志撑爆内存
+            if (ERROR_LIST.size() >= ERROR_LIST_THRESHOLD) {
+                logger.info("错误原因列表(提前打印), size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
+                ERROR_LIST.clear();
+            }
             Integer integer = ERROR_LIST.putIfAbsent(failReason, 1);
             // null 表示之前不存在
             if (integer != null) {
@@ -97,40 +114,42 @@ public class ReqMonitorUtils {
         RESP_SIZE.addAndGet(requestMonitor.getReponseSize().get());
     }
 
-    /**
-     * 检查ip连接超时错误失败次数，超过3次，剔除
-     */
-    void checkIpConnectTimeOutError() {
-        try {
-            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-            // 一段时间内，超时3次就剔除
-            for (Map.Entry<String, Integer> entry : IP_CONNECT_TIME_OUT.entrySet()) {
-                String ip = entry.getKey();
-                Integer count = entry.getValue();
-                int maxErrorCount = defaultTunnel.getRetryCount();
-                if (count >= maxErrorCount) {
-                    logger.warn("ip={} 连接超时次数={}, 大于 {} 次，即将移除", ip, count, maxErrorCount);
-                    IpMonitorUtils.removeHighErrorPercent(ip, defaultTunnel, ipPoolScheduleService);
-                    IP_CONNECT_TIME_OUT.remove(ip);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("检查ip连接超时错误失败, 原因={}", e.getMessage());
-        } finally {
-            IP_CONNECT_TIME_OUT.clear();
-        }
-    }
+//    /**
+//     * 检查ip连接超时错误失败次数，超过3次，剔除
+//     */
+//    void checkIpConnectTimeOutError() {
+//        try {
+//            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+//            // 一段时间内，超时3次就剔除
+//            for (Map.Entry<String, Integer> entry : IP_CONNECT_TIME_OUT.entrySet()) {
+//                String ip = entry.getKey();
+//                Integer count = entry.getValue();
+//                int maxErrorCount = defaultTunnel.getRetryCount();
+//                if (count >= maxErrorCount) {
+//                    logger.warn("ip={} 连接超时次数={}, 大于 {} 次，即将移除", ip, count, maxErrorCount);
+//                    IpMonitorUtils.removeHighErrorPercent(ip, defaultTunnel, ipPoolScheduleService);
+//                    IP_CONNECT_TIME_OUT.remove(ip);
+//                }
+//            }
+//        } catch (Exception e) {
+//            logger.error("检查ip连接超时错误失败, 原因={}", e.getMessage());
+//        } finally {
+//            IP_CONNECT_TIME_OUT.clear();
+//        }
+//    }
 
     @PostConstruct
     public void schedule() {
-        int reqMonitorCheckInterval = 5;
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> reqMonitorTask(reqMonitorCheckInterval), 0, reqMonitorCheckInterval, TimeUnit.MINUTES);
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::reqMonitorTask, 0, CHECK_INTERVAL, CHECK_TIME_UNIT);
         // todo 实际上就是ip的问题，有效时间本身就不能达到30min
 //        int checkIpConnectTimeOutErrorInterval = 10;
 //        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkIpConnectTimeOutError, 0, checkIpConnectTimeOutErrorInterval, TimeUnit.SECONDS);
     }
 
-    void reqMonitorTask(int checkInterval) {
+    void reqMonitorTask() {
         try {
             long okVal = OK_TIMES.longValue();
             long errorVal = ERROR_TIMES.longValue();
@@ -156,7 +175,7 @@ public class ReqMonitorUtils {
                 BigDecimal reqBytes = new BigDecimal(REQ_SIZE.get());
                 BigDecimal respBytes = new BigDecimal(RESP_SIZE.get());
                 BigDecimal unit1 = new BigDecimal(1024 * total);
-                BigDecimal unit2 = new BigDecimal(1024 * checkInterval * 60);
+                BigDecimal unit2 = new BigDecimal(1024 * CHECK_INTERVAL * 60);
 
                 // avg_req_size
                 reqSize = reqBytes.divide(unit1, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
@@ -169,19 +188,107 @@ public class ReqMonitorUtils {
             }
 
             logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
-                    checkInterval, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
+                    CHECK_INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
             logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
 
-            //重置
+            // 动态调整ip数,用以保证成功率
+            adjustIpPoolByDynamicPlan(percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
+            // 重置
             OK_TIMES.set(0);
             ERROR_TIMES.set(0);
             COST_TOTAL.set(0);
             REQ_SIZE.set(0);
             RESP_SIZE.set(0);
             ERROR_LIST.clear();
+            FETCH_IP_NUM_PER_UNIT.set(0);
         } catch (Throwable e) {
             logger.error("ReqMonitorUtils error={}", e.getMessage());
         }
+    }
+
+    /**
+     * 在有限的ip数量之内, 通过动态调整ip池的大小, 尽可能用最少的ip达到更高的成功率
+     * <p>
+     * 把一个大问题化为很多个小问题,再对每个小题求最优解,并保存历史记录,作为下一次计算最优解的数据来源,并再次求得最优解,如此循环往复,就求得了这个大问题的最优解
+     * 动态规划解决方案:
+     * 自上而下：你从最顶端开始不断地分解问题，直到你看到问题已经分解到最小并已得到解决，之后只用返回保存的答案即可。这叫做记忆存储。
+     * 自下而上：你可以直接开始解决较小的子问题，从而获得最好的解决方案。在此过程中，你需要保证在解决问题之前先解决子问题。这可以称为表格填充算法。
+     *
+     * @param realSuccessPercent 真实成功率
+     * @param checkInterval      检查时间间隔,单位:秒
+     * @throws InterruptedException
+     */
+    void adjustIpPoolByDynamicPlan(String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            logger.error("隧道为空");
+            return;
+        }
+        int coreIpSize = defaultTunnel.getCoreIpSize();
+        String alias = defaultTunnel.getAlias();
+        // 单位时间内最多能使用的ip数
+//        int maxIpSize = defaultTunnel.getMaxIpSize();
+        int maxIpSize = getFixedIpSizePerUnitTime(checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay());
+        if (FETCH_IP_NUM_PER_UNIT.get() >= maxIpSize) {
+            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), maxIpSize);
+            return;
+        }
+        int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
+        // 保证该隧道真实有被使用
+        if (coreIpSize <= 0
+                || maxIpSize <= 0
+                || maxIpSize < coreIpSize
+                || minSuccessPercentForRemoveIp <= 0
+                || StringUtils.isBlank(realSuccessPercent)) {
+            logger.error("参数检查异常, coreIpSize={}, maxIpSize={}, minSuccessPercent={}, realSuccessPercent={}",
+                    coreIpSize, maxIpSize, minSuccessPercentForRemoveIp, realSuccessPercent);
+            return;
+        }
+        double realPercent = Double.parseDouble(realSuccessPercent);
+        if (realPercent <= 0) {
+            logger.error("真实请求成功率小于0");
+            return;
+        }
+        ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipPoolScheduleService.getProxyIpPool().get(alias);
+        if (proxyIpPool == null || proxyIpPool.isEmpty()) {
+            logger.error("tunnel={}, ip池为空", alias);
+            return;
+        }
+        // 真实成功率 < 规定成功率,追加ip,保证成功率
+        if (realPercent < minSuccessPercentForRemoveIp) {
+            if (proxyIpPool.size() < maxIpSize) {
+                boolean status = ipPoolScheduleService.addIp(1, proxyIpPool);
+                logger.info("ip调整, 追加ip, status={}, 真实成功率={}, 规定成功率={}, ip池={}, 最大ip数={}",
+                        status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), maxIpSize);
+            }
+        } else {
+            // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip
+            if ((realPercent - minSuccessPercentForRemoveIp) >= 3) {
+                if (proxyIpPool.size() > coreIpSize) {
+                    boolean status = ipPoolScheduleService.removeIp(1, proxyIpPool);
+                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}, 规定成功率={}, 真实百分比超过3个点, ip池={}, 最小ip数={}",
+                            status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取单位时间内可以被支配的ip数
+     *
+     * @param period              ip质量检测时间周期
+     * @param unit                时间单位
+     * @param ipLimitSizeEveryDay 每天最大ip数
+     * @return
+     */
+    int getFixedIpSizePerUnitTime(long period, TimeUnit unit, int ipLimitSizeEveryDay) {
+        if (period <= 0 || unit == null || ipLimitSizeEveryDay <= 0) {
+            return 0;
+        }
+        long oneDay = 24 * 60 * 60;
+        long seconds = unit.toSeconds(period);
+        // 一天的ip平均分配到每个时间段内
+        return (int) ((ipLimitSizeEveryDay / oneDay) * seconds);
     }
 
 }
