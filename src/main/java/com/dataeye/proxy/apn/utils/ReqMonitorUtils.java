@@ -284,12 +284,15 @@ public class ReqMonitorUtils {
      */
     int getFixedIpSizePerUnitTime(long period, TimeUnit unit, int ipLimitSizeEveryDay) {
         if (period <= 0 || unit == null || ipLimitSizeEveryDay <= 0) {
+            logger.error("period={}, ipLimitSizeEveryDay={}", period, ipLimitSizeEveryDay);
             return 0;
         }
         long oneDay = 24 * 60 * 60;
         long seconds = unit.toSeconds(period);
         // 一天的ip平均分配到每个时间段内
-        return (int) ((ipLimitSizeEveryDay / oneDay) * seconds);
+        int avgIp = (int) ((ipLimitSizeEveryDay / oneDay) * seconds);
+        logger.info("ipLimitSizeEveryDay={}, seconds={}, avgIp={}", ipLimitSizeEveryDay, seconds, avgIp);
+        return avgIp;
     }
 
 }
