@@ -69,8 +69,11 @@ public class TestMybatis {
 //        System.out.println("count-->" + count);
 
 
-        String subject = "隧道 youliang IP拉取数量告警";
-        sendMailService.sendMail(subject, getAlarmContent());
+//        String subject = "隧道 youliang IP拉取数量告警";
+//        sendMailService.sendMail(subject, getAlarmContent());
+
+        int surplusIpSize = zhiMaFetchServiceImpl.getSurplusIpSize();
+        System.out.println(surplusIpSize);
     }
 
 

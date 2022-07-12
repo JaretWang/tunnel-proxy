@@ -140,14 +140,19 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (CollectionUtils.isEmpty(tunnelList)) {
             return;
         }
-        TunnelInstance tunnelInstance = tunnelList.get(0);
-        String subject = "隧道 " + tunnelInstance.getAlias() + " IP拉取数量告警";
-        String alarmContent = getAlarmContent(tunnelInstance);
-        sendMailService.sendMail(subject, alarmContent);
-        // 重置
-        IS_SEND_ALARM_EMAIL.compareAndSet(true, false);
-        ALARM_LEVEL.set(0);
-        logger.info("重置发送状态: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
+        try {
+            TunnelInstance tunnelInstance = tunnelList.get(0);
+            String subject = "隧道 " + tunnelInstance.getAlias() + " IP拉取数量告警";
+            String alarmContent = getAlarmContent(tunnelInstance);
+            sendMailService.sendMail(subject, alarmContent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // 重置
+            IS_SEND_ALARM_EMAIL.compareAndSet(true, false);
+            ALARM_LEVEL.set(0);
+            logger.info("重置发送状态: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
+        }
     }
 
     String getAlarmContent(TunnelInstance tunnelInstance) {
@@ -219,17 +224,18 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
         // 套餐每日剩余ip数
         int surplusIpSize = getSurplusIpSize();
-        // 所有隧道当日最少需要ip数之和
-        int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
-                .stream()
-                .mapToInt(tunnel -> getMinNeedIpSize(tunnel.getCoreIpSize()))
-                .sum();
-        // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
-        if (surplusIpSize < allTunnelNeedIpSize) {
-            logger.warn("套餐剩余ip数小于所有隧道的当日最少需要ip数之和 -> 3级告警, surplusIpSize={}, allTunnelNeedIpSize={}", surplusIpSize, allTunnelNeedIpSize);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
-            return 3;
-        }
+        logger.info("surplusIpSize={}", surplusIpSize);
+//        // 所有隧道当日最少需要ip数之和
+//        int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
+//                .stream()
+//                .mapToInt(tunnel -> getMinNeedIpSize(tunnel.getCoreIpSize()))
+//                .sum();
+//        // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
+//        if (surplusIpSize < allTunnelNeedIpSize) {
+//            logger.warn("套餐剩余ip数小于所有隧道的当日最少需要ip数之和 -> 3级告警, surplusIpSize={}, allTunnelNeedIpSize={}", surplusIpSize, allTunnelNeedIpSize);
+//            reduceIpQualityCheckCriteria(3, tunnelInstance);
+//            return 3;
+//        }
         int minNeedIpSize = getMinNeedIpSize(ipPoolSize);
         // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
         if (surplusIpSize < minNeedIpSize) {
@@ -324,7 +330,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      *
      * @return
      */
-    int getSurplusIpSize() {
+    public int getSurplusIpSize() {
         // 获取剩余数量
         String url = zhiMaConfig.getGetRemainIpNumUrl();
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
