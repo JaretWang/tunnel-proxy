@@ -41,6 +41,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * 当前已经拉取的ip数量
      */
     private static final AtomicInteger FETCH_IP_NUM_NOW = new AtomicInteger(0);
+    private static final AtomicInteger SURPLUS_IP_SIZE = new AtomicInteger(0);
     private static final AtomicInteger ALARM_LEVEL = new AtomicInteger(0);
     private static final AtomicBoolean IS_SEND_ALARM_EMAIL = new AtomicBoolean(false);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaFetchServiceImpl");
@@ -194,8 +195,17 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     @Scheduled(cron = "0 0/30 * * * ?")
     void getIpFetchNumNow() {
         logger.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
+        logger.info("套餐每日剩余ip数量={}", SURPLUS_IP_SIZE.get());
+    }
+
+    /**
+     * 更新ip剩余数量
+     */
+    @Scheduled(cron = "0/30 * * * * ?")
+    void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
-        logger.info("套餐每日剩余ip数量={}", surplusIpSize);
+        SURPLUS_IP_SIZE.set(surplusIpSize);
+        logger.info("定时获取套餐ip剩余数量={}", SURPLUS_IP_SIZE.get());
     }
 
     /**
@@ -223,19 +233,19 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             return 0;
         }
         // 套餐每日剩余ip数
-        int surplusIpSize = getSurplusIpSize();
+        int surplusIpSize = SURPLUS_IP_SIZE.get();
         logger.info("surplusIpSize={}", surplusIpSize);
-//        // 所有隧道当日最少需要ip数之和
-//        int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
-//                .stream()
-//                .mapToInt(tunnel -> getMinNeedIpSize(tunnel.getCoreIpSize()))
-//                .sum();
-//        // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
-//        if (surplusIpSize < allTunnelNeedIpSize) {
-//            logger.warn("套餐剩余ip数小于所有隧道的当日最少需要ip数之和 -> 3级告警, surplusIpSize={}, allTunnelNeedIpSize={}", surplusIpSize, allTunnelNeedIpSize);
-//            reduceIpQualityCheckCriteria(3, tunnelInstance);
-//            return 3;
-//        }
+        // 所有隧道当日最少需要ip数之和
+        int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
+                .stream()
+                .mapToInt(tunnel -> getMinNeedIpSize(tunnel.getCoreIpSize()))
+                .sum();
+        // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
+        if (surplusIpSize < allTunnelNeedIpSize) {
+            logger.warn("套餐剩余ip数小于所有隧道的当日最少需要ip数之和 -> 3级告警, surplusIpSize={}, allTunnelNeedIpSize={}", surplusIpSize, allTunnelNeedIpSize);
+            reduceIpQualityCheckCriteria(3, tunnelInstance);
+            return 3;
+        }
         int minNeedIpSize = getMinNeedIpSize(ipPoolSize);
         // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
         if (surplusIpSize < minNeedIpSize) {
