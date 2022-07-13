@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -229,9 +230,9 @@ public class ReqMonitorUtils {
         String alias = defaultTunnel.getAlias();
         // 单位时间内最多能使用的ip数
 //        int maxIpSize = defaultTunnel.getMaxIpSize();
-        int maxIpSize = getFixedIpSizePerUnitTime(checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay());
+        int maxIpSize = getFixedIpSizePerUnitTime(logger, checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay());
         if (FETCH_IP_NUM_PER_UNIT.get() >= maxIpSize) {
-            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), maxIpSize);
+            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 超过阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), maxIpSize);
             return;
         }
         int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
@@ -259,16 +260,23 @@ public class ReqMonitorUtils {
         if (realPercent < minSuccessPercentForRemoveIp) {
             if (proxyIpPool.size() < maxIpSize) {
                 boolean status = ipPoolScheduleService.addIp(1, proxyIpPool);
-                logger.info("ip调整, 追加ip, status={}, 真实成功率={}, 规定成功率={}, ip池={}, 最大ip数={}",
+                logger.info("ip调整, 追加ip, status={}, 真实成功率={}, 规定成功率={}, ip池大小={}, 最大ip数={}",
                         status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), maxIpSize);
+            } else {
+                logger.warn("真实成功率 {}% < 规定成功率 {}%, 但ip池数量{}大于最大阈值{}",
+                        realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), maxIpSize);
             }
         } else {
             // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip
             if ((realPercent - minSuccessPercentForRemoveIp) >= 3) {
+                // 即使减少也不能少于核心ip数
                 if (proxyIpPool.size() > coreIpSize) {
                     boolean status = ipPoolScheduleService.removeIp(1, proxyIpPool);
-                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}, 规定成功率={}, 真实百分比超过3个点, ip池={}, 最小ip数={}",
+                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}, 规定成功率={}, 真实百分比超过3个点, ip池大小={}, 最小ip数={}",
                             status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
+                } else {
+                    logger.info("真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于最小阈值{}",
+                            realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
                 }
             }
         }
@@ -282,15 +290,18 @@ public class ReqMonitorUtils {
      * @param ipLimitSizeEveryDay 每天最大ip数
      * @return
      */
-    int getFixedIpSizePerUnitTime(long period, TimeUnit unit, int ipLimitSizeEveryDay) {
+    int getFixedIpSizePerUnitTime(Logger logger, long period, TimeUnit unit, int ipLimitSizeEveryDay) {
         if (period <= 0 || unit == null || ipLimitSizeEveryDay <= 0) {
-            logger.error("period={}, ipLimitSizeEveryDay={}", period, ipLimitSizeEveryDay);
+            logger.error("params check error, period={}, ipLimitSizeEveryDay={}", period, ipLimitSizeEveryDay);
             return 0;
         }
         long oneDay = 24 * 60 * 60;
         long seconds = unit.toSeconds(period);
+        BigDecimal a = new BigDecimal(ipLimitSizeEveryDay);
+        BigDecimal b = new BigDecimal(oneDay);
+        BigDecimal c = new BigDecimal(seconds);
         // 一天的ip平均分配到每个时间段内
-        int avgIp = (int) ((ipLimitSizeEveryDay / oneDay) * seconds);
+        int avgIp = a.divide(b, 2, RoundingMode.HALF_UP).multiply(c).intValue();
         logger.info("ipLimitSizeEveryDay={}, seconds={}, avgIp={}", ipLimitSizeEveryDay, seconds, avgIp);
         return avgIp;
     }
