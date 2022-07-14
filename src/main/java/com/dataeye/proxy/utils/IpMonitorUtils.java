@@ -4,9 +4,9 @@ import com.dataeye.proxy.apn.bean.IpMonitor;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.TunnelInitService;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +33,8 @@ public class IpMonitorUtils {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
 
-    @Resource
-    IpPoolScheduleService ipPoolScheduleService;
+    @Autowired
+    IpSelector ipSelector;
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
@@ -123,9 +123,9 @@ public class IpMonitorUtils {
     /**
      * 从ip池移除高错误率的ip
      */
-    public static void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpPoolScheduleService ipPoolScheduleService) throws InterruptedException {
+    public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpSelector ipSelector) throws InterruptedException {
         String tunnelName = tunnelInstance.getAlias();
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
             // 在ip池中剔除
             log.warn("ip={} 成功率低于 {}%, 即将从IP池中移除", ip, tunnelInstance.getMinSuccessPercentForRemoveIp());
@@ -138,7 +138,7 @@ public class IpMonitorUtils {
                     String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个新 ip
-                    ipPoolScheduleService.checkBeforeUpdate(ipPool, tunnelInstance, 1);
+                    ipSelector.addFixedIp(ipPool, tunnelInstance, 1);
                     return;
                 }
             }
@@ -148,6 +148,33 @@ public class IpMonitorUtils {
         }
         log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
     }
+
+
+//    public static void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpPoolScheduleService ipPoolScheduleService) throws InterruptedException {
+//        String tunnelName = tunnelInstance.getAlias();
+//        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipPoolScheduleService.getProxyIpPool();
+//        if (proxyIpPool.containsKey(tunnelName)) {
+//            // 在ip池中剔除
+//            log.warn("ip={} 成功率低于 {}%, 即将从IP池中移除", ip, tunnelInstance.getMinSuccessPercentForRemoveIp());
+//            String ipStr = ip.split(":")[0];
+//            int port = Integer.parseInt(ip.split(":")[1]);
+//            ConcurrentLinkedQueue<ProxyIp> ipPool = proxyIpPool.get(tunnelName);
+//            for (ProxyIp item : ipPool) {
+//                if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
+//                    item.getValid().set(false);
+//                    String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
+//                    log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
+//                    // 移除完之后，再添加一个新 ip
+//                    ipPoolScheduleService.checkBeforeUpdate(ipPool, tunnelInstance, 1);
+//                    return;
+//                }
+//            }
+//            // ip池中不存在该ip,就应该移除对该ip的监控
+//            log.warn("移除ip失败, ip池中不存在该ip={}, 即将移除对该ip的监控记录", ip);
+//            return;
+//        }
+//        log.error("移除ip失败, 隧道 {} 不存在", tunnelName);
+//    }
 
     /**
      * ip监控列表，定时任务
@@ -208,7 +235,7 @@ public class IpMonitorUtils {
                         if (percentValue < tunnelInstance.getMinSuccessPercentForRemoveIp() && useTimes.intValue() >= tunnelInstance.getMinUseTimesForRemoveIp()) {
                             log.warn("剔除ip={}, 最低成功率限制={}%, 实际成功率={}%, 最小使用次数限制={}, 实际使用次数={}",
                                     ip, tunnelInstance.getMinSuccessPercentForRemoveIp(), percentValue, tunnelInstance.getMinUseTimesForRemoveIp(), useTimes.intValue());
-                            removeHighErrorPercent(ip, tunnelInstance, ipPoolScheduleService);
+                            removeHighErrorPercent(ip, tunnelInstance, ipSelector);
                             // 移除监控记录
                             IP_MONITOR_MAP.remove(ip);
                         } else {

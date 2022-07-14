@@ -1,5 +1,6 @@
 package com.dataeye.proxy.apn;
 
+import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.apn.bean.ApnHandlerParams;
 import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
@@ -73,7 +74,6 @@ public class ApnProxyServer {
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(tunnelInstances.size(), "tunnel_create_");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(() -> startProxyServer(instance)));
-        System.out.println("根据配置参数共启动 " + tunnelInstances.size() + " 个隧道server");
     }
 
     /**
@@ -141,7 +141,7 @@ public class ApnProxyServer {
                 .childOption(ChannelOption.TCP_NODELAY, true);
         try {
             ChannelFuture future = serverBootstrap.bind().sync();
-            System.out.println("隧道服务 [" + alias + "] 启动成功, port=" + port);
+            System.out.println("隧道启动成功, 配置参数=" + System.lineSeparator() + JSON.toJSONString(tunnelInstance, true));
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             e.printStackTrace();

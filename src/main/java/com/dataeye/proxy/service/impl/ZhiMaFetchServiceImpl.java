@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
@@ -44,9 +45,12 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     private static final AtomicInteger SURPLUS_IP_SIZE = new AtomicInteger(0);
     private static final AtomicInteger ALARM_LEVEL = new AtomicInteger(0);
     private static final AtomicBoolean IS_SEND_ALARM_EMAIL = new AtomicBoolean(false);
+    private static final AtomicBoolean FIRST_SEND = new AtomicBoolean(true);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaFetchServiceImpl");
     @Resource
     ZhiMaConfig zhiMaConfig;
+    @Autowired
+    IpSelector ipSelector;
     @Autowired
     SendMailService sendMailService;
     @Resource
@@ -124,13 +128,17 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (alarmLevel > 0) {
             ALARM_LEVEL.set(alarmLevel);
             IS_SEND_ALARM_EMAIL.set(true);
+            if (FIRST_SEND.get()) {
+                sendAlarmEmail();
+                FIRST_SEND.set(false);
+            }
             logger.info("告警等级大于0: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
         }
         return FETCH_IP_NUM_NOW.get() >= tunnelInstance.getMaxFetchIpNumEveryDay();
     }
 
     /**
-     * 发送告警邮件(每5分钟检查并发送一次)
+     * 发送告警邮件
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     void sendAlarmEmail() {
@@ -145,6 +153,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             TunnelInstance tunnelInstance = tunnelList.get(0);
             String subject = "隧道 " + tunnelInstance.getAlias() + " IP拉取数量告警";
             String alarmContent = getAlarmContent(tunnelInstance);
+            logger.warn("告警邮件: subject={}, content={}", subject, alarmContent);
+            if (tunnelInstance.getSendAlarmEmail() == 0) {
+                return;
+            }
             sendMailService.sendMail(subject, alarmContent);
         } catch (Exception e) {
             e.printStackTrace();
@@ -187,6 +199,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         logger.info("芝麻代理 - 重置当日累计拉取的ip数量为0");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
+        ALARM_LEVEL.set(0);
+        SURPLUS_IP_SIZE.set(0);
+        FIRST_SEND.set(true);
     }
 
     /**
@@ -227,6 +242,46 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * @return
      */
     int getAlarmLevel(int currentFetchIpSize, TunnelInstance tunnelInstance) {
+        int ipPoolSize = ipSelector.getCoreIpSize(logger, tunnelInstance);
+        int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
+        if (currentFetchIpSize <= 0 || ipPoolSize <= 0 || maxIpLimit <= 0) {
+            return 0;
+        }
+        // 套餐每日剩余ip数
+        int surplusIpSize = SURPLUS_IP_SIZE.get();
+        int minNeedIpSize = getMinNeedIpSize(ipPoolSize);
+        // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
+        if (surplusIpSize < minNeedIpSize) {
+            logger.warn("套餐剩余ip数小于该隧道当日最少需要的ip数 -> 3级告警, surplusIpSize={}, minNeedIpSize={}", surplusIpSize, minNeedIpSize);
+            reduceIpQualityCheckCriteria(3, tunnelInstance);
+            return 3;
+        }
+        // 已经拉取的ip数量达到最大容错数 -> 3级告警
+        int thirdLevel = maxIpLimit - minNeedIpSize;
+        if (currentFetchIpSize >= thirdLevel) {
+            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
+            reduceIpQualityCheckCriteria(3, tunnelInstance);
+            return 3;
+        }
+        // ip使用数达到总限制数 70%
+        double firstLevel = maxIpLimit * 0.7;
+        if (currentFetchIpSize >= firstLevel) {
+            logger.warn("ip使用数达到总限制数 70% -> 1级告警, currentFetchIpSize={}, firstLevel={}", currentFetchIpSize, firstLevel);
+            reduceIpQualityCheckCriteria(1, tunnelInstance);
+            return 1;
+        }
+        // ip使用数达到总限制数 80%
+        double secondLevel = maxIpLimit * 0.8;
+        if (currentFetchIpSize >= secondLevel) {
+            logger.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
+            reduceIpQualityCheckCriteria(2, tunnelInstance);
+            return 2;
+        }
+        return 0;
+    }
+
+    @Deprecated
+    int getAlarmLevel1(int currentFetchIpSize, TunnelInstance tunnelInstance) {
         int ipPoolSize = tunnelInstance.getCoreIpSize();
         int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
         if (currentFetchIpSize <= 0 || ipPoolSize <= 0 || maxIpLimit <= 0) {
@@ -237,7 +292,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         // 所有隧道当日最少需要ip数之和
         int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
                 .stream()
-                .mapToInt(tunnel -> getMinNeedIpSize(tunnel.getCoreIpSize()))
+                .mapToInt(tunnel -> getMinNeedIpSize(tunnelInstance.getCoreIpSize()))
                 .sum();
         // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
         if (surplusIpSize < allTunnelNeedIpSize) {
@@ -359,6 +414,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             return 0;
         }
         return data.getIntValue("package_balance");
+    }
+
+    public int getFetchIpSize() {
+        return FETCH_IP_NUM_NOW.get();
     }
 
 }

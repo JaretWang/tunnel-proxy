@@ -1,20 +1,21 @@
 package com.dataeye.proxy.manage;
 
 import com.dataeye.proxy.TunnelProxyApplication;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
-import com.dataeye.proxy.utils.TimeUtils;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
 import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jaret
@@ -26,32 +27,36 @@ import java.util.StringJoiner;
 @ComponentScan(basePackages = "com.dataeye.proxy")
 public class TestMybatis {
 
-    public static final TunnelInstance TUNNEL_INSTANCE = TunnelInstance.builder()
-            .alias("youliang")
-            .location("localhost")
-            .enable(1)
-            .domain("127.0.0.1")
-            .port(21332)
-            .username("dataeye")
-            .password("dataeye++123")
-            .bossThreadSize(1)
-            .workerThreadSize(10)
-            .concurrency(100)
-            .maxNetBandwidth(4)
-            .maxSlowReqSize(3)
-            .coreIpSize(3)
-            .maxIpSize(10)
-            .checkIpPoolIntervalSeconds(5)
-            .minSuccessPercentForRemoveIp(50)
-            .minUseTimesForRemoveIp(100)
-            .maxFetchIpNumEveryDay(5000)
-            .connectTimeoutMillis(10000)
-            .retryCount(3)
-            .lastModified(TimeUtils.formatLocalDate(LocalDateTime.now()))
-            .createTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
-            .description("优量")
-            .build();
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
 
+//    public static final TunnelInstance TUNNEL_INSTANCE = TunnelInstance.builder()
+//            .alias("youliang")
+//            .location("localhost")
+//            .enable(1)
+//            .domain("127.0.0.1")
+//            .port(21332)
+//            .username("dataeye")
+//            .password("dataeye++123")
+//            .bossThreadSize(1)
+//            .workerThreadSize(10)
+//            .concurrency(100)
+//            .maxNetBandwidth(4)
+//            .maxSlowReqSize(3)
+//            .coreIpSize(3)
+//            .maxIpSize(10)
+//            .checkIpPoolIntervalSeconds(5)
+//            .minSuccessPercentForRemoveIp(50)
+//            .minUseTimesForRemoveIp(100)
+//            .maxFetchIpNumEveryDay(5000)
+//            .connectTimeoutMillis(10000)
+//            .retryCount(3)
+//            .lastModified(TimeUtils.formatLocalDate(LocalDateTime.now()))
+//            .createTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
+//            .description("优量")
+//            .build();
+
+    @Autowired
+    ReqMonitorUtils reqMonitorUtils;
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Resource
@@ -60,7 +65,7 @@ public class TestMybatis {
     TunnelInitService tunnelInitService;
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException {
 //        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
 //        log.warn(JSON.toJSONString(tunnelInstances));
 
@@ -72,8 +77,10 @@ public class TestMybatis {
 //        String subject = "隧道 youliang IP拉取数量告警";
 //        sendMailService.sendMail(subject, getAlarmContent());
 
-        int surplusIpSize = zhiMaFetchServiceImpl.getSurplusIpSize();
-        System.out.println(surplusIpSize);
+//        int surplusIpSize = zhiMaFetchServiceImpl.getSurplusIpSize();
+//        System.out.println(surplusIpSize);
+
+        reqMonitorUtils.dynamicAdjustIpPool(logger,"87.23",5, TimeUnit.MINUTES);
     }
 
 

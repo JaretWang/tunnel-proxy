@@ -26,9 +26,17 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private String location;
     /**
-     * 是否开启隧道
+     * 是否开启隧道 0关闭 1开启
      */
     private int enable;
+    /**
+     * 是否发送告警邮件 0不发送 1发送
+     */
+    private int sendAlarmEmail;
+    /**
+     * 是否使用自动计算核心ip数  0不使用 1使用
+     */
+    private int autoGetCoreIpSize;
     /**
      * 隧道域名地址
      */

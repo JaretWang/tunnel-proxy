@@ -12,7 +12,7 @@ import com.dataeye.proxy.apn.utils.ApnProxySSLContextFactory;
 import com.dataeye.proxy.apn.utils.HttpErrorUtils;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.service.IpPoolScheduleService;
+import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
@@ -30,9 +30,9 @@ import okhttp3.Headers;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import javax.net.ssl.SSLEngine;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -50,8 +50,8 @@ public class RequestDistributeService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
-    @Resource
-    IpPoolScheduleService ipPoolScheduleService;
+    @Autowired
+    IpSelector ipSelector;
 
     public HttpRequest constructReqForCommon(HttpRequest httpRequest,
                                              ApnProxyRemote apnProxyRemote) {
@@ -427,7 +427,8 @@ public class RequestDistributeService {
                     } else {
                         // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                         String errorMsg;
-                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
+//                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
+                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipSelector.getProxyIpPool().get(tunnelInstance.getAlias());
                         if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                             errorMsg = "forward_handler连接代理IP失败, ip=" + remoteAddr + ", 具体原因: ip池为空";
                         } else {

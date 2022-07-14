@@ -4,10 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.service.IpPoolScheduleService;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,27 +31,24 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class ReqMonitorUtils {
 
-    /**
-     * 单位时间内拉取的ip数
-     */
-    public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
+    public static final int ERROR_LIST_THRESHOLD = 200;
+    public static final int CHECK_INTERVAL = 1;
+    public static final TimeUnit CHECK_TIME_UNIT = TimeUnit.MINUTES;
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
     private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
+    public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
     private static final AtomicLong REQ_SIZE = new AtomicLong(0);
     private static final AtomicLong RESP_SIZE = new AtomicLong(0);
     private static final ConcurrentHashMap<String, Integer> ERROR_LIST = new ConcurrentHashMap<>();
-    //    private static final ConcurrentHashMap<String, Integer> IP_CONNECT_TIME_OUT = new ConcurrentHashMap<>();
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
-    private static final int ERROR_LIST_THRESHOLD = 200;
-    private static final int CHECK_INTERVAL = 5;
-    private static final TimeUnit CHECK_TIME_UNIT = TimeUnit.MINUTES;
-
-    @Resource
-    IpPoolScheduleService ipPoolScheduleService;
+    @Autowired
+    ZhiMaFetchServiceImpl zhiMaFetchService;
+    @Autowired
+    IpSelector ipSelector;
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
@@ -95,14 +92,6 @@ public class ReqMonitorUtils {
             if (integer != null) {
                 ERROR_LIST.put(failReason, ++integer);
             }
-//            // 记录超时错误
-//            if (failReason.contains("Failed to connect to") || failReason.contains("connect timed out")) {
-//                String proxyAddr = requestMonitor.getProxyAddr();
-//                Integer count = IP_CONNECT_TIME_OUT.putIfAbsent(proxyAddr, 1);
-//                if (count != null) {
-//                    IP_CONNECT_TIME_OUT.put(proxyAddr, ++count);
-//                }
-//            }
         }
         // 不用加安全机制，因为在handler是线程安全的
         boolean success = requestMonitor.isSuccess();
@@ -116,39 +105,12 @@ public class ReqMonitorUtils {
         RESP_SIZE.addAndGet(requestMonitor.getReponseSize().get());
     }
 
-//    /**
-//     * 检查ip连接超时错误失败次数，超过3次，剔除
-//     */
-//    void checkIpConnectTimeOutError() {
-//        try {
-//            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-//            // 一段时间内，超时3次就剔除
-//            for (Map.Entry<String, Integer> entry : IP_CONNECT_TIME_OUT.entrySet()) {
-//                String ip = entry.getKey();
-//                Integer count = entry.getValue();
-//                int maxErrorCount = defaultTunnel.getRetryCount();
-//                if (count >= maxErrorCount) {
-//                    logger.warn("ip={} 连接超时次数={}, 大于 {} 次，即将移除", ip, count, maxErrorCount);
-//                    IpMonitorUtils.removeHighErrorPercent(ip, defaultTunnel, ipPoolScheduleService);
-//                    IP_CONNECT_TIME_OUT.remove(ip);
-//                }
-//            }
-//        } catch (Exception e) {
-//            logger.error("检查ip连接超时错误失败, 原因={}", e.getMessage());
-//        } finally {
-//            IP_CONNECT_TIME_OUT.clear();
-//        }
-//    }
-
     @PostConstruct
     public void schedule() {
         if (!proxyServerConfig.isEnable()) {
             return;
         }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::reqMonitorTask, 0, CHECK_INTERVAL, CHECK_TIME_UNIT);
-        // todo 实际上就是ip的问题，有效时间本身就不能达到30min
-//        int checkIpConnectTimeOutErrorInterval = 10;
-//        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkIpConnectTimeOutError, 0, checkIpConnectTimeOutErrorInterval, TimeUnit.SECONDS);
     }
 
     void reqMonitorTask() {
@@ -193,8 +155,8 @@ public class ReqMonitorUtils {
                     CHECK_INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
             logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
 
-            // 动态调整ip数,用以保证成功率
-            adjustIpPoolByDynamicPlan(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
+            // 动态调整ip数,保证成功率
+            dynamicAdjustIpPool(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
             // 重置
             OK_TIMES.set(0);
             ERROR_TIMES.set(0);
@@ -220,90 +182,64 @@ public class ReqMonitorUtils {
      * @param checkInterval      检查时间间隔,单位:秒
      * @throws InterruptedException
      */
-    void adjustIpPoolByDynamicPlan(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
+    public void dynamicAdjustIpPool(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         if (defaultTunnel == null) {
-            logger.error("隧道为空");
+            logger.error("隧道为空, 放弃动态调整");
             return;
         }
-        int coreIpSize = defaultTunnel.getCoreIpSize();
         String alias = defaultTunnel.getAlias();
         // 单位时间内最多能使用的ip数
-//        int maxIpSize = defaultTunnel.getMaxIpSize();
-        int maxIpSize = getFixedIpSizePerUnitTime(logger, checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay());
-        if (FETCH_IP_NUM_PER_UNIT.get() >= maxIpSize) {
-            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 超过阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), maxIpSize);
+        int availableIp = ipSelector.getAvailableIpPerUnitTime(logger, checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay(), zhiMaFetchService.getFetchIpSize());
+        int coreIpSize = ipSelector.getCoreIpSize(defaultTunnel, availableIp);
+        if (FETCH_IP_NUM_PER_UNIT.get() >= availableIp) {
+            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 超过阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), availableIp);
             return;
         }
         int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
         // 保证该隧道真实有被使用
         if (coreIpSize <= 0
-                || maxIpSize <= 0
-                || maxIpSize < coreIpSize
+                || availableIp <= 0
                 || minSuccessPercentForRemoveIp <= 0
                 || StringUtils.isBlank(realSuccessPercent)) {
-            logger.error("参数检查异常, coreIpSize={}, maxIpSize={}, minSuccessPercent={}, realSuccessPercent={}",
-                    coreIpSize, maxIpSize, minSuccessPercentForRemoveIp, realSuccessPercent);
+            logger.error("参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}, realSuccessPercent={}, 放弃动态调整",
+                    coreIpSize, availableIp, minSuccessPercentForRemoveIp, realSuccessPercent);
             return;
         }
         double realPercent = Double.parseDouble(realSuccessPercent);
         if (realPercent <= 0) {
-            logger.error("真实请求成功率小于0");
+            logger.error("真实请求成功率小于0, 放弃动态调整");
             return;
         }
-        ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipPoolScheduleService.getProxyIpPool().get(alias);
+        ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipSelector.getProxyIpPool().get(alias);
         if (proxyIpPool == null || proxyIpPool.isEmpty()) {
-            logger.error("tunnel={}, ip池为空", alias);
+            logger.error("tunnel={}, ip池为空, 放弃动态调整", alias);
             return;
         }
         // 真实成功率 < 规定成功率,追加ip,保证成功率
         if (realPercent < minSuccessPercentForRemoveIp) {
-            if (proxyIpPool.size() < maxIpSize) {
-                boolean status = ipPoolScheduleService.addIp(1, proxyIpPool);
-                logger.info("ip调整, 追加ip, status={}, 真实成功率={}, 规定成功率={}, ip池大小={}, 最大ip数={}",
-                        status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), maxIpSize);
+            if (proxyIpPool.size() < availableIp) {
+                boolean status = ipSelector.addFixedIp(proxyIpPool, defaultTunnel, 1);
+                logger.info("ip调整, 追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 最大ip数={}",
+                        status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIp);
             } else {
-                logger.warn("真实成功率 {}% < 规定成功率 {}%, 但ip池数量{}大于最大阈值{}",
-                        realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), maxIpSize);
+                logger.warn("真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于最大阈值{}, 放弃动态调整",
+                        realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIp);
             }
         } else {
             // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip
             if ((realPercent - minSuccessPercentForRemoveIp) >= 3) {
                 // 即使减少也不能少于核心ip数
                 if (proxyIpPool.size() > coreIpSize) {
-                    boolean status = ipPoolScheduleService.removeIp(1, proxyIpPool);
-                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}, 规定成功率={}, 真实百分比超过3个点, ip池大小={}, 最小ip数={}",
+                    boolean status = ipSelector.removeFixedIp(1, proxyIpPool);
+                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 最小ip数={}",
                             status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
                 } else {
-                    logger.info("真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于最小阈值{}",
+                    logger.info("真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于最小阈值{}, 放弃动态调整",
                             realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
                 }
             }
         }
-    }
-
-    /**
-     * 获取单位时间内可以被支配的ip数
-     *
-     * @param period              ip质量检测时间周期
-     * @param unit                时间单位
-     * @param ipLimitSizeEveryDay 每天最大ip数
-     * @return
-     */
-    int getFixedIpSizePerUnitTime(Logger logger, long period, TimeUnit unit, int ipLimitSizeEveryDay) {
-        if (period <= 0 || unit == null || ipLimitSizeEveryDay <= 0) {
-            logger.error("params check error, period={}, ipLimitSizeEveryDay={}", period, ipLimitSizeEveryDay);
-            return 0;
-        }
-        long oneDay = 24 * 60 * 60;
-        long seconds = unit.toSeconds(period);
-        BigDecimal a = new BigDecimal(ipLimitSizeEveryDay);
-        BigDecimal b = new BigDecimal(oneDay);
-        BigDecimal c = new BigDecimal(seconds);
-        // 一天的ip平均分配到每个时间段内
-        int avgIp = a.divide(b, 2, RoundingMode.HALF_UP).multiply(c).intValue();
-        logger.info("ipLimitSizeEveryDay={}, seconds={}, avgIp={}", ipLimitSizeEveryDay, seconds, avgIp);
-        return avgIp;
     }
 
 }

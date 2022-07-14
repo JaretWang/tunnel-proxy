@@ -1,8 +1,18 @@
 package com.dataeye.proxy;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.io.FileUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * @author jaret
@@ -11,49 +21,48 @@ import java.util.Map;
  */
 public class TestErrorCauseStatistics {
 
-    public static void main(String[] args) {
-        String json = "{\n" +
-                "    \"Failed to connect to /27.191.26.49:4241\":64,\n" +
-                "    \"Failed to connect to /183.165.224.135:4245\":1,\n" +
-                "    \"Failed to connect to /218.6.106.25:4213\":76,\n" +
-                "    \"Failed to connect to /122.4.52.250:4264\":47,\n" +
-                "    \"ok http send fail, code=403, reason=Not Allowed For api\\n\":2,\n" +
-                "    \"Failed to connect to /123.189.209.98:4213\":3,\n" +
-                "    \"Failed to connect to /42.177.141.211:4285\":5,\n" +
-                "    \"Read timed out\":66,\n" +
-                "    \"Failed to connect to /117.26.88.126:4237\":44,\n" +
-                "    \"Failed to connect to /113.241.138.164:4213\":33,\n" +
-                "    \"unexpected end of stream on http://pangolin.snssdk.com/...\":279,\n" +
-                "    \"connect timed out\":4137,\n" +
-                "    \"Failed to connect to /121.206.5.175:4232\":82,\n" +
-                "    \"Failed to connect to /113.218.238.34:4231\":3,\n" +
-                "    \"Failed to connect to /121.205.215.179:4213\":18,\n" +
-                "    \"Failed to connect to /1.195.204.38:4267\":19,\n" +
-                "    \"unexpected end of stream\":35,\n" +
-                "    \"Failed to connect to /125.87.82.202:4278\":4,\n" +
-                "    \"Failed to connect to /120.42.188.65:4212\":30,\n" +
-                "    \"unexpected end of stream on http://api-access.pangolin-sdk-toutiao-b.com/...\":16,\n" +
-                "    \"Connection reset\":171,\n" +
-                "    \"Failed to connect to /175.0.112.122:4231\":3,\n" +
-                "    \"timeout\":9663,\n" +
-                "    \"Failed to connect to /110.85.169.11:4226\":29,\n" +
-                "    \"Failed to connect to /222.77.214.195:4206\":16,\n" +
-                "    \"unexpected end of stream on http://is.snssdk.com/...\":1,\n" +
-                "    \"Failed to connect to /117.27.24.227:4225\":78,\n" +
-                "    \"Failed to connect to /117.92.124.142:4213\":37,\n" +
-                "    \"ok http send fail, code=502, reason=\\r\\n\\r\\n502 Bad Gateway\\r\\n\\r\\n502 Bad Gateway\\r\\nPowered by dsa-nginxtengine\\r\\n\\r\\n\\r\\n\":5,\n" +
-                "    \"Failed to connect to /114.99.1.249:4225\":4,\n" +
-                "    \"ok http send fail, code=401, reason=ip:39.108.108.148 Auth Failed\":2622,\n" +
-                "    \"Failed to connect to /113.237.186.36:4213\":3,\n" +
-                "    \"Failed to connect to /175.147.119.170:4285\":19,\n" +
-                "    \"unexpected end of stream on http://api-access.pangolin-sdk-toutiao.com/...\":104,\n" +
-                "    \"Failed to connect to /183.165.251.150:4254\":41,\n" +
-                "    \"Failed to connect to /27.148.204.19:4213\":2,\n" +
-                "    \"Failed to connect to /121.206.143.145:4213\":9,\n" +
-                "    \"Failed to connect to /106.116.212.182:4241\":52\n" +
-                "}";
-        JSONObject result = parseErrorList(json);
-        System.out.println("5 min内,错误列表=" + result.toJSONString());
+    public static void main(String[] args) throws IOException {
+        String media_plan = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\media_plan.txt";
+        String media_name = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\media_name.txt";
+        HashMap<String, String> plan = get(media_plan);
+        System.out.println("plan-->" + plan.size());
+        HashMap<String, String> name = get(media_name);
+        System.out.println("name-->" + name.size());
+        HashMap<String, AtomicInteger> map = new HashMap<>();
+        plan.forEach((k, v) -> {
+            AtomicInteger value = new AtomicInteger(Integer.parseInt(v));
+            if (name.containsKey(k)) {
+                String str = name.getOrDefault(k, "");
+                map.put(str, value);
+            } else {
+                map.put(k, value);
+            }
+        });
+        System.out.println("map-->" + map.size());
+        System.out.println(JSON.toJSONString(sortMapByDesc(map)));
+    }
+
+    public static LinkedHashMap<String, AtomicInteger> sortMapByDesc(Map<String, AtomicInteger> productNameCount) {
+        if (productNameCount == null || productNameCount.isEmpty()) {
+            return new LinkedHashMap<>(0);
+        }
+        return productNameCount.entrySet().stream()
+                .sorted((entry1, entry2) -> entry2.getValue().get() - entry1.getValue().get())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+    }
+
+    public static HashMap<String, String> get(String file) throws IOException {
+        HashMap<String, String> map = new HashMap<>();
+        List<String> lines = FileUtils.readLines(new File(file), StandardCharsets.UTF_8);
+        for (String line : lines) {
+            String[] split = line.split("\\s");
+            if (split.length == 2) {
+                String media = split[0].trim();
+                String count = split[1].trim();
+                map.put(media, count);
+            }
+        }
+        return map;
     }
 
     static JSONObject parseErrorList(String json) {
