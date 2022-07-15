@@ -98,6 +98,10 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private int maxFetchIpNumEveryDay;
     /**
+     * 每日已经消耗的ip数(防止程序重启后重置)
+     */
+    private int usedIp;
+    /**
      * 代理ip连接的超时时间，单位：毫秒
      */
     private int connectTimeoutMillis;
@@ -117,5 +121,13 @@ public class TunnelInstance implements Serializable, Cloneable {
      * 描述备注信息
      */
     private String description;
+
+    /**
+     * 获取每日剩余可用ip数
+     * @return
+     */
+    public int getAvailableIp() {
+        return maxFetchIpNumEveryDay - usedIp;
+    }
 
 }

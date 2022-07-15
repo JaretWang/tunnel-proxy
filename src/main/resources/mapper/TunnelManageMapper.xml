@@ -24,6 +24,7 @@
         <result column="min_success_percent_for_remove_ip" jdbcType="INTEGER" property="minSuccessPercentForRemoveIp"/>
         <result column="min_use_times_for_remove_ip" jdbcType="INTEGER" property="minUseTimesForRemoveIp"/>
         <result column="max_fetch_ip_num_every_day" jdbcType="INTEGER" property="maxFetchIpNumEveryDay"/>
+        <result column="used_ip" jdbcType="INTEGER" property="usedIp"/>
         <result column="connect_timeout_millis" jdbcType="INTEGER" property="connectTimeoutMillis"/>
         <result column="retry_count" jdbcType="INTEGER" property="retryCount"/>
         <result column="last_modified" jdbcType="TIMESTAMP" property="lastModified"/>
@@ -39,6 +40,8 @@
         update tunnel_manage
         set location = #{location},
         enable = #{enable},
+        send_alarm_email = #{sendAlarmEmail},
+        auto_get_core_ip_size = #{autoGetCoreIpSize},
         `domain` = #{domain},
         port = #{port},
         username = #{username},
@@ -54,6 +57,7 @@
         min_success_percent_for_remove_ip = #{minSuccessPercentForRemoveIp},
         min_use_times_for_remove_ip = #{minUseTimesForRemoveIp},
         max_fetch_ip_num_every_day = #{maxFetchIpNumEveryDay},
+        used_ip = #{usedIp},
         connect_timeout_millis = #{connectTimeoutMillis},
         retry_count = #{retryCount},
         last_modified = #{lastModified},

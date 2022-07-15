@@ -80,7 +80,7 @@ public class TestMybatis {
 //        int surplusIpSize = zhiMaFetchServiceImpl.getSurplusIpSize();
 //        System.out.println(surplusIpSize);
 
-        reqMonitorUtils.dynamicAdjustIpPool(logger,"87.23",5, TimeUnit.MINUTES);
+        reqMonitorUtils.dynamicAdjustIpPool(logger,"87.23",1, TimeUnit.MINUTES);
     }
 
 

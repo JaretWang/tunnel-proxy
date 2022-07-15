@@ -46,6 +46,19 @@ public class IpSelector {
     @Resource
     TunnelInitService tunnelInitService;
 
+    public static void main(String[] args) {
+        TunnelInstance tunnelInstance = TunnelInstance.builder()
+                .autoGetCoreIpSize(1)
+                .maxFetchIpNumEveryDay(10000)
+                .usedIp(6236)
+                .build();
+        IpSelector ipSelector = new IpSelector();
+        for (int i = 1440; i > 0; i--) {
+            int coreIpSize = ipSelector.getCoreIpSize(log, tunnelInstance, 1, TimeUnit.MINUTES);
+            System.out.println(coreIpSize);
+        }
+    }
+
     @PostConstruct
     public void init() {
         if (!proxyServerConfig.isEnable()) {
@@ -126,12 +139,21 @@ public class IpSelector {
     public boolean addFixedIp(ConcurrentLinkedQueue<ProxyIp> queue,
                               TunnelInstance tunnelInstance,
                               int needIpSize) throws InterruptedException {
+        // 检查ip拉取是否已经超过单位时间内的最大值
+        int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
+        int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
+        if (fetchIpPerUnit >= availableIpPerUnitTime) {
+            log.warn("单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", fetchIpPerUnit, availableIpPerUnitTime);
+            return false;
+        }
+
         // 先检查，从代理商拉取的ip可能马上或者已经过期
-        int realCount = 0, expired = 0, exist = 0;
+        int realCount = 0, expired = 0, exist = 0, empty = 0;
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
             List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(needIpSize, tunnelInstance);
             if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空, 即将重试");
+                empty++;
                 continue;
             }
             for (ProxyIp newProxyIp : data) {
@@ -147,13 +169,14 @@ public class IpSelector {
                     exist++;
                     continue;
                 }
-                queue.offer(newProxyIp);
                 realCount++;
+                queue.offer(newProxyIp);
             }
             break;
         }
         if (realCount < needIpSize) {
-            log.warn("ip补充不完全, needIpSize={}, realCount={}, expired={}, exist={}", needIpSize, realCount, expired, exist);
+            log.warn("ip补充不完全, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
+                    needIpSize, realCount, expired, exist, empty);
             return false;
         }
         return true;
@@ -244,16 +267,16 @@ public class IpSelector {
     /**
      * 获取每个格子（最小检查单位时间）可用的ip数（动态的）
      *
-     * @param logger              日志
-     * @param period              检查时间间隔
-     * @param unit                时间单位
-     * @param ipLimitSizeEveryDay 每日拉取ip数限制(不能低于24*60)
-     * @param usedIpSize          已经拉取的ip数 (唯一在变化的参数)
+     * @param logger 日志
+     * @param period 检查时间间隔
+     * @param unit   时间单位
      * @return
      */
-    public int getAvailableIpPerUnitTime(Logger logger, long period, TimeUnit unit, int ipLimitSizeEveryDay, int usedIpSize) {
-        if (period <= 0 || unit == null || ipLimitSizeEveryDay <= 0) {
-            logger.error("params check error, period={}, ipLimitSizeEveryDay={}", period, ipLimitSizeEveryDay);
+    public int getAvailableIpPerUnitTime(Logger logger, long period, TimeUnit unit, TunnelInstance tunnelInstance) {
+        int maxFetchIpNumEveryDay = tunnelInstance.getMaxFetchIpNumEveryDay();
+        int availableIp = tunnelInstance.getAvailableIp();
+        if (period <= 0 || unit == null || availableIp <= 0 || maxFetchIpNumEveryDay <= 0) {
+            logger.error("params check error, period={}, maxFetchIpNumEveryDay={}, availableIp={}", period, maxFetchIpNumEveryDay, availableIp);
             return 0;
         }
         // 当日已经过去的分钟数
@@ -262,10 +285,10 @@ public class IpSelector {
         int oneDayMin = 24 * 60;
         // 一天剩余分钟数
         int surplusMinEachDay = oneDayMin - passedMin;
-//        if (surplusMinEachDay > ipLimitSizeEveryDay) {
-//            log.error("ip限制总数小于一天剩余分钟数,表示每个格子(最小时间一分钟)的可用ip只有0和1");
+//        if (surplusMinEachDay > availableIp) {
+//            log.error("可用ip数小于一天剩余分钟数,表示每个格子(最小时间一分钟)的可用ip只有0和1");
 //            // 不写成1的话 就会返回0
-//            return 1;
+//            return 0;
 //        }
         // 检查时间间隔
         long check = unit.toMinutes(period);
@@ -274,37 +297,42 @@ public class IpSelector {
         long remainingGrids = surplusMinEachDay / check;
 //        int remainingGrids = new BigDecimal(surplusMinEachDay).divide(new BigDecimal(check), 2, RoundingMode.HALF_UP).intValue();
 
-        // 剩余可用ip数
-        int surplusIpSize = ipLimitSizeEveryDay - usedIpSize;
-//        if (remainingGrids > surplusIpSize) {
+//        // 剩余可用ip数不够
+//        if (remainingGrids > availableIp) {
 //            log.error("剩余ip数小于格子数,表示每个格子的可用ip只有0和1");
 //            // 不写成1的话 就会返回0
-//            return 1;
+//            return 0;
 //        }
 
         // 每个格子拥有的ip数
-        int ipPerGrids = (int) (surplusIpSize / remainingGrids);
+        int ipPerGrids = (int) (availableIp / remainingGrids);
 //        int ipPerGrids = new BigDecimal(surplusIpSize).divide(new BigDecimal(remainingGrids), 2, RoundingMode.HALF_UP).intValue();
-        logger.info("每日拉取ip数限制={}, 剩余可用ip数={}, 每个格子的可用ip数={}", ipLimitSizeEveryDay, surplusIpSize, ipPerGrids);
+        logger.info("每日ip数限制={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, availableIp, ipPerGrids);
         return ipPerGrids;
     }
 
+    public int getAvailableIpPerUnitTime(Logger logger, TunnelInstance tunnelInstance) {
+        return getAvailableIpPerUnitTime(logger, ReqMonitorUtils.CHECK_INTERVAL, ReqMonitorUtils.CHECK_TIME_UNIT, tunnelInstance);
+    }
+
     public int getCoreIpSize(Logger logger, TunnelInstance tunnelInstance) {
-        int fetchIpSize = zhiMaFetchServiceImpl.getFetchIpSize();
-        return getCoreIpSize(logger, tunnelInstance, ReqMonitorUtils.CHECK_INTERVAL, ReqMonitorUtils.CHECK_TIME_UNIT, fetchIpSize);
+        return getCoreIpSize(logger, tunnelInstance, ReqMonitorUtils.CHECK_INTERVAL, ReqMonitorUtils.CHECK_TIME_UNIT);
     }
 
     public int getCoreIpSize(TunnelInstance tunnelInstance, int availableIp) {
+        if (availableIp <= 0) {
+            return 0;
+        }
         int coreIpSize;
-        // 小于等于0 使用自动计算核心ip数
+        // 正数1 -> 使用自动计算核心ip数
         if (tunnelInstance.getAutoGetCoreIpSize() > 0) {
             // 取20%的ip作为阈值
-            coreIpSize = new BigDecimal(availableIp).divide(new BigDecimal(2), 2, RoundingMode.HALF_UP).multiply(new BigDecimal("0.2")).intValue();
+            coreIpSize = new BigDecimal(availableIp).divide(new BigDecimal(2), 2, RoundingMode.HALF_UP).intValue();
         } else {
             // 否则使用数据库中手动配置的ip数,一般为2
             coreIpSize = tunnelInstance.getCoreIpSize();
         }
-        // 防止一个都没有
+        // 防止ip池一个都没有
         if (coreIpSize <= 0) {
             coreIpSize = 1;
         }
@@ -314,13 +342,11 @@ public class IpSelector {
     /**
      * 获取ip池核心数(动态)
      *
-     * @param logger     日志
-     * @param usedIpSize 已经使用的IP数
+     * @param logger 日志
      * @return
      */
-    public int getCoreIpSize(Logger logger, TunnelInstance tunnelInstance, long period, TimeUnit unit, int usedIpSize) {
-        int ipLimitSizeEveryDay = tunnelInstance.getMaxFetchIpNumEveryDay();
-        int availableIp = getAvailableIpPerUnitTime(logger, period, unit, ipLimitSizeEveryDay, usedIpSize);
+    public int getCoreIpSize(Logger logger, TunnelInstance tunnelInstance, long period, TimeUnit unit) {
+        int availableIp = getAvailableIpPerUnitTime(logger, period, unit, tunnelInstance);
         return getCoreIpSize(tunnelInstance, availableIp);
     }
 

@@ -34,9 +34,9 @@ public class ReqMonitorUtils {
     public static final int ERROR_LIST_THRESHOLD = 200;
     public static final int CHECK_INTERVAL = 1;
     public static final TimeUnit CHECK_TIME_UNIT = TimeUnit.MINUTES;
+    public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
     private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
-    public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
@@ -157,6 +157,9 @@ public class ReqMonitorUtils {
 
             // 动态调整ip数,保证成功率
             dynamicAdjustIpPool(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT);
+        } catch (Throwable e) {
+            logger.error("ReqMonitorUtils error={}", e.getMessage());
+        } finally {
             // 重置
             OK_TIMES.set(0);
             ERROR_TIMES.set(0);
@@ -165,8 +168,6 @@ public class ReqMonitorUtils {
             RESP_SIZE.set(0);
             ERROR_LIST.clear();
             FETCH_IP_NUM_PER_UNIT.set(0);
-        } catch (Throwable e) {
-            logger.error("ReqMonitorUtils error={}", e.getMessage());
         }
     }
 
@@ -183,32 +184,42 @@ public class ReqMonitorUtils {
      * @throws InterruptedException
      */
     public void dynamicAdjustIpPool(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit) throws InterruptedException {
+        if (StringUtils.isBlank(realSuccessPercent)) {
+            logger.error("realSuccessPercent is empty, quit");
+            return;
+        }
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         if (defaultTunnel == null) {
             logger.error("隧道为空, 放弃动态调整");
             return;
         }
+
         String alias = defaultTunnel.getAlias();
         // 单位时间内最多能使用的ip数
-        int availableIp = ipSelector.getAvailableIpPerUnitTime(logger, checkInterval, unit, defaultTunnel.getMaxFetchIpNumEveryDay(), zhiMaFetchService.getFetchIpSize());
-        int coreIpSize = ipSelector.getCoreIpSize(defaultTunnel, availableIp);
-        if (FETCH_IP_NUM_PER_UNIT.get() >= availableIp) {
-            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 超过阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), availableIp);
+        int availableIpPerUnitTime = ipSelector.getAvailableIpPerUnitTime(logger, checkInterval, unit, defaultTunnel);
+        if (availableIpPerUnitTime <= 0) {
+            logger.error("没有可用ip, 放弃动态调整");
             return;
         }
-        int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
+        int coreIpSize = ipSelector.getCoreIpSize(defaultTunnel, availableIpPerUnitTime);
+        if (coreIpSize <= 0) {
+            logger.error("核心ip数小于等于0, 放弃动态调整");
+            return;
+        }
+        if (FETCH_IP_NUM_PER_UNIT.get() >= availableIpPerUnitTime) {
+            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 大于等于阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), availableIpPerUnitTime);
+            return;
+        }
         // 保证该隧道真实有被使用
-        if (coreIpSize <= 0
-                || availableIp <= 0
-                || minSuccessPercentForRemoveIp <= 0
-                || StringUtils.isBlank(realSuccessPercent)) {
+        int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
+        if (minSuccessPercentForRemoveIp <= 0) {
             logger.error("参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}, realSuccessPercent={}, 放弃动态调整",
-                    coreIpSize, availableIp, minSuccessPercentForRemoveIp, realSuccessPercent);
+                    coreIpSize, availableIpPerUnitTime, minSuccessPercentForRemoveIp, realSuccessPercent);
             return;
         }
         double realPercent = Double.parseDouble(realSuccessPercent);
         if (realPercent <= 0) {
-            logger.error("真实请求成功率小于0, 放弃动态调整");
+            logger.error("真实请求成功率小于等于0, 放弃动态调整");
             return;
         }
         ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipSelector.getProxyIpPool().get(alias);
@@ -218,13 +229,15 @@ public class ReqMonitorUtils {
         }
         // 真实成功率 < 规定成功率,追加ip,保证成功率
         if (realPercent < minSuccessPercentForRemoveIp) {
-            if (proxyIpPool.size() < availableIp) {
+            // 不能用ip池数量作为判断依据,因为是动态变化的,可能一段时间过期大量ip,导致判断小于可用ip数,然后一直追加
+//            if (proxyIpPool.size() < availableIpPerUnitTime) {
+            if (FETCH_IP_NUM_PER_UNIT.get() < availableIpPerUnitTime) {
                 boolean status = ipSelector.addFixedIp(proxyIpPool, defaultTunnel, 1);
-                logger.info("ip调整, 追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 最大ip数={}",
-                        status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIp);
+                logger.info("ip调整, 追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许IP数={}",
+                        status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             } else {
-                logger.warn("真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于最大阈值{}, 放弃动态调整",
-                        realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIp);
+                logger.warn("真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许IP数{}, 放弃动态调整",
+                        realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             }
         } else {
             // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip

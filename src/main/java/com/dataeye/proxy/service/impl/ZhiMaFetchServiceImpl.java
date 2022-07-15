@@ -47,6 +47,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     private static final AtomicBoolean IS_SEND_ALARM_EMAIL = new AtomicBoolean(false);
     private static final AtomicBoolean FIRST_SEND = new AtomicBoolean(true);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaFetchServiceImpl");
+    /**
+     * 是否开启降低请求成功率
+     */
+    private static final boolean ENABLE_REDUCE_REQ_SUCCESS_PERCENT = false;
     @Resource
     ZhiMaConfig zhiMaConfig;
     @Autowired
@@ -124,7 +128,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * @return 是否超过限制
      */
     public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance) {
-        int alarmLevel = getAlarmLevel(FETCH_IP_NUM_NOW.get(), tunnelInstance);
+        int alarmLevel = getAlarmLevel(ENABLE_REDUCE_REQ_SUCCESS_PERCENT, tunnelInstance);
         if (alarmLevel > 0) {
             ALARM_LEVEL.set(alarmLevel);
             IS_SEND_ALARM_EMAIL.set(true);
@@ -134,7 +138,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             }
             logger.info("告警等级大于0: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
         }
-        return FETCH_IP_NUM_NOW.get() >= tunnelInstance.getMaxFetchIpNumEveryDay();
+        return tunnelInstance.getAvailableIp() <= 0;
     }
 
     /**
@@ -172,7 +176,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         String content = new StringJoiner(", ")
                 .add("隧道=" + tunnelInstance.getAlias())
                 .add("告警等级=" + ALARM_LEVEL.get() + "级")
-                .add("已拉取ip数=" + FETCH_IP_NUM_NOW.get())
+                .add("已拉取ip数=" + tunnelInstance.getUsedIp())
                 .add("每日最大拉取ip数限制=" + tunnelInstance.getMaxFetchIpNumEveryDay()).toString();
         String alarmRule = new StringJoiner(System.lineSeparator())
                 .add("告警规则:")
@@ -214,13 +218,23 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     }
 
     /**
-     * 更新ip剩余数量
+     * 更新套餐ip剩余数量和使用量
      */
-    @Scheduled(cron = "0/30 * * * * ?")
+    @Scheduled(cron = "0/5 * * * * ?")
     void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
         SURPLUS_IP_SIZE.set(surplusIpSize);
         logger.info("定时获取套餐ip剩余数量={}", SURPLUS_IP_SIZE.get());
+        try {
+            //更新数据库ip已经拉取的数量
+            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+            TunnelInstance newTunnel = new TunnelInstance();
+            BeanUtils.copyProperties(defaultTunnel, newTunnel, TunnelInstance.class);
+            newTunnel.setUsedIp(FETCH_IP_NUM_NOW.get());
+            tunnelInitService.updateTunnel(newTunnel);
+        } catch (Exception e) {
+            logger.error("更新已经拉取的ip数异常", e);
+        }
     }
 
     /**
@@ -238,95 +252,45 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * ip使用数达到最大容错ip数 -> 3级告警 (主动降低移除ip的最低成功率为0%, 即完全取消劣质ip剔除规则, 只根据ip是否过期来剔除)
      * 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警 (主动降低移除ip的最低成功率为0%, 即完全取消劣质ip剔除规则, 只根据ip是否过期来剔除)
      *
-     * @param currentFetchIpSize 当前已经拉取ip数
      * @return
      */
-    int getAlarmLevel(int currentFetchIpSize, TunnelInstance tunnelInstance) {
-        int ipPoolSize = ipSelector.getCoreIpSize(logger, tunnelInstance);
+    int getAlarmLevel(boolean enableReduceIpQualityCheck, TunnelInstance tunnelInstance) {
+        int currentFetchIpSize = tunnelInstance.getUsedIp();
+        int coreIpSize = ipSelector.getCoreIpSize(logger, tunnelInstance);
+        // 告警等级应该是在总的限制之上做比对,所以不用剩余可用ip数: getAvailableIp()
         int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
-        if (currentFetchIpSize <= 0 || ipPoolSize <= 0 || maxIpLimit <= 0) {
+        if (currentFetchIpSize <= 0 || coreIpSize <= 0 || maxIpLimit <= 0) {
             return 0;
         }
         // 套餐每日剩余ip数
         int surplusIpSize = SURPLUS_IP_SIZE.get();
-        int minNeedIpSize = getMinNeedIpSize(ipPoolSize);
+        int minNeedIpSize = getMinNeedIpSize(coreIpSize);
         // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
         if (surplusIpSize < minNeedIpSize) {
             logger.warn("套餐剩余ip数小于该隧道当日最少需要的ip数 -> 3级告警, surplusIpSize={}, minNeedIpSize={}", surplusIpSize, minNeedIpSize);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
+            reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 3, tunnelInstance);
             return 3;
         }
-        // 已经拉取的ip数量达到最大容错数 -> 3级告警
-        int thirdLevel = maxIpLimit - minNeedIpSize;
-        if (currentFetchIpSize >= thirdLevel) {
-            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
-            return 3;
+//        // 已经拉取的ip数量达到最大容错数 -> 3级告警
+//        int thirdLevel = maxIpLimit - minNeedIpSize;
+//        if (currentFetchIpSize >= thirdLevel) {
+//            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
+//            reduceIpQualityCheckCriteria(3, tunnelInstance);
+//            return 3;
+//        }
+        // ip使用数达到总限制数 80%
+        double secondLevel = maxIpLimit * 0.8;
+        if (currentFetchIpSize >= secondLevel) {
+            logger.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
+            reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 2, tunnelInstance);
+            return 2;
         }
         // ip使用数达到总限制数 70%
         double firstLevel = maxIpLimit * 0.7;
         if (currentFetchIpSize >= firstLevel) {
             logger.warn("ip使用数达到总限制数 70% -> 1级告警, currentFetchIpSize={}, firstLevel={}", currentFetchIpSize, firstLevel);
-            reduceIpQualityCheckCriteria(1, tunnelInstance);
+            reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 1, tunnelInstance);
             return 1;
-        }
-        // ip使用数达到总限制数 80%
-        double secondLevel = maxIpLimit * 0.8;
-        if (currentFetchIpSize >= secondLevel) {
-            logger.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
-            reduceIpQualityCheckCriteria(2, tunnelInstance);
-            return 2;
-        }
-        return 0;
-    }
-
-    @Deprecated
-    int getAlarmLevel1(int currentFetchIpSize, TunnelInstance tunnelInstance) {
-        int ipPoolSize = tunnelInstance.getCoreIpSize();
-        int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
-        if (currentFetchIpSize <= 0 || ipPoolSize <= 0 || maxIpLimit <= 0) {
-            return 0;
-        }
-        // 套餐每日剩余ip数
-        int surplusIpSize = SURPLUS_IP_SIZE.get();
-        // 所有隧道当日最少需要ip数之和
-        int allTunnelNeedIpSize = tunnelInitService.getAllUsedTunnel()
-                .stream()
-                .mapToInt(tunnel -> getMinNeedIpSize(tunnelInstance.getCoreIpSize()))
-                .sum();
-        // 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警
-        if (surplusIpSize < allTunnelNeedIpSize) {
-            logger.warn("套餐剩余ip数小于所有隧道的当日最少需要ip数之和 -> 3级告警, surplusIpSize={}, allTunnelNeedIpSize={}", surplusIpSize, allTunnelNeedIpSize);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
-            return 3;
-        }
-        int minNeedIpSize = getMinNeedIpSize(ipPoolSize);
-        // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
-        if (surplusIpSize < minNeedIpSize) {
-            logger.warn("套餐剩余ip数小于该隧道当日最少需要的ip数 -> 3级告警, surplusIpSize={}, minNeedIpSize={}", surplusIpSize, minNeedIpSize);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
-            return 3;
-        }
-        // 已经拉取的ip数量达到最大容错数 -> 3级告警
-        int thirdLevel = maxIpLimit - minNeedIpSize;
-        if (currentFetchIpSize >= thirdLevel) {
-            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
-            reduceIpQualityCheckCriteria(3, tunnelInstance);
-            return 3;
-        }
-        // ip使用数达到总限制数 70%
-        double firstLevel = maxIpLimit * 0.7;
-        if (currentFetchIpSize >= firstLevel) {
-            logger.warn("ip使用数达到总限制数 70% -> 1级告警, currentFetchIpSize={}, firstLevel={}", currentFetchIpSize, firstLevel);
-            reduceIpQualityCheckCriteria(1, tunnelInstance);
-            return 1;
-        }
-        // ip使用数达到总限制数 80%
-        double secondLevel = maxIpLimit * 0.8;
-        if (currentFetchIpSize >= secondLevel) {
-            logger.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
-            reduceIpQualityCheckCriteria(2, tunnelInstance);
-            return 2;
         }
         return 0;
     }
@@ -352,7 +316,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * @param alarmLevel     告警等级
      * @param tunnelInstance 隧道实例
      */
-    void reduceIpQualityCheckCriteria(int alarmLevel, TunnelInstance tunnelInstance) {
+    void reduceIpQualityCheckCriteria(boolean enable, int alarmLevel, TunnelInstance tunnelInstance) {
+        if (!enable) {
+            logger.info("关闭降低ip质量判定标准策略");
+            return;
+        }
         int minSuccessPercent = tunnelInstance.getMinSuccessPercentForRemoveIp();
         int minUseTimes = tunnelInstance.getMinUseTimesForRemoveIp();
         if (alarmLevel < 1 || alarmLevel > 3) {
@@ -381,7 +349,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
     }
 
-    public TunnelInstance buildNewTunnelInstance(TunnelInstance ti, int rate, int useTimes) {
+    TunnelInstance buildNewTunnelInstance(TunnelInstance ti, int rate, int useTimes) {
         TunnelInstance newTunnel = new TunnelInstance();
         BeanUtils.copyProperties(ti, newTunnel, TunnelInstance.class);
         newTunnel.setMinSuccessPercentForRemoveIp(rate);
@@ -390,7 +358,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     }
 
     /**
-     * 获取剩余IP数
+     * 获取套餐剩余IP数
      *
      * @return
      */
@@ -414,10 +382,6 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             return 0;
         }
         return data.getIntValue("package_balance");
-    }
-
-    public int getFetchIpSize() {
-        return FETCH_IP_NUM_NOW.get();
     }
 
 }
