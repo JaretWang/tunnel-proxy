@@ -134,7 +134,7 @@ public class IpSelector {
      * @param needIpSize     需要的ip数
      * @throws InterruptedException
      */
-    public boolean addFixedIp(String pos, ConcurrentLinkedQueue<ProxyIp> queue,
+    public boolean addFixedIp(String addReason, ConcurrentLinkedQueue<ProxyIp> queue,
                               TunnelInstance tunnelInstance,
                               int needIpSize) throws InterruptedException {
         boolean status = false;
@@ -142,7 +142,7 @@ public class IpSelector {
         int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
         int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
         if (fetchIpPerUnit >= availableIpPerUnitTime) {
-            log.warn("位置={}, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", pos, fetchIpPerUnit, availableIpPerUnitTime);
+            log.warn("添加原因={}, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
             return status;
         }
 
@@ -176,8 +176,8 @@ public class IpSelector {
         if (realCount >= needIpSize) {
             status = true;
         }
-        log.warn("位置={}, ip补充数量是否足够={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
-                pos, status, needIpSize, realCount, expired, exist, empty);
+        log.warn("添加原因={}, enough={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
+                addReason, status, needIpSize, realCount, expired, exist, empty);
         return status;
     }
 
@@ -189,6 +189,7 @@ public class IpSelector {
 
     /**
      * 首次初始化ip池
+     * bug fixed: 增加初始化加载标志位,防止被多个netty线程并发调用
      *
      * @param tunnelInstance
      * @throws InterruptedException

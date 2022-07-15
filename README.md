@@ -1153,9 +1153,9 @@ netstat -anpt | grep "CLOSE_WAIT" | wc -l
 
 ------------------- ip动态规划 ------------------------------
 tail -f adx-dynamic-adjust-ip.log | grep 'dynamicAdjustIpPool'
-# addFixedIp() 添加ip之前检查
-cat adx-IpSelector.log | grep '单位时间内拉取的ip数' | tail -10
-cat adx-IpSelector.log | grep 'ip补充不完全' | tail -10
+# 查看追加ip的位置和原因
+cat adx-IpSelector.log | grep 'addFixedIp' | tail -10
+tail -f adx-IpSelector.log | grep 'addFixedIp' | tail -10
 ```
 
 

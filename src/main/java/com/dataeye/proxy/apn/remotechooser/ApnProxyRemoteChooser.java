@@ -69,23 +69,20 @@ public class ApnProxyRemoteChooser {
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
         ConcurrentLinkedQueue<ProxyIp> proxyCfgsQueue = proxyIpPool.get(proxyServer);
         if (Objects.isNull(proxyCfgsQueue)) {
-            ipSelector.initQueue(tunnelInstance);
+            logger.error("queue is not exist");
+            Thread.sleep(1500L);
             return getProxyConfig(tunnelInstance);
         }
         ProxyIp poll = proxyCfgsQueue.poll();
         if (Objects.isNull(poll)) {
-            try {
-                Thread.sleep(1000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            logger.error("从队列中poll出来的ip为空");
+            logger.error("the ip from queue is null");
+            Thread.sleep(1500L);
             return getProxyConfig(tunnelInstance);
         }
         // 只取有效的
         boolean valid = poll.getValid().get();
         if (!valid) {
-            logger.info("ip={} 已失效, 即将被移除", poll.getIpAddr());
+            logger.info("ip={} is invalid and will be removed", poll.getIpAddr());
             return getProxyConfig(tunnelInstance);
         }
 
