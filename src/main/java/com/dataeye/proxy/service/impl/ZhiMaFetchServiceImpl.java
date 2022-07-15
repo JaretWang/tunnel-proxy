@@ -224,14 +224,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
         SURPLUS_IP_SIZE.set(surplusIpSize);
-        logger.info("定时获取套餐ip剩余数量={}", SURPLUS_IP_SIZE.get());
+        logger.info("套餐剩余ip数={}, 已拉取ip数={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get());
         try {
             //更新数据库ip已经拉取的数量
-            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-            TunnelInstance newTunnel = new TunnelInstance();
-            BeanUtils.copyProperties(defaultTunnel, newTunnel, TunnelInstance.class);
-            newTunnel.setUsedIp(FETCH_IP_NUM_NOW.get());
-            tunnelInitService.updateTunnel(newTunnel);
+            tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), FETCH_IP_NUM_NOW.get());
         } catch (Exception e) {
             logger.error("更新已经拉取的ip数异常", e);
         }
@@ -342,8 +338,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (alarmLevel == 3) {
             useTimes = minUseTimes;
         }
-        TunnelInstance newTunnel = buildNewTunnelInstance(tunnelInstance, rate, useTimes);
-        int count = tunnelInitService.updateTunnel(newTunnel);
+        int count = tunnelInitService.updateSuccessRate(tunnelInstance.getAlias(), rate, useTimes);
         if (count == 0) {
             logger.error("更新隧道配置失败");
         }

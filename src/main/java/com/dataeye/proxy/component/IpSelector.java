@@ -49,14 +49,12 @@ public class IpSelector {
     public static void main(String[] args) {
         TunnelInstance tunnelInstance = TunnelInstance.builder()
                 .autoGetCoreIpSize(1)
-                .maxFetchIpNumEveryDay(10000)
-                .usedIp(6236)
+                .maxFetchIpNumEveryDay(20000)
+                .usedIp(88)
                 .build();
         IpSelector ipSelector = new IpSelector();
-        for (int i = 1440; i > 0; i--) {
-            int coreIpSize = ipSelector.getCoreIpSize(log, tunnelInstance, 1, TimeUnit.MINUTES);
-            System.out.println(coreIpSize);
-        }
+        int availableIpPerUnitTime = ipSelector.getAvailableIpPerUnitTime(log, 1, TimeUnit.MINUTES, tunnelInstance);
+        System.out.println(availableIpPerUnitTime);
     }
 
     @PostConstruct

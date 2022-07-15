@@ -213,7 +213,7 @@ public class ReqMonitorUtils {
         // 保证该隧道真实有被使用
         int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
         if (minSuccessPercentForRemoveIp <= 0) {
-            logger.error("参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}, realSuccessPercent={}, 放弃动态调整",
+            logger.error("参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}%, realSuccessPercent={}%, 放弃动态调整",
                     coreIpSize, availableIpPerUnitTime, minSuccessPercentForRemoveIp, realSuccessPercent);
             return;
         }

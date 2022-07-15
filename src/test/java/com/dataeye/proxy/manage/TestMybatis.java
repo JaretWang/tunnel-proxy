@@ -15,7 +15,6 @@ import org.springframework.context.annotation.ComponentScan;
 
 import javax.annotation.Resource;
 import java.util.StringJoiner;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author jaret
@@ -80,7 +79,10 @@ public class TestMybatis {
 //        int surplusIpSize = zhiMaFetchServiceImpl.getSurplusIpSize();
 //        System.out.println(surplusIpSize);
 
-        reqMonitorUtils.dynamicAdjustIpPool(logger,"87.23",1, TimeUnit.MINUTES);
+//        reqMonitorUtils.dynamicAdjustIpPool(logger,"87.23",1, TimeUnit.MINUTES);
+
+        tunnelInitService.updateUsedIp("youliang", 123);
+        tunnelInitService.updateSuccessRate("youliang", 11, 22);
     }
 
 

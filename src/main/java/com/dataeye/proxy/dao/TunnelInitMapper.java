@@ -2,6 +2,7 @@ package com.dataeye.proxy.dao;
 
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -22,9 +23,20 @@ public interface TunnelInitMapper {
 
     /**
      * 更新隧道参数
+     *
      * @param tunnelInstance
      * @return
      */
     int updateTunnel(TunnelInstance tunnelInstance);
+
+    /**
+     * 更新已拉取ip数
+     *
+     * @param usedIp
+     * @return
+     */
+    int updateUsedIp(@Param("alias") String alias, @Param("usedIp") int usedIp);
+
+    int updateSuccessRate(@Param("alias") String alias, @Param("rate") int rate, @Param("useTimes") int useTimes);
 
 }

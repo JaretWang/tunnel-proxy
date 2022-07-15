@@ -36,6 +36,16 @@
         SELECT * FROM tunnel_manage
     </select>
 
+    <update id="updateUsedIp">
+        update tunnel_manage set used_ip = #{usedIp} where alias = #{alias}
+    </update>
+
+    <update id="updateSuccessRate">
+        update tunnel_manage
+        set min_success_percent_for_remove_ip = #{rate}, min_use_times_for_remove_ip = #{useTimes}
+        where alias = #{alias}
+    </update>
+
     <update id="updateTunnel" parameterType="com.dataeye.proxy.bean.dto.TunnelInstance">
         update tunnel_manage
         set location = #{location},

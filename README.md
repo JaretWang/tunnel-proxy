@@ -1150,6 +1150,9 @@ tail -f adx-IpPoolScheduleService.log | grep "tunnel="
 ------------------- 查看机器总的tcp连接状态数 ------------------------------
 netstat -anpt | wc -l
 netstat -anpt | grep "CLOSE_WAIT" | wc -l
+
+------------------- ip动态规划 ------------------------------
+tail -f adx-dynamic-adjust-ip.log | grep 'dynamicAdjustIpPool'
 ```
 
 
@@ -1220,7 +1223,7 @@ cat adx-IpMonitorUtils.log | grep "ip=" | grep -E '^\[2022-04-24 1[1-9]' | awk -
 
 
 
-## 请求监控脚本
+## 监控脚本
 
 ```shell
 #!/bin/bash
@@ -1235,22 +1238,7 @@ net_conn=`netstat -ant | wc -l`
 echo "net_conn=$net_conn"
 ```
 
-## jstack监控脚本
 
-```shell
-#!/bin/bash
-sudo su deuser
-project="tunnel-proxy"
-PID=`ps -ef | grep $project | grep 'java -jar' | awk -F ' ' '{print$2}'`
-top -b -n 1 -Hp ${PID} | head -50 > /home/deuser/top-${PID}.txt
-/usr/local/jdk1.8.0_321/bin/jstack ${PID} > /home/deuser/jstack-${PID}.txt
-#cat /home/deuser/jstack-${PID}.txt | grep '#' | awk -F ' ' '{print$1$2}' | awk -F '#' '{print$1}' |  awk -F '-' '{print$1}' | sort | uniq -c | sort -rn
-cat /home/deuser/jstack-${PID}.txt | grep '#' | awk -F ' ' '{print$1$2}'
-```
-
-
-
-# 问题
 
 # 隧道配置
 

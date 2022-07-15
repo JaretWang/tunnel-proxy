@@ -156,4 +156,12 @@ public class TunnelInitService {
         return tunnelInitMapper.updateTunnel(tunnelInstance);
     }
 
+    public int updateSuccessRate(String tunnelName, int rate, int useTimes) {
+        return tunnelInitMapper.updateSuccessRate(tunnelName, rate, useTimes);
+    }
+
+    public int updateUsedIp(String tunnelName, int num) {
+        return tunnelInitMapper.updateUsedIp(tunnelName, num);
+    }
+
 }
