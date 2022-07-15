@@ -113,7 +113,7 @@ public class IpSelector {
                 ip.getValid().set(false);
                 log.info("ip={} 即将过期或已经过期，移除", ip.getIpAddrWithTime());
                 // 放一个新的ip进去
-                addFixedIp(queue, tunnelInstance, 1);
+                addFixedIp("ipCheck: ip过期追加", queue, tunnelInstance, 1);
             }
         }
         // 如果queue中的有效ip数低于最小阈值,则需要继续添加
@@ -122,7 +122,7 @@ public class IpSelector {
         if (validIpSize < coreIpSize) {
             log.warn("ip池数量低于最小阈值, 补充ip, validIpSize={}, coreIpSize={}", validIpSize, coreIpSize);
             int size = coreIpSize - validIpSize;
-            addFixedIp(queue, tunnelInstance, size);
+            addFixedIp("ipCheck: ip池数量低于最小阈值", queue, tunnelInstance, size);
         }
     }
 
@@ -134,15 +134,16 @@ public class IpSelector {
      * @param needIpSize     需要的ip数
      * @throws InterruptedException
      */
-    public boolean addFixedIp(ConcurrentLinkedQueue<ProxyIp> queue,
+    public boolean addFixedIp(String pos, ConcurrentLinkedQueue<ProxyIp> queue,
                               TunnelInstance tunnelInstance,
                               int needIpSize) throws InterruptedException {
+        boolean status = false;
         // 检查ip拉取是否已经超过单位时间内的最大值
         int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
         int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
         if (fetchIpPerUnit >= availableIpPerUnitTime) {
-            log.warn("单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", fetchIpPerUnit, availableIpPerUnitTime);
-            return false;
+            log.warn("位置={}, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", pos, fetchIpPerUnit, availableIpPerUnitTime);
+            return status;
         }
 
         // 先检查，从代理商拉取的ip可能马上或者已经过期
@@ -172,18 +173,18 @@ public class IpSelector {
             }
             break;
         }
-        if (realCount < needIpSize) {
-            log.warn("ip补充不完全, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
-                    needIpSize, realCount, expired, exist, empty);
-            return false;
+        if (realCount >= needIpSize) {
+            status = true;
         }
-        return true;
+        log.warn("位置={}, ip补充数量是否足够={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
+                pos, status, needIpSize, realCount, expired, exist, empty);
+        return status;
     }
 
     public boolean addIp(TunnelInstance tunnelInstance, int needSize) throws InterruptedException {
         String alias = tunnelInstance.getAlias();
         ConcurrentLinkedQueue<ProxyIp> queue = proxyIpPool.get(alias);
-        return addFixedIp(queue, tunnelInstance, needSize);
+        return addFixedIp("addIp", queue, tunnelInstance, needSize);
     }
 
     /**
@@ -209,7 +210,7 @@ public class IpSelector {
         }
         ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
         log.warn("初始化隧道 {} 的ip池, 核心ip数={}", tunnelInstance.getAlias(), coreIpSize);
-        addFixedIp(queue, tunnelInstance, coreIpSize);
+        addFixedIp("initQueue: 初始化添加", queue, tunnelInstance, coreIpSize);
         proxyIpPool.put(tunnel, queue);
     }
 
