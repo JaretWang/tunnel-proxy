@@ -122,6 +122,7 @@ public class IpMonitorUtils {
 
     /**
      * 从ip池移除高错误率的ip
+     * ps: 应该是移除优先级队列队尾的元素
      */
     public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpSelector ipSelector) throws InterruptedException {
         String tunnelName = tunnelInstance.getAlias();

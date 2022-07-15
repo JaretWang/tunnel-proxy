@@ -1156,6 +1156,8 @@ tail -f adx-dynamic-adjust-ip.log | grep 'dynamicAdjustIpPool'
 # 查看追加ip的位置和原因
 cat adx-IpSelector.log | grep 'addFixedIp' | tail -10
 tail -f adx-IpSelector.log | grep 'addFixedIp' | tail -10
+# 拉取ip数实时监控 (可以第二天查询这个值是多少,测出一个隧道一天需要的ip数)
+tail -f adx-ZhiMaFetchServiceImpl.log | grep 'updateSurplusIpSize'
 ```
 
 

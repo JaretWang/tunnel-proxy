@@ -190,7 +190,7 @@ public class ReqMonitorUtils {
         }
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         if (defaultTunnel == null) {
-            logger.error("隧道为空, 放弃动态调整");
+            logger.error("放弃动态调整: 隧道为空");
             return;
         }
 
@@ -198,33 +198,33 @@ public class ReqMonitorUtils {
         // 单位时间内最多能使用的ip数
         int availableIpPerUnitTime = ipSelector.getAvailableIpPerUnitTime(logger, checkInterval, unit, defaultTunnel);
         if (availableIpPerUnitTime <= 0) {
-            logger.error("没有可用ip, 放弃动态调整");
+            logger.error("放弃动态调整: 没有可用ip");
             return;
         }
         int coreIpSize = ipSelector.getCoreIpSize(defaultTunnel, availableIpPerUnitTime);
         if (coreIpSize <= 0) {
-            logger.error("核心ip数小于等于0, 放弃动态调整");
+            logger.error("放弃动态调整: 核心ip数小于等于0");
             return;
         }
         if (FETCH_IP_NUM_PER_UNIT.get() >= availableIpPerUnitTime) {
-            logger.warn("单位时间内拉取的ip数={}, 阈值={}, 大于等于阈值, 放弃动态调整", FETCH_IP_NUM_PER_UNIT.get(), availableIpPerUnitTime);
+            logger.warn("放弃动态调整: 单位时间内拉取的ip数={}, 阈值={}, 大于等于阈值", FETCH_IP_NUM_PER_UNIT.get(), availableIpPerUnitTime);
             return;
         }
         // 保证该隧道真实有被使用
         int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
         if (minSuccessPercentForRemoveIp <= 0) {
-            logger.error("参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}%, realSuccessPercent={}%, 放弃动态调整",
+            logger.error("放弃动态调整: 参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}%, realSuccessPercent={}%",
                     coreIpSize, availableIpPerUnitTime, minSuccessPercentForRemoveIp, realSuccessPercent);
             return;
         }
         double realPercent = Double.parseDouble(realSuccessPercent);
         if (realPercent <= 0) {
-            logger.error("真实请求成功率小于等于0, 放弃动态调整");
+            logger.error("放弃动态调整: 真实请求成功率小于等于0");
             return;
         }
         ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipSelector.getProxyIpPool().get(alias);
         if (proxyIpPool == null || proxyIpPool.isEmpty()) {
-            logger.error("tunnel={}, ip池为空, 放弃动态调整", alias);
+            logger.error("放弃动态调整: tunnel={}, ip池为空", alias);
             return;
         }
         // 真实成功率 < 规定成功率,追加ip,保证成功率
@@ -233,10 +233,10 @@ public class ReqMonitorUtils {
 //            if (proxyIpPool.size() < availableIpPerUnitTime) {
             if (FETCH_IP_NUM_PER_UNIT.get() < availableIpPerUnitTime) {
                 boolean status = ipSelector.addFixedIp("ip调整, 追加ip", proxyIpPool, defaultTunnel, 1);
-                logger.info("ip调整, 追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许IP数={}",
+                logger.info("追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许最大ip数={}",
                         status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             } else {
-                logger.warn("真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许IP数{}, 放弃动态调整",
+                logger.warn("放弃动态调整: 真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许ip数{}",
                         realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             }
         } else {
@@ -245,10 +245,10 @@ public class ReqMonitorUtils {
                 // 即使减少也不能少于核心ip数
                 if (proxyIpPool.size() > coreIpSize) {
                     boolean status = ipSelector.removeFixedIp(1, proxyIpPool);
-                    logger.info("ip调整, 减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 最小ip数={}",
+                    logger.info("减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 单位时间内允许最小ip数={}",
                             status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
                 } else {
-                    logger.info("真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于最小阈值{}, 放弃动态调整",
+                    logger.info("放弃动态调整: 真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于单位时间内允许最小ip数{}",
                             realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
                 }
             }

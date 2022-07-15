@@ -8,6 +8,7 @@ import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
+import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.TimeUtils;
 import lombok.Data;
@@ -39,6 +40,8 @@ public class IpSelector {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
             new ThreadPoolConfig.TunnelThreadFactory("ip-pool-schedule-"), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
+    @Autowired
+    IpMonitorUtils ipMonitorUtils;
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Autowired
@@ -229,6 +232,7 @@ public class IpSelector {
         // TODO 优化点: 此处剔除成功率最低的一个ip 等加上ip池优先级队列就可以了
         for (int i = 0; i < num; i++) {
             queue.poll();
+//            ipMonitorUtils.removeHighErrorPercent();
         }
         return true;
     }

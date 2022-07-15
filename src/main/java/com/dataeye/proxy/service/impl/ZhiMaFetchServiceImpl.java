@@ -196,16 +196,18 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     }
 
     /**
-     * 每晚12点，将当日累计拉取的ip数量重置为0
+     * 每晚12点，重置所有状态
      */
     @Scheduled(cron = "0 0 0 * * ?")
     public void reSetFetchIpNum() {
-        logger.info("芝麻代理 - 重置当日累计拉取的ip数量为0");
+        logger.info("芝麻代理 - 重置所有状态");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
         ALARM_LEVEL.set(0);
         SURPLUS_IP_SIZE.set(0);
         FIRST_SEND.set(true);
+        ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.set(0);
+        tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), 0);
     }
 
     /**
@@ -224,10 +226,16 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
         SURPLUS_IP_SIZE.set(surplusIpSize);
-        logger.info("套餐剩余ip数={}, 已拉取ip数={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get());
         try {
+            TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
+            if (tunnel == null) {
+                return;
+            }
             //更新数据库ip已经拉取的数量
-            tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), FETCH_IP_NUM_NOW.get());
+            int usedIp = tunnel.getUsedIp() + FETCH_IP_NUM_NOW.get();
+            tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
+//            tunnelInitService.updateUsedIp(tunnel.getAlias(), FETCH_IP_NUM_NOW.get());
+            logger.info("套餐剩余ip数={}, 已拉取ip数(自启动程序时)={}, 今日累计拉取={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get(), usedIp);
         } catch (Exception e) {
             logger.error("更新已经拉取的ip数异常", e);
         }
