@@ -61,9 +61,10 @@ public class TunnelInitService {
 
     /**
      * 获取所有正在使用中的隧道
+     *
      * @return
      */
-    public List<TunnelInstance> getAllUsedTunnel(){
+    public List<TunnelInstance> getAllUsedTunnel() {
         if (!ALL_USED_TUNNEL.isEmpty()) {
             return ALL_USED_TUNNEL.values().stream().distinct().collect(Collectors.toList());
         }
@@ -124,7 +125,7 @@ public class TunnelInitService {
         return null;
     }
 
-    public TunnelInstance getDefaultTunnel(){
+    public TunnelInstance getDefaultTunnel() {
         return getTunnel(DEFAULT_TUNNEL_NAME);
     }
 

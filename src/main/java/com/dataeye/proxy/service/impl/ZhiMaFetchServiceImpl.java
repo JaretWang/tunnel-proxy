@@ -63,11 +63,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
-        return getIpList(1, tunnelInstance).get(0);
+        return getIpList(1, tunnelInstance, false).get(0);
     }
 
-    public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance) throws InterruptedException {
-        if (isOverFetchIpNumLimit(tunnelInstance)) {
+    public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance, boolean init) throws InterruptedException {
+        if (isOverFetchIpNumLimit(tunnelInstance, init)) {
             logger.error("已达到每日最大拉取ip数量 {} !!!", tunnelInstance.getMaxFetchIpNumEveryDay());
             return Collections.emptyList();
         }
@@ -88,7 +88,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             if (code == 111) {
                 logger.error("被芝麻限流, 重试");
                 Thread.sleep(2000L);
-                return getIpList(num, tunnelInstance);
+                return getIpList(num, tunnelInstance, init);
             }
             return Collections.emptyList();
         }
@@ -128,7 +128,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      *
      * @return 是否超过限制
      */
-    public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance) {
+    public boolean isOverFetchIpNumLimit(TunnelInstance tunnelInstance, boolean init) {
+        if (init) {
+            return false;
+        }
         int alarmLevel = getAlarmLevel(ENABLE_REDUCE_REQ_SUCCESS_PERCENT, tunnelInstance);
         if (alarmLevel > 0) {
             ALARM_LEVEL.set(alarmLevel);
@@ -209,7 +212,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         FIRST_SEND.set(true);
         RESET_GET_USED_IP_STATUS.set(true);
         ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.set(0);
-        tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), 0);
+//        tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), 0);
     }
 
     /**
@@ -233,17 +236,18 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             if (tunnel == null) {
                 return;
             }
-            //更新数据库ip已经拉取的数量
-            int usedIp;
-            // 防止昨天的累计ip数会算到第二天的累计ip数上
-            if (RESET_GET_USED_IP_STATUS.get()) {
-                usedIp = FETCH_IP_NUM_NOW.get();
-                RESET_GET_USED_IP_STATUS.set(false);
-            } else {
-                usedIp = tunnel.getUsedIp() + FETCH_IP_NUM_NOW.get();
-            }
+//            //更新数据库ip已经拉取的数量
+//            int usedIp;
+//            // 防止昨天的累计ip数会算到第二天的累计ip数上
+//            if (RESET_GET_USED_IP_STATUS.get()) {
+//                usedIp = FETCH_IP_NUM_NOW.get();
+//                RESET_GET_USED_IP_STATUS.set(false);
+//            } else {
+//                usedIp = tunnel.getUsedIp() + FETCH_IP_NUM_NOW.get();
+//            }
+//            tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
+            int usedIp = FETCH_IP_NUM_NOW.get();
             tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
-//            tunnelInitService.updateUsedIp(tunnel.getAlias(), FETCH_IP_NUM_NOW.get());
             logger.info("套餐剩余ip数={}, 已拉取ip数(自启动程序时)={}, 今日累计拉取={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get(), usedIp);
         } catch (Exception e) {
             logger.error("更新已经拉取的ip数异常", e);

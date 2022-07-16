@@ -116,7 +116,7 @@ public class IpSelector {
                 ip.getValid().set(false);
                 log.info("ip={} 即将过期或已经过期，移除", ip.getIpAddrWithTime());
                 // 放一个新的ip进去
-                addFixedIp("ipCheck: ip过期追加", queue, tunnelInstance, 1);
+                addFixedIp("ipCheck: ip过期追加", queue, tunnelInstance, 1, false);
             }
         }
         // 如果queue中的有效ip数低于最小阈值,则需要继续添加
@@ -125,7 +125,7 @@ public class IpSelector {
         if (validIpSize < coreIpSize) {
             log.warn("ip池数量低于最小阈值, 补充ip, validIpSize={}, coreIpSize={}", validIpSize, coreIpSize);
             int size = coreIpSize - validIpSize;
-            addFixedIp("ipCheck: ip池数量低于最小阈值", queue, tunnelInstance, size);
+            addFixedIp("ipCheck: ip池数量低于最小阈值", queue, tunnelInstance, size, false);
         }
     }
 
@@ -139,7 +139,7 @@ public class IpSelector {
      */
     public boolean addFixedIp(String addReason, ConcurrentLinkedQueue<ProxyIp> queue,
                               TunnelInstance tunnelInstance,
-                              int needIpSize) throws InterruptedException {
+                              int needIpSize, boolean init) throws InterruptedException {
         boolean status = false;
         // 检查ip拉取是否已经超过单位时间内的最大值
         int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
@@ -152,7 +152,7 @@ public class IpSelector {
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         int realCount = 0, expired = 0, exist = 0, empty = 0;
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
-            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(needIpSize, tunnelInstance);
+            List<ProxyIp> data = zhiMaFetchServiceImpl.getIpList(needIpSize, tunnelInstance, init);
             if (Objects.isNull(data) || data.isEmpty()) {
                 log.error("从代理商获取ip结果为空, 即将重试");
                 empty++;
@@ -187,7 +187,7 @@ public class IpSelector {
     public boolean addIp(TunnelInstance tunnelInstance, int needSize) throws InterruptedException {
         String alias = tunnelInstance.getAlias();
         ConcurrentLinkedQueue<ProxyIp> queue = proxyIpPool.get(alias);
-        return addFixedIp("addIp", queue, tunnelInstance, needSize);
+        return addFixedIp("addIp", queue, tunnelInstance, needSize, false);
     }
 
     /**
@@ -214,7 +214,7 @@ public class IpSelector {
         }
         ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
         log.warn("初始化隧道 {} 的ip池, 核心ip数={}", tunnelInstance.getAlias(), coreIpSize);
-        addFixedIp("initQueue: 初始化添加", queue, tunnelInstance, coreIpSize);
+        addFixedIp("initQueue: 初始化添加", queue, tunnelInstance, coreIpSize, true);
         proxyIpPool.put(tunnel, queue);
     }
 

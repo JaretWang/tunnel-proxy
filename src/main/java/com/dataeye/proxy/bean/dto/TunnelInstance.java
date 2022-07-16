@@ -1,6 +1,8 @@
 package com.dataeye.proxy.bean.dto;
 
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.*;
+import org.slf4j.Logger;
 
 import java.io.Serializable;
 
@@ -15,6 +17,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @ToString
 public class TunnelInstance implements Serializable, Cloneable {
+
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("TunnelInstance");
 
     private int id;
     /**
@@ -127,7 +131,9 @@ public class TunnelInstance implements Serializable, Cloneable {
      * @return
      */
     public int getAvailableIp() {
-        return maxFetchIpNumEveryDay - usedIp;
+        int num = maxFetchIpNumEveryDay - usedIp;
+        log.info("每日剩余可用ip数={}", num);
+        return num;
     }
 
 }

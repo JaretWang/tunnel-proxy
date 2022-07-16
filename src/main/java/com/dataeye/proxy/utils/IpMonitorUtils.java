@@ -139,7 +139,7 @@ public class IpMonitorUtils {
                     String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个新 ip
-                    ipSelector.addFixedIp("IpMonitorUtils: 移除高错误率的ip后追加", ipPool, tunnelInstance, 1);
+                    ipSelector.addFixedIp("IpMonitorUtils: 移除高错误率的ip后追加", ipPool, tunnelInstance, 1, false);
                     return;
                 }
             }

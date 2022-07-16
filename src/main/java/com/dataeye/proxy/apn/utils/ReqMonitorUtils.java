@@ -232,7 +232,7 @@ public class ReqMonitorUtils {
             // 不能用ip池数量作为判断依据,因为是动态变化的,可能一段时间过期大量ip,导致判断小于可用ip数,然后一直追加
 //            if (proxyIpPool.size() < availableIpPerUnitTime) {
             if (FETCH_IP_NUM_PER_UNIT.get() < availableIpPerUnitTime) {
-                boolean status = ipSelector.addFixedIp("ip调整, 追加ip", proxyIpPool, defaultTunnel, 1);
+                boolean status = ipSelector.addFixedIp("ip调整, 追加ip", proxyIpPool, defaultTunnel, 1, false);
                 logger.info("追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许最大ip数={}",
                         status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             } else {
