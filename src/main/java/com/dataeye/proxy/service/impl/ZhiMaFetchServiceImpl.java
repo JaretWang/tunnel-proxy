@@ -46,6 +46,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     private static final AtomicInteger ALARM_LEVEL = new AtomicInteger(0);
     private static final AtomicBoolean IS_SEND_ALARM_EMAIL = new AtomicBoolean(false);
     private static final AtomicBoolean FIRST_SEND = new AtomicBoolean(true);
+    private static final AtomicBoolean RESET_GET_USED_IP_STATUS = new AtomicBoolean(false);
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaFetchServiceImpl");
     /**
      * 是否开启降低请求成功率
@@ -206,6 +207,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         ALARM_LEVEL.set(0);
         SURPLUS_IP_SIZE.set(0);
         FIRST_SEND.set(true);
+        RESET_GET_USED_IP_STATUS.set(true);
         ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.set(0);
         tunnelInitService.updateUsedIp(tunnelInitService.getDefaultTunnel().getAlias(), 0);
     }
@@ -232,7 +234,14 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                 return;
             }
             //更新数据库ip已经拉取的数量
-            int usedIp = tunnel.getUsedIp() + FETCH_IP_NUM_NOW.get();
+            int usedIp;
+            // 防止昨天的累计ip数会算到第二天的累计ip数上
+            if (RESET_GET_USED_IP_STATUS.get()) {
+                usedIp = FETCH_IP_NUM_NOW.get();
+                RESET_GET_USED_IP_STATUS.set(false);
+            } else {
+                usedIp = tunnel.getUsedIp() + FETCH_IP_NUM_NOW.get();
+            }
             tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
 //            tunnelInitService.updateUsedIp(tunnel.getAlias(), FETCH_IP_NUM_NOW.get());
             logger.info("套餐剩余ip数={}, 已拉取ip数(自启动程序时)={}, 今日累计拉取={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get(), usedIp);
