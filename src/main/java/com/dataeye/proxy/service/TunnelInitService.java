@@ -134,6 +134,31 @@ public class TunnelInitService {
      */
     @Scheduled(cron = "0/5 * * * * ?")
     public void schduleUpdateTunnelListCache() {
+//        updateTunnelByTime();
+        updateTunnelByEquals();
+    }
+
+    void updateTunnelByEquals() {
+        // get from db
+        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
+        // check element and update
+        for (TunnelInstance tunnelInstance : tunnelInstances) {
+            boolean belong2Local = tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1;
+            if (belong2Local) {
+                String alias = tunnelInstance.getAlias();
+                if (TUNNEL_INSTANCES_CACHE.containsKey(alias)) {
+                    TunnelInstance tunnel = TUNNEL_INSTANCES_CACHE.get(alias);
+                    if (!tunnel.toString().equals(tunnelInstance.toString())) {
+                        logger.info("更新隧道参数: {}", tunnelInstance);
+                        // fixed bug: just update tunnel params on the machine
+                        TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
+                    }
+                }
+            }
+        }
+    }
+
+    void updateTunnelByTime() {
         // get from db
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         // check element and update
@@ -141,7 +166,9 @@ public class TunnelInitService {
             String lastModified = tunnelInstance.getLastModified();
             LocalDateTime lastUpdateTime = TimeUtils.str2LocalDate(lastModified);
             boolean update = LocalDateTime.now().isBefore(lastUpdateTime.plusSeconds(5));
-            if (update && tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1) {
+            tunnelInstance.toString();
+            boolean belong2Local = tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1;
+            if (update && belong2Local) {
                 logger.info("更新隧道参数: {}", tunnelInstance);
                 // fixed bug: just update tunnel params on the machine
                 String alias = tunnelInstance.getAlias();

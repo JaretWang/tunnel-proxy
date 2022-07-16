@@ -311,7 +311,7 @@ public class IpSelector {
         // 每个格子拥有的ip数
         int ipPerGrids = (int) (availableIp / remainingGrids);
 //        int ipPerGrids = new BigDecimal(surplusIpSize).divide(new BigDecimal(remainingGrids), 2, RoundingMode.HALF_UP).intValue();
-        logger.info("每日ip数限制={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, availableIp, ipPerGrids);
+        logger.info("每日ip数限制={}, 已拉取ip数={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, tunnelInstance.getUsedIp(), availableIp, ipPerGrids);
         return ipPerGrids;
     }
 
