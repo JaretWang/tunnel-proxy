@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * @date 2022/4/1 19:30
  * @description 从专门的ip拉取服务获取芝麻代理ip
  */
-@Service
+//@Service
 public class ZhiMaProxyService implements InitializingBean {
 
     private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ZhiMaProxyService");

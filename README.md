@@ -1138,7 +1138,7 @@ grep "套餐每日剩余ip数量=" adx-ZhiMaFetchServiceImpl.log
 
 ------------------- 请求监控 ------------------------
 grep "ok_percent" adx-ReqMonitorUtils.log | tail -5 | grep "ok_percent"    
-grep "错误原因列表" adx-ReqMonitorUtils.log
+cat adx-ReqMonitorUtils.log | grep "错误原因列表" | tail -5
 grep "连接超时次数=" adx-ReqMonitorUtils.log | tail -5 | grep "连接超时次数="
 
 ---------------------- 风控 ---------------------------

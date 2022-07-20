@@ -145,7 +145,7 @@ public class IpSelector {
         int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
         int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
         if (fetchIpPerUnit >= availableIpPerUnitTime) {
-            log.warn("添加原因={}, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
+            log.warn("添加原因={}, 添加失败, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
             return status;
         }
 
@@ -179,7 +179,7 @@ public class IpSelector {
         if (realCount >= needIpSize) {
             status = true;
         }
-        log.warn("添加原因={}, enough={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
+        log.warn("添加原因={}, 添加成功, enough={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
                 addReason, status, needIpSize, realCount, expired, exist, empty);
         return status;
     }

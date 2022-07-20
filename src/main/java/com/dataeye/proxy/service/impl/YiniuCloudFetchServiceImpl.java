@@ -26,7 +26,7 @@ import java.util.List;
  * @date 2022/4/1 19:30
  * @description 亿牛云ip获取
  */
-@Service
+//@Service
 public class YiniuCloudFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("YiniuCloudFetchServiceImpl");

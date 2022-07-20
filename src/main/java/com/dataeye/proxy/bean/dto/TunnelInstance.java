@@ -131,9 +131,7 @@ public class TunnelInstance implements Serializable, Cloneable {
      * @return
      */
     public int getAvailableIp() {
-        int num = maxFetchIpNumEveryDay - usedIp;
-        log.info("每日剩余可用ip数={}", num);
-        return num;
+        return maxFetchIpNumEveryDay - usedIp;
     }
 
 }

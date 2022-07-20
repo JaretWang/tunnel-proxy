@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2022/4/1 19:30
  * @description 游杰ip获取
  */
-@Service
+//@Service
 public class YouJieFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("YouJieFetchServiceImpl");

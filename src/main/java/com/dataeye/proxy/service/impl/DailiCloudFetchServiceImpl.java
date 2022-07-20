@@ -22,7 +22,7 @@ import java.util.Collections;
  * @date 2022/4/1 19:30
  * @description 代理云ip获取
  */
-@Service
+//@Service
 public class DailiCloudFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DailiCloudFetchServiceImpl");

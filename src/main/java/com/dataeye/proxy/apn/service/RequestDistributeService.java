@@ -129,12 +129,47 @@ public class RequestDistributeService {
 
         if (StringUtils.isNotBlank(apnProxyRemote.getProxyUserName())
                 && StringUtils.isNotBlank(apnProxyRemote.getProxyPassword())) {
-            sb.append("Proxy-Authorization: " + Credentials.basic(apnProxyRemote.getProxyUserName(), apnProxyRemote.getProxyPassword())).append(CRLF);
+            sb.append("Proxy-Authorization: ").append(Credentials.basic(apnProxyRemote.getProxyUserName(), apnProxyRemote.getProxyPassword())).append(CRLF);
         }
 
         sb.append(CRLF);
         return sb.toString();
     }
+
+    public String buildReqForConnect(HttpRequest httpRequest,
+                                         ApnProxyRemote apnProxyRemote) {
+        String lineSeparator = System.lineSeparator();
+        StringBuilder sb = new StringBuilder();
+        sb.append(httpRequest.method().name())
+                .append(" ").append(httpRequest.uri()).append(" ")
+                .append(httpRequest.protocolVersion().text())
+                .append(lineSeparator);
+
+        for (Map.Entry<String, String> next : httpRequest.headers()) {
+            String headerName = next.getKey();
+            String headerValue = next.getValue();
+//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+//                continue;
+//            }
+//            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+//                continue;
+//            }
+//            // 临时增加
+//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
+//                continue;
+//            }
+            sb.append(headerName).append(": ").append(headerValue).append(lineSeparator);
+        }
+
+        String proxyUserName = apnProxyRemote.getProxyUserName();
+        String proxyPassword = apnProxyRemote.getProxyPassword();
+        if (StringUtils.isNotBlank(proxyUserName) && StringUtils.isNotBlank(proxyPassword)) {
+            sb.append("Proxy-Authorization: ").append(Credentials.basic(proxyUserName, proxyPassword)).append(lineSeparator);
+        }
+        sb.append(lineSeparator);
+        return sb.toString();
+    }
+
 
     public void handleProxyIpIsEmpty(ChannelHandlerContext ctx) {
         String errMsg = "获取代理IP为空，请30s后重试";
@@ -522,6 +557,7 @@ public class RequestDistributeService {
 
                             logger.info("tunnel_handler 重新构造请求之前：{}", httpRequest);
                             String newConnectRequest = constructReqForConnect(httpRequest, apnProxyRemote);
+//                            String newConnectRequest = buildReqForConnect(httpRequest, apnProxyRemote);
                             logger.info("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
 
                             ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
