@@ -15,7 +15,8 @@ import java.io.Serializable;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
+@ToString(exclude = {"usedIp"})
+@EqualsAndHashCode(exclude = {"usedIp"})
 public class TunnelInstance implements Serializable, Cloneable {
 
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("TunnelInstance");
@@ -128,6 +129,7 @@ public class TunnelInstance implements Serializable, Cloneable {
 
     /**
      * 获取每日剩余可用ip数
+     *
      * @return
      */
     public int getAvailableIp() {

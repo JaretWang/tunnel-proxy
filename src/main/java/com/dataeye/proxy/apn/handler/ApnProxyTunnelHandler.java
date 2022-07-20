@@ -44,7 +44,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 if (Objects.isNull(cacheIpResult)) {
                     throw new RuntimeException("tunnel 获取缓存ip为空");
                 }
-                logger.info("转发 CONNECT 请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+                logger.debug("转发 CONNECT 请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
                 TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
                 RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
                 // send proxy request

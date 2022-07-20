@@ -71,15 +71,9 @@ public class ReqMonitorUtils {
             return;
         }
         requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-        logger.info("{} ms, {}, {}, {}, {}, {}, {}, {}",
-                requestMonitor.getCost(),
-                requestMonitor.isSuccess(),
-                requestMonitor.getTunnelName(),
-                handler,
-                requestMonitor.getProxyAddr(),
-                requestMonitor.getFailReason(),
-                requestMonitor.getRequestType(),
-                requestMonitor.getTargetAddr());
+        logger.debug("{} ms, {}, {}, {}, {}, {}, {}, {}",
+                requestMonitor.getCost(), requestMonitor.isSuccess(), requestMonitor.getTunnelName(), handler,
+                requestMonitor.getProxyAddr(), requestMonitor.getFailReason(), requestMonitor.getRequestType(), requestMonitor.getTargetAddr());
         String failReason = requestMonitor.getFailReason();
         if (StringUtils.isNotBlank(failReason)) {
             // 释放内存,防止错误日志撑爆内存

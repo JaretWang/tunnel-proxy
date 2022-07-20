@@ -45,7 +45,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         if (Objects.isNull(apnProxyRemote)) {
             requestDistributeService.handleProxyIpIsEmpty(ctx);
         }
-        logger.info("schema 分配ip结果：{}", apnProxyRemote);
+        logger.debug("schema 分配ip结果：{}", apnProxyRemote);
         ctx.channel().attr(Global.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
 
         // ip, 请求监控

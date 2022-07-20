@@ -39,7 +39,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.info("DirectRelayHandler channelActive: Remote channel: {} active", remoteAddr);
+        logger.debug("DirectRelayHandler channelActive: Remote channel: {} active", remoteAddr);
         ctx.read();
     }
 

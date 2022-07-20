@@ -148,7 +148,9 @@ public class TunnelInitService {
                 String alias = tunnelInstance.getAlias();
                 if (TUNNEL_INSTANCES_CACHE.containsKey(alias)) {
                     TunnelInstance tunnel = TUNNEL_INSTANCES_CACHE.get(alias);
-                    if (!tunnel.toString().equals(tunnelInstance.toString())) {
+                    String oldConfig = tunnel.toString();
+                    String newConfig = tunnelInstance.toString();
+                    if (!oldConfig.equals(newConfig)) {
                         logger.info("更新隧道参数: {}", tunnelInstance);
                         // fixed bug: just update tunnel params on the machine
                         TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
@@ -166,7 +168,6 @@ public class TunnelInitService {
             String lastModified = tunnelInstance.getLastModified();
             LocalDateTime lastUpdateTime = TimeUtils.str2LocalDate(lastModified);
             boolean update = LocalDateTime.now().isBefore(lastUpdateTime.plusSeconds(5));
-            tunnelInstance.toString();
             boolean belong2Local = tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1;
             if (update && belong2Local) {
                 logger.info("更新隧道参数: {}", tunnelInstance);

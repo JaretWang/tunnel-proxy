@@ -1422,11 +1422,16 @@ keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123
 // 芝麻
 username: seonzhang
 password: 12345678
-// 云代理
+
+// 代理云
 地址：http://console.v4.dailiyun.com/user/admin.html
 username: 15779457681
 password: gjb970312
-//增加本地白名单 119.139.198.180
+
+// 代理云（新版）
+地址： 
+username: 15779457681
+password: gjb970312
 ```
 
 

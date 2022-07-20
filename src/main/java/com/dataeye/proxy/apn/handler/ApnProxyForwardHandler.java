@@ -47,7 +47,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                     throw new RuntimeException("forward 获取缓存ip为空");
                 }
                 final Channel uaChannel = ctx.channel();
-                logger.info("转发普通请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+                logger.debug("转发普通请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
                 // send proxy request
                 apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, fullHttpRequest, "forward");

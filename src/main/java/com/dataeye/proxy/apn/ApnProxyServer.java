@@ -38,7 +38,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Component
 public class ApnProxyServer {
 
-    private static final Logger LOG = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private static final java.lang.String LOCAL_ADDRESS = "0.0.0.0";
 
     @Autowired
@@ -105,7 +104,6 @@ public class ApnProxyServer {
      * @param tunnelInstance 隧道实例
      */
     private void startProxyServer(TunnelInstance tunnelInstance) {
-        String alias = tunnelInstance.getAlias();
         int port = tunnelInstance.getPort();
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();

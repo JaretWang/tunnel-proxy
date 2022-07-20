@@ -18,7 +18,7 @@ public class IdleHandler extends ChannelDuplexHandler {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
 
         if (evt instanceof IdleStateEvent) {
-            logger.info("idle event is fired");
+            logger.debug("idle event is fired");
             ctx.channel().close();
         }
     }

@@ -321,7 +321,7 @@ public class RequestDistributeService {
             byte[] content = new byte[len];
             fullHttpRequest.content().readBytes(content);
             String contentStr = new String(content, StandardCharsets.UTF_8);
-            logger.info("{} 接收请求, 请求体: {}", handler, contentStr);
+            logger.debug("{} 接收请求, 请求体: {}", handler, contentStr);
             return content;
         }
         return null;
@@ -533,7 +533,7 @@ public class RequestDistributeService {
                 .addListener((ChannelFutureListener) future1 -> {
                     long took = System.currentTimeMillis() - begin;
                     if (future1.isSuccess()) {
-                        logger.info("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
+                        logger.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
                         if (apnProxyRemote.isAppleyRemoteRule()) {
                             // remove之前
                             //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
@@ -555,10 +555,10 @@ public class RequestDistributeService {
                             //ctx.pipeline().toMap().keySet().forEach(System.out::println);
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
-                            logger.info("tunnel_handler 重新构造请求之前：{}", httpRequest);
+                            logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
                             String newConnectRequest = constructReqForConnect(httpRequest, apnProxyRemote);
 //                            String newConnectRequest = buildReqForConnect(httpRequest, apnProxyRemote);
-                            logger.info("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
+                            logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
 
                             ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
                             // ReferenceCountUtil.releaseLater() will keep the reference of buf,
