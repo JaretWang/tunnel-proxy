@@ -248,7 +248,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 //            tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
             int usedIp = FETCH_IP_NUM_NOW.get();
             tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
-            logger.info("套餐剩余ip数={}, 已拉取ip数(自启动程序时)={}, 今日累计拉取={}", SURPLUS_IP_SIZE.get(), FETCH_IP_NUM_NOW.get(), usedIp);
+            logger.info("套餐剩余ip数={}, 隧道每日限制={}, 已拉取(自启动程序时)={}, 今日累计拉取={}",
+                    SURPLUS_IP_SIZE.get(), tunnel.getMaxFetchIpNumEveryDay(), FETCH_IP_NUM_NOW.get(), usedIp);
         } catch (Exception e) {
             logger.error("更新已经拉取的ip数异常", e);
         }

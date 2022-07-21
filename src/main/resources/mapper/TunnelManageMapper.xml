@@ -27,6 +27,8 @@
         <result column="used_ip" jdbcType="INTEGER" property="usedIp"/>
         <result column="connect_timeout_millis" jdbcType="INTEGER" property="connectTimeoutMillis"/>
         <result column="retry_count" jdbcType="INTEGER" property="retryCount"/>
+        <result column="read_timeout_seconds" jdbcType="INTEGER" property="readTimeoutSeconds"/>
+        <result column="write_timeout_seconds" jdbcType="INTEGER" property="writeTimeoutSeconds"/>
         <result column="last_modified" jdbcType="TIMESTAMP" property="lastModified"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
         <result column="description" jdbcType="VARCHAR" property="description"/>

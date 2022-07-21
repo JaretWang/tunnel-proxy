@@ -25,6 +25,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.netty.util.CharsetUtil;
 import okhttp3.Credentials;
 import okhttp3.Headers;
@@ -52,6 +54,8 @@ public class RequestDistributeService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
+    @Autowired
+    OkHttpTool okHttpTool;
     @Autowired
     IpSelector ipSelector;
 
@@ -139,7 +143,7 @@ public class RequestDistributeService {
     }
 
     public String buildReqForConnect(HttpRequest httpRequest,
-                                         ApnProxyRemote apnProxyRemote) {
+                                     ApnProxyRemote apnProxyRemote) {
         String lineSeparator = System.lineSeparator();
         StringBuilder sb = new StringBuilder();
         sb.append(httpRequest.method().name())
@@ -299,17 +303,17 @@ public class RequestDistributeService {
         Response response;
         if ("get".equalsIgnoreCase(method)) {
             if (uri.startsWith("https")) {
-                response = OkHttpTool.sendGetByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+                response = okHttpTool.sendGetByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
             } else {
-                response = OkHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+                response = okHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
             }
         } else if ("post".equalsIgnoreCase(method)) {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
             if (uri.startsWith("https")) {
-                response = OkHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
+                response = okHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             } else {
-                response = OkHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
+                response = okHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
             }
         } else {
             throw new RuntimeException("不认识的请求方式: " + method);
@@ -560,8 +564,8 @@ public class RequestDistributeService {
                                     ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
                                     ApnProxyServerChannelInitializer.CLIENT_ALL_IDLE_TIME, TimeUnit.SECONDS));
                             ctx.pipeline().addLast("client_idlehandler", new IdleHandler());
-//                            ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(3));
-//                            ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(3));
+                            ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(tunnelInstance.getReadTimeoutSeconds()));
+                            ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(tunnelInstance.getWriteTimeoutSeconds()));
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
                             logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
@@ -605,7 +609,7 @@ public class RequestDistributeService {
                         logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
 
                         // 监控统计
-                        ReqMonitorUtils.error(requestMonitor, "sendTunnelReq",errorMessage);
+                        ReqMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);
                         IpMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);
 
                         // 关闭资源

@@ -10,6 +10,7 @@ import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.utils.MapUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ public class ReqMonitorUtils {
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
     private static final AtomicLong REQ_SIZE = new AtomicLong(0);
     private static final AtomicLong RESP_SIZE = new AtomicLong(0);
-    private static final ConcurrentHashMap<String, Integer> ERROR_LIST = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicInteger> ERROR_LIST = new ConcurrentHashMap<>();
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("req-monitor-"), new ThreadPoolExecutor.AbortPolicy());
     @Autowired
@@ -78,13 +79,14 @@ public class ReqMonitorUtils {
         if (StringUtils.isNotBlank(failReason)) {
             // 释放内存,防止错误日志撑爆内存
             if (ERROR_LIST.size() >= ERROR_LIST_THRESHOLD) {
-                logger.info("错误原因列表(提前打印), size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
+                logger.info("错误原因列表(提前打印), size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
                 ERROR_LIST.clear();
             }
-            Integer integer = ERROR_LIST.putIfAbsent(failReason, 1);
+            AtomicInteger errorCount = ERROR_LIST.putIfAbsent(failReason, new AtomicInteger(1));
             // null 表示之前不存在
-            if (integer != null) {
-                ERROR_LIST.put(failReason, ++integer);
+            if (errorCount != null) {
+                errorCount.incrementAndGet();
+                ERROR_LIST.put(failReason, errorCount);
             }
         }
         // 不用加安全机制，因为在handler是线程安全的
@@ -147,7 +149,7 @@ public class ReqMonitorUtils {
 
             logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
                     CHECK_INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
-            logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(ERROR_LIST));
+            logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
 
             // 动态调整ip数,保证成功率
             dynamicAdjustIpPool(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT);

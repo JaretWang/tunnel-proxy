@@ -115,6 +115,14 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private int retryCount;
     /**
+     * 请求读超时
+     */
+    private int readTimeoutSeconds;
+    /**
+     * 请求写超时
+     */
+    private int writeTimeoutSeconds;
+    /**
      * 最后一次修改时间
      */
     private String lastModified;

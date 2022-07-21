@@ -63,12 +63,13 @@ public class TestLocalEnvByConcurrent {
                      Map<String, String> headers, Map<String, String> params) throws InterruptedException {
         AtomicLong total = new AtomicLong(0);
         ExecutorService executorService = Executors.newFixedThreadPool(totalNum);
+        OkHttpTool okHttpTool = new OkHttpTool();
         for (int i = 0; i < totalTask; i++) {
             executorService.submit(() -> {
                 try {
                     int time = new SecureRandom().nextInt(30);
                     Thread.sleep(time*1000);
-                    Response response = OkHttpTool.sendGetByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, params);
+                    Response response = okHttpTool.sendGetByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, params);
 //                    Response response = OkHttpTool.sendPostByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, null);
                     String result = response.body().string();
                     System.out.println(result);

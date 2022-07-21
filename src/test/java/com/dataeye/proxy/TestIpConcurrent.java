@@ -39,7 +39,7 @@ public class TestIpConcurrent {
         headers.put("Connection", "close");
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("wcj", "123");
-        OkHttpTool.sendPostByProxy("https://www.baidu.com", "127.0.0.1", 21332,
+        new OkHttpTool().sendPostByProxy("https://www.baidu.com", "127.0.0.1", 21332,
                 "", "", headers, jsonObject.toJSONString().getBytes());
 
 

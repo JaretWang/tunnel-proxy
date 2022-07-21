@@ -1,8 +1,12 @@
 package com.dataeye.proxy.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.service.TunnelInitService;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -14,7 +18,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/4/20 14:50
  * @description
  */
+@Component
 public class OkHttpTool {
 
     private static final OkHttpClient OKHTTP_CLIENT = new OkHttpClient.Builder()
@@ -32,6 +36,8 @@ public class OkHttpTool {
             .writeTimeout(5, TimeUnit.SECONDS)
             .build();
     private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
+    @Autowired
+    TunnelInitService tunnelInitService;
 
     /**
      * OKHTTP  POST 请求
@@ -106,13 +112,17 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                           Map<String, String> header, Map<String, String> params) throws IOException {
 
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS);
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
         // 问号拼接参数
         appendParams(targetUrl, params);
         // auth
@@ -138,13 +148,17 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                           Map<String, String> header, Map<String, String> params, byte[] body) throws IOException {
 
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS);
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
         // 问号拼接参数
         appendParams(targetUrl, params);
         // auth
@@ -170,13 +184,17 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+    public Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                            Map<String, String> header, byte[] body) throws IOException {
 
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS);
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
         // auth
         buildAuth(clientBuilder, username, password);
         // proxy
@@ -202,7 +220,7 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendGetByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+    public Response sendGetByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                                  Map<String, String> header, Map<String, String> params) throws IOException {
         // params
         appendParams(targetUrl, params);
@@ -226,7 +244,7 @@ public class OkHttpTool {
      * @return
      * @throws IOException
      */
-    public static Response sendPostByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+    public Response sendPostByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
                                                   Map<String, String> header, byte[] body) throws IOException {
         Request request = buildPostRequest(targetUrl, header, body);
         OkHttpClient okHttpClient = buildOkHttpClientWithSsl(proxyIp, proxyPort, username, password);
@@ -302,6 +320,7 @@ public class OkHttpTool {
         return builder.build();
     }
 
+    @Deprecated
     private static OkHttpClient buildOkHttpClientWithSsl(String proxyIp, int proxyPort, String username, String password) {
         try {
             TrustManager[] trustAllCerts = buildTrustManagers();
@@ -312,7 +331,7 @@ public class OkHttpTool {
 
             OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                     .sslSocketFactory(sslSocketFactory, buildX509TrustManager())
-                    .callTimeout(5, TimeUnit.SECONDS)
+//                    .callTimeout(5, TimeUnit.SECONDS)
                     .connectTimeout(5, TimeUnit.SECONDS)
                     .readTimeout(5, TimeUnit.SECONDS)
                     .writeTimeout(5, TimeUnit.SECONDS)
@@ -351,19 +370,6 @@ public class OkHttpTool {
         };
     }
 
-    public static void main(String[] args) throws IOException {
-        String url = "https://www.baidu.com/s?wd=%E3%80%8A%E6%96%B0%E9%97%BB%E8%81%94%E6%92%AD%E3%80%8B%E6%8A%AB%E9%9C%B2%E9%98%B2%E7%96%AB%E9%87%8D%E7%A3%85%E4%BF%A1%E5%8F%B7&sa=fyb_n_homepage&rsv_dl=fyb_n_homepage&from=super&cl=3&tn=baidutop10&fr=top1000&rsv_idx=2&hisfilter=1";
-        HashMap<String, String> headers = new HashMap<String, String>() {{
-            put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3100.0 Safari/537.36");
-            put("Connection", "close");
-        }};
-        // "106.42.50.223:4231(true, 2022-05-07T12:14:44)"
-//        Response response = sendGetByProxyWithSsl(url, "106.42.50.223", 4231, "", "", headers,null);
-        Response response = sendPostByProxyWithSsl(url, "106.42.50.223", 4231, "", "", headers, null);
-        System.out.println(Objects.requireNonNull(response.body()).string());
-        closeResponse(response);
-    }
-
     static void appendParams(String targetUrl, Map<String, String> params) {
         if (params != null && !params.isEmpty()) {
             StringBuilder stringBuilder = new StringBuilder();
@@ -399,10 +405,10 @@ public class OkHttpTool {
     static void buildProxy(OkHttpClient.Builder clientBuilder, String proxyIp, int proxyPort) {
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyIp, proxyPort));
         clientBuilder.proxy(proxy);
-        clientBuilder.connectTimeout(5, TimeUnit.SECONDS)
-//                .callTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS);
+//        clientBuilder.connectTimeout(5, TimeUnit.SECONDS)
+////                .callTimeout(5, TimeUnit.SECONDS)
+//                .readTimeout(5, TimeUnit.SECONDS)
+//                .writeTimeout(5, TimeUnit.SECONDS);
     }
 
 }

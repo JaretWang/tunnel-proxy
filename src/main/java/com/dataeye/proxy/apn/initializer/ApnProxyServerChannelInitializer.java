@@ -24,7 +24,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
     public static final String SERVER_BANDWIDTH_MONITOR_NAME = "server.bandwidth.monitor";
     public static final String SERVER_IDLE_STATE_NAME = "idlestate";
     public static final String SERVER_IDLE_HANDLER_NAME = "idlehandler";
-    public static final long SERVER_READ_IDLE_TIME = 5, SERVER_WRITE_IDLE_TIME = 5, SERVER_ALL_IDLE_TIME = 10;
+    public static final long SERVER_READ_IDLE_TIME = 3, SERVER_WRITE_IDLE_TIME = 3, SERVER_ALL_IDLE_TIME = 6;
     public static final long CLIENT_READ_IDLE_TIME = 3, CLIENT_WRITE_IDLE_TIME = 3, CLIENT_ALL_IDLE_TIME = 6;
     private final ApnHandlerParams apnHandlerParams;
 
