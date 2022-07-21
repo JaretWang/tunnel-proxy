@@ -1,8 +1,13 @@
 package com.dataeye.proxy.utils;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.CharsetUtil;
 
 /**
  * @author jaret
@@ -19,6 +24,20 @@ public final class SocksServerUtils {
         }
     }
 
-    private SocksServerUtils() { }
+    public static void okHttpResp(Channel ch, String msg) {
+        if (ch != null && ch.isActive()) {
+            ByteBuf responseContent = Unpooled.copiedBuffer(msg, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
+            ch.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
+        }
+    }
+
+    public static void errorHttpResp(Channel ch, String msg) {
+        if (ch != null && ch.isActive()) {
+            ByteBuf responseContent = Unpooled.copiedBuffer(msg, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, responseContent);
+            ch.writeAndFlush(fullHttpResponse).addListener(ChannelFutureListener.CLOSE);
+        }
+    }
 
 }

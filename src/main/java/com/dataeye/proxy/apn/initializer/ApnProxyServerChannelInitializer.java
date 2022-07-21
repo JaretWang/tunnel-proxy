@@ -18,14 +18,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-    private final ApnHandlerParams apnHandlerParams;
-    long readerIdleTime = 5,  writerIdleTime = 5,  allIdleTime = 10;
     public static final String SERVER_CODEC_NAME = "server.codec";
     public static final String SERVER_REQUEST_AGG_NAME = "server.request.agg";
     public static final String SERVER_REQUEST_DECOMPRESSOR_NAME = "server.request.decompressor";
     public static final String SERVER_BANDWIDTH_MONITOR_NAME = "server.bandwidth.monitor";
     public static final String SERVER_IDLE_STATE_NAME = "idlestate";
     public static final String SERVER_IDLE_HANDLER_NAME = "idlehandler";
+    public static final long SERVER_READ_IDLE_TIME = 5, SERVER_WRITE_IDLE_TIME = 5, SERVER_ALL_IDLE_TIME = 10;
+    public static final long CLIENT_READ_IDLE_TIME = 3, CLIENT_WRITE_IDLE_TIME = 3, CLIENT_ALL_IDLE_TIME = 6;
+    private final ApnHandlerParams apnHandlerParams;
 
     public ApnProxyServerChannelInitializer(ApnHandlerParams apnHandlerParams) {
         this.apnHandlerParams = apnHandlerParams;
@@ -35,7 +36,9 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
     public void initChannel(SocketChannel channel) {
         ChannelPipeline pipeline = channel.pipeline();
 
-        pipeline.addLast("idlestate", new IdleStateHandler(readerIdleTime, writerIdleTime, allIdleTime, TimeUnit.SECONDS));
+//        pipeline.addLast("idlestate", new ReadTimeoutHandler(readerIdleTime, TimeUnit.SECONDS));
+//        pipeline.addLast("idlestate", new WriteTimeoutHandler(writerIdleTime, TimeUnit.SECONDS));
+        pipeline.addLast("idlestate", new IdleStateHandler(SERVER_READ_IDLE_TIME, SERVER_WRITE_IDLE_TIME, SERVER_ALL_IDLE_TIME, TimeUnit.SECONDS));
         pipeline.addLast("idlehandler", new IdleHandler());
 //        pipeline.addLast("datalog", new LoggingHandler("PRE_BYTE_LOGGER", LogLevel.DEBUG));
 //        if (ApnProxyConfig.getConfig().getListenType() == ApnProxyListenType.SSL) {
@@ -44,7 +47,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        }
 //        pipeline.addLast("log", new LoggingHandler("BYTE_LOGGER", LogLevel.INFO));
         pipeline.addLast(SERVER_CODEC_NAME, new HttpServerCodec());
-        pipeline.addLast(SERVER_REQUEST_AGG_NAME, new HttpObjectAggregator(1024*1024));
+        pipeline.addLast(SERVER_REQUEST_AGG_NAME, new HttpObjectAggregator(1024 * 1024));
         pipeline.addLast(SERVER_REQUEST_DECOMPRESSOR_NAME, new HttpContentDecompressor());
 //        pipeline.addLast("chunked_write", new ChunkedWriteHandler());
 //        pipeline.addLast(ApnProxyPreHandler.HANDLER_NAME, new ApnProxyPreHandler());

@@ -24,6 +24,7 @@ import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.CharsetUtil;
 import okhttp3.Credentials;
 import okhttp3.Headers;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -553,6 +555,13 @@ public class RequestDistributeService {
                             // remove之后
                             //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
                             //ctx.pipeline().toMap().keySet().forEach(System.out::println);
+                            ctx.pipeline().addLast("client_idlestate", new IdleStateHandler(
+                                    ApnProxyServerChannelInitializer.CLIENT_READ_IDLE_TIME,
+                                    ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
+                                    ApnProxyServerChannelInitializer.CLIENT_ALL_IDLE_TIME, TimeUnit.SECONDS));
+                            ctx.pipeline().addLast("client_idlehandler", new IdleHandler());
+//                            ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(3));
+//                            ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(3));
                             ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
                             logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);

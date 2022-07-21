@@ -1,6 +1,7 @@
 package com.dataeye.proxy.apn.handler;
 
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -18,7 +19,9 @@ public class IdleHandler extends ChannelDuplexHandler {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
 
         if (evt instanceof IdleStateEvent) {
-            logger.debug("idle event is fired");
+            logger.info("idle event is fired, type: {}", evt.getClass().getSimpleName());
+            // 读写空闲，关闭通道
+            SocksServerUtils.errorHttpResp(ctx.channel(), "read or write free in a period of time");
             ctx.channel().close();
         }
     }
