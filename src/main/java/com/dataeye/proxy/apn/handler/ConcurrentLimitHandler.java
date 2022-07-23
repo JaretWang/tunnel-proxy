@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -44,12 +45,18 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
      * 正在处理的连接数
      */
     private final AtomicLong connections = new AtomicLong(0);
+    /**
+     * 是否正在被使用
+     */
+    public static final AtomicBoolean USED = new AtomicBoolean(true);
 
     public ConcurrentLimitHandler(TunnelInstance tunnelInstance) {
         this.maxConcurrency = tunnelInstance.getConcurrency();
         this.frequnce = maxConcurrency * cycle;
         Runnable runnable = () -> {
-            logger.info("{}s 以内, connections={}", cycle, connections.get());
+            long conn = connections.get();
+            logger.info("{}s 以内, connections={}", cycle, conn);
+            USED.set(conn != 0);
             connections.set(0);
         };
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(runnable, 0, cycle, TimeUnit.SECONDS);
@@ -85,6 +92,10 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
 
     public boolean isControl() {
         return connections.incrementAndGet() > frequnce;
+    }
+
+    public long getConnections() {
+        return connections.get();
     }
 
 }

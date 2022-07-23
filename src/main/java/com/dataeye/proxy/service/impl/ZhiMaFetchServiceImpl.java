@@ -181,7 +181,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                 .add("隧道=" + tunnelInstance.getAlias())
                 .add("告警等级=" + ALARM_LEVEL.get() + "级")
                 .add("已拉取ip数=" + tunnelInstance.getUsedIp())
-                .add("每日最大拉取ip数限制=" + tunnelInstance.getMaxFetchIpNumEveryDay()).toString();
+                .add("每日最大拉取ip数=" + tunnelInstance.getMaxFetchIpNumEveryDay()).toString();
         String alarmRule = new StringJoiner(System.lineSeparator())
                 .add("告警规则:")
                 .add("最少需要ip数 = (每日剩余分钟数/5min) * ip池的大小(ps: 套餐内ip的有效时间都是1-5min) + 安全保障ip数(500) (当日不使用劣质ip剔除机制后需要的ip数)")
@@ -282,6 +282,10 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
         // 套餐每日剩余ip数
         int surplusIpSize = SURPLUS_IP_SIZE.get();
+        // 避免一过12点 就告警
+        if (surplusIpSize == 0) {
+            return 0;
+        }
         int minNeedIpSize = getMinNeedIpSize(coreIpSize);
         // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
         if (surplusIpSize < minNeedIpSize) {
@@ -289,13 +293,13 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 3, tunnelInstance);
             return 3;
         }
-//        // 已经拉取的ip数量达到最大容错数 -> 3级告警
-//        int thirdLevel = maxIpLimit - minNeedIpSize;
-//        if (currentFetchIpSize >= thirdLevel) {
-//            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
-//            reduceIpQualityCheckCriteria(3, tunnelInstance);
-//            return 3;
-//        }
+        //        // 已经拉取的ip数量达到最大容错数 -> 3级告警
+        //        int thirdLevel = maxIpLimit - minNeedIpSize;
+        //        if (currentFetchIpSize >= thirdLevel) {
+        //            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
+        //            reduceIpQualityCheckCriteria(3, tunnelInstance);
+        //            return 3;
+        //        }
         // ip使用数达到总限制数 80%
         double secondLevel = maxIpLimit * 0.8;
         if (currentFetchIpSize >= secondLevel) {

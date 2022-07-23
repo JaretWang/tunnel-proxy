@@ -1,5 +1,7 @@
 package com.dataeye.proxy.config;
 
+import lombok.Data;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,6 +15,7 @@ public class ThreadPoolConfig {
     /**
      * 自定义线程工厂
      */
+    @Data
     public static class TunnelThreadFactory implements ThreadFactory {
         private final ThreadGroup group;
         private final AtomicInteger threadNumber = new AtomicInteger(1);

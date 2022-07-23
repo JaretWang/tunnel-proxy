@@ -5,6 +5,7 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.TunnelInitService;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,7 @@ public class OkHttpTool {
             .writeTimeout(5, TimeUnit.SECONDS)
             .build();
     private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("OkHttpTool");
     @Autowired
     TunnelInitService tunnelInitService;
 
@@ -53,7 +55,8 @@ public class OkHttpTool {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            throw new RuntimeException("HTTP POST同步请求失败 URL:" + reqUrl, e);
+            logger.error("doPost error, url:{}", reqUrl, e);
+            return "";
         }
     }
 
@@ -74,7 +77,8 @@ public class OkHttpTool {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            throw new RuntimeException("HTTP GET同步请求失败 URL:" + reqUrl, e);
+            logger.error("doGet error, url:{}", reqUrl, e);
+            return "";
         }
     }
 
@@ -95,160 +99,9 @@ public class OkHttpTool {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            throw new RuntimeException("HTTP GET同步请求失败 URL:" + reqUrl, e);
+            logger.error("doGet error, url:{}", reqUrl, e);
+            return "";
         }
-    }
-
-    /**
-     * 使用代理ip发送get请求
-     *
-     * @param targetUrl 目标url
-     * @param proxyIp   代理ip
-     * @param proxyPort 代理端口
-     * @param username  用户名
-     * @param password  密码
-     * @param header    请求头
-     * @param params    请求参数
-     * @return
-     * @throws IOException
-     */
-    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
-                                          Map<String, String> header, Map<String, String> params) throws IOException {
-
-        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        if (defaultTunnel == null) {
-            throw new IOException("defaultTunnel is null");
-        }
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
-                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
-                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
-        // 问号拼接参数
-        appendParams(targetUrl, params);
-        // auth
-        buildAuth(clientBuilder, username, password);
-        // proxy
-        buildProxy(clientBuilder, proxyIp, proxyPort);
-        // request
-        Request request = buildGetRequest(targetUrl, header);
-        OkHttpClient client = clientBuilder.build();
-        return client.newCall(request).execute();
-    }
-
-    /**
-     * 使用代理ip发送get请求（带body）
-     *
-     * @param targetUrl 目标url
-     * @param proxyIp   代理ip
-     * @param proxyPort 代理端口
-     * @param username  用户名
-     * @param password  密码
-     * @param header    请求头
-     * @param params    请求参数
-     * @return
-     * @throws IOException
-     */
-    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
-                                          Map<String, String> header, Map<String, String> params, byte[] body) throws IOException {
-
-        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        if (defaultTunnel == null) {
-            throw new IOException("defaultTunnel is null");
-        }
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
-                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
-                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
-        // 问号拼接参数
-        appendParams(targetUrl, params);
-        // auth
-        buildAuth(clientBuilder, username, password);
-        // proxy
-        buildProxy(clientBuilder, proxyIp, proxyPort);
-        // request
-        Request request = buildGetRequest(targetUrl, header);
-        OkHttpClient client = clientBuilder.build();
-        return client.newCall(request).execute();
-    }
-
-    /**
-     * 使用代理ip发送post请求
-     *
-     * @param targetUrl 目标url
-     * @param proxyIp   代理ip
-     * @param proxyPort 代理端口
-     * @param username  用户名
-     * @param password  密码
-     * @param header    请求头
-     * @param body      请求body
-     * @return
-     * @throws IOException
-     */
-    public Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
-                                           Map<String, String> header, byte[] body) throws IOException {
-
-        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        if (defaultTunnel == null) {
-            throw new IOException("defaultTunnel is null");
-        }
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
-                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
-                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
-        // auth
-        buildAuth(clientBuilder, username, password);
-        // proxy
-        buildProxy(clientBuilder, proxyIp, proxyPort);
-        // request
-        Request request = buildPostRequest(targetUrl, header, body);
-//        System.out.println("okhttp===============" + request.toString());
-//        System.out.println("okhttp body===============" + new String(body, StandardCharsets.UTF_8));
-        OkHttpClient client = clientBuilder.build();
-        return client.newCall(request).execute();
-    }
-
-    /**
-     * 使用代理ip发送 https get 请求
-     *
-     * @param targetUrl 目标url
-     * @param proxyIp   代理ip
-     * @param proxyPort 代理端口
-     * @param username  用户名
-     * @param password  密码
-     * @param header    请求头
-     * @param params    请求参数,用于问号拼接
-     * @return
-     * @throws IOException
-     */
-    public Response sendGetByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
-                                                 Map<String, String> header, Map<String, String> params) throws IOException {
-        // params
-        appendParams(targetUrl, params);
-        // request
-        Request request = buildGetRequest(targetUrl, header);
-        // ssl client
-        OkHttpClient okHttpClient = buildOkHttpClientWithSsl(proxyIp, proxyPort, username, password);
-        return okHttpClient.newCall(request).execute();
-    }
-
-    /**
-     * 使用代理ip发送 https post 请求
-     *
-     * @param targetUrl 目标url
-     * @param proxyIp   代理ip
-     * @param proxyPort 代理端口
-     * @param username  用户名
-     * @param password  密码
-     * @param header    请求头
-     * @param body      请求body
-     * @return
-     * @throws IOException
-     */
-    public Response sendPostByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
-                                                  Map<String, String> header, byte[] body) throws IOException {
-        Request request = buildPostRequest(targetUrl, header, body);
-        OkHttpClient okHttpClient = buildOkHttpClientWithSsl(proxyIp, proxyPort, username, password);
-        return okHttpClient.newCall(request).execute();
     }
 
     public static void closeResponse(Response response) {
@@ -409,6 +262,158 @@ public class OkHttpTool {
 ////                .callTimeout(5, TimeUnit.SECONDS)
 //                .readTimeout(5, TimeUnit.SECONDS)
 //                .writeTimeout(5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 使用代理ip发送get请求
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param params    请求参数
+     * @return
+     * @throws IOException
+     */
+    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                   Map<String, String> header, Map<String, String> params) throws IOException {
+
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
+        // 问号拼接参数
+        appendParams(targetUrl, params);
+        // auth
+        buildAuth(clientBuilder, username, password);
+        // proxy
+        buildProxy(clientBuilder, proxyIp, proxyPort);
+        // request
+        Request request = buildGetRequest(targetUrl, header);
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
+    /**
+     * 使用代理ip发送get请求（带body）
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param params    请求参数
+     * @return
+     * @throws IOException
+     */
+    public Response sendGetByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                   Map<String, String> header, Map<String, String> params, byte[] body) throws IOException {
+
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
+        // 问号拼接参数
+        appendParams(targetUrl, params);
+        // auth
+        buildAuth(clientBuilder, username, password);
+        // proxy
+        buildProxy(clientBuilder, proxyIp, proxyPort);
+        // request
+        Request request = buildGetRequest(targetUrl, header);
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
+    /**
+     * 使用代理ip发送post请求
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param body      请求body
+     * @return
+     * @throws IOException
+     */
+    public Response sendPostByProxy(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                    Map<String, String> header, byte[] body) throws IOException {
+
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        if (defaultTunnel == null) {
+            throw new IOException("defaultTunnel is null");
+        }
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
+                .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
+        // auth
+        buildAuth(clientBuilder, username, password);
+        // proxy
+        buildProxy(clientBuilder, proxyIp, proxyPort);
+        // request
+        Request request = buildPostRequest(targetUrl, header, body);
+//        System.out.println("okhttp===============" + request.toString());
+//        System.out.println("okhttp body===============" + new String(body, StandardCharsets.UTF_8));
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
+    /**
+     * 使用代理ip发送 https get 请求
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param params    请求参数,用于问号拼接
+     * @return
+     * @throws IOException
+     */
+    public Response sendGetByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                          Map<String, String> header, Map<String, String> params) throws IOException {
+        // params
+        appendParams(targetUrl, params);
+        // request
+        Request request = buildGetRequest(targetUrl, header);
+        // ssl client
+        OkHttpClient okHttpClient = buildOkHttpClientWithSsl(proxyIp, proxyPort, username, password);
+        return okHttpClient.newCall(request).execute();
+    }
+
+    /**
+     * 使用代理ip发送 https post 请求
+     *
+     * @param targetUrl 目标url
+     * @param proxyIp   代理ip
+     * @param proxyPort 代理端口
+     * @param username  用户名
+     * @param password  密码
+     * @param header    请求头
+     * @param body      请求body
+     * @return
+     * @throws IOException
+     */
+    public Response sendPostByProxyWithSsl(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                           Map<String, String> header, byte[] body) throws IOException {
+        Request request = buildPostRequest(targetUrl, header, body);
+        OkHttpClient okHttpClient = buildOkHttpClientWithSsl(proxyIp, proxyPort, username, password);
+        return okHttpClient.newCall(request).execute();
     }
 
 }

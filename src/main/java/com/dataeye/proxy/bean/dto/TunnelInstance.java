@@ -99,6 +99,10 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private int minUseTimesForRemoveIp;
     /**
+     * 追加ip的最大请求耗时阈值，单位：ms
+     */
+    private int maxReqCostForAddIp;
+    /**
      * 每日累计拉取ip最大数量, 单位: 个
      */
     private int maxFetchIpNumEveryDay;

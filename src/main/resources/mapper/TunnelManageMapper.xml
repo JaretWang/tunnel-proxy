@@ -23,6 +23,7 @@
         <result column="check_ip_pool_interval_seconds" jdbcType="INTEGER" property="checkIpPoolIntervalSeconds"/>
         <result column="min_success_percent_for_remove_ip" jdbcType="INTEGER" property="minSuccessPercentForRemoveIp"/>
         <result column="min_use_times_for_remove_ip" jdbcType="INTEGER" property="minUseTimesForRemoveIp"/>
+        <result column="max_req_cost_for_add_ip" jdbcType="INTEGER" property="maxReqCostForAddIp"/>
         <result column="max_fetch_ip_num_every_day" jdbcType="INTEGER" property="maxFetchIpNumEveryDay"/>
         <result column="used_ip" jdbcType="INTEGER" property="usedIp"/>
         <result column="connect_timeout_millis" jdbcType="INTEGER" property="connectTimeoutMillis"/>
