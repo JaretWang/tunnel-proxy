@@ -300,6 +300,25 @@ public class OkHttpTool {
         return client.newCall(request).execute();
     }
 
+    public static Response sendGetByProxy2(String targetUrl, String proxyIp, int proxyPort, String username, String password,
+                                   Map<String, String> header, Map<String, String> params) throws IOException {
+
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                .connectTimeout(5000, TimeUnit.MILLISECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS);
+        // 问号拼接参数
+        appendParams(targetUrl, params);
+        // auth
+        buildAuth(clientBuilder, username, password);
+        // proxy
+        buildProxy(clientBuilder, proxyIp, proxyPort);
+        // request
+        Request request = buildGetRequest(targetUrl, header);
+        OkHttpClient client = clientBuilder.build();
+        return client.newCall(request).execute();
+    }
+
     /**
      * 使用代理ip发送get请求（带body）
      *

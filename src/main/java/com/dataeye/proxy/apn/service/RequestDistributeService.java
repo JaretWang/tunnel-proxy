@@ -121,7 +121,10 @@ public class RequestDistributeService {
             if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
                 continue;
             }
-            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+            if (StringUtils.equalsIgnoreCase(headerName, "Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
                 continue;
             }
             for (String headerValue : httpRequest.headers().getAll(headerName)) {
@@ -156,6 +159,9 @@ public class RequestDistributeService {
                 continue;
             }
             if (StringUtils.equalsIgnoreCase(headerName, "Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
                 continue;
             }
             sb.append(headerName).append(": ").append(headerValue).append(lineSeparator);
