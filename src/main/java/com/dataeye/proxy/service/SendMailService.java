@@ -1,7 +1,7 @@
 package com.dataeye.proxy.service;
 
-import com.dataeye.logback.LogbackRollingFileUtil;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.simple.SimpleHttpClient;
@@ -17,7 +17,7 @@ import java.text.MessageFormat;
 @Service
 public class SendMailService {
 
-    private static final Logger logger = LogbackRollingFileUtil.getLogger("SendMailService");
+    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("SendMailService");
     @Autowired
     ProxyServerConfig proxyServerConfig;
     @Autowired

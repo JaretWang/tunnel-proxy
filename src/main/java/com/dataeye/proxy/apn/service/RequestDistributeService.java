@@ -118,20 +118,18 @@ public class RequestDistributeService {
 
         Set<String> headerNames = httpRequest.headers().names();
         for (String headerName : headerNames) {
-//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
-//                continue;
-//            }
-//            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
-//                continue;
-//            }
-//            // 临时增加
-//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
-//                continue;
-//            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
+                continue;
+            }
             for (String headerValue : httpRequest.headers().getAll(headerName)) {
                 sb.append(headerName).append(": ").append(headerValue).append(CRLF);
             }
         }
+//        sb.append("Connection").append(": ").append("close").append(CRLF);
+//        sb.append("Proxy-Connection").append(": ").append("close").append(CRLF);
 
         if (StringUtils.isNotBlank(apnProxyRemote.getProxyUserName())
                 && StringUtils.isNotBlank(apnProxyRemote.getProxyPassword())) {
@@ -154,18 +152,16 @@ public class RequestDistributeService {
         for (Map.Entry<String, String> next : httpRequest.headers()) {
             String headerName = next.getKey();
             String headerValue = next.getValue();
-//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
-//                continue;
-//            }
-//            if (StringUtils.equalsIgnoreCase(headerName, HttpHeaders.Names.CONNECTION)) {
-//                continue;
-//            }
-//            // 临时增加
-//            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Authorization")) {
-//                continue;
-//            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Proxy-Connection")) {
+                continue;
+            }
+            if (StringUtils.equalsIgnoreCase(headerName, "Connection")) {
+                continue;
+            }
             sb.append(headerName).append(": ").append(headerValue).append(lineSeparator);
         }
+//        sb.append("Connection").append(": ").append("close").append(lineSeparator);
+//        sb.append("Proxy-Connection").append(": ").append("close").append(lineSeparator);
 
         String proxyUserName = apnProxyRemote.getProxyUserName();
         String proxyPassword = apnProxyRemote.getProxyPassword();
@@ -300,25 +296,38 @@ public class RequestDistributeService {
 
     Response sendCommonReq(String method, String uri, String remoteHost, int remotePort, String proxyUserName,
                            String proxyPassword, Map<String, String> headers, FullHttpRequest fullHttpRequest, String handler) throws IOException {
+        Map<String, String> reqHeaders = setConnection(headers);
         Response response;
         if ("get".equalsIgnoreCase(method)) {
             if (uri.startsWith("https")) {
-                response = okHttpTool.sendGetByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+                response = okHttpTool.sendGetByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, null);
             } else {
-                response = okHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, null);
+                response = okHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, null);
             }
         } else if ("post".equalsIgnoreCase(method)) {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
             if (uri.startsWith("https")) {
-                response = okHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
+                response = okHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, body);
             } else {
-                response = okHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, body);
+                response = okHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, body);
             }
         } else {
             throw new RuntimeException("不认识的请求方式: " + method);
         }
         return response;
+    }
+
+    Map<String, String> setConnection(Map<String, String> headers) {
+        Map<String, String> reqHeader = new HashMap<>();
+        headers.forEach((k, v) -> {
+            if (!"connection".equalsIgnoreCase(k) && !"proxy-connection".equalsIgnoreCase(k)) {
+                reqHeader.put(k, v);
+            }
+        });
+        // 补充：只使用短连接
+        reqHeader.put("Connection", "close");
+        return reqHeader;
     }
 
     byte[] getContent(String handler, FullHttpRequest fullHttpRequest) {
