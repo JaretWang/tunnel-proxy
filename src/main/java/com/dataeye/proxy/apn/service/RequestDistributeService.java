@@ -44,8 +44,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-
 /**
  * @author jaret
  * @date 2022/4/7 12:19
@@ -630,10 +628,16 @@ public class RequestDistributeService {
                         IpMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);
 
                         // Close the connection if the connection attempt has failed.
-                        ctx.channel().writeAndFlush(new DefaultHttpResponse(httpRequest.protocolVersion(), INTERNAL_SERVER_ERROR));
+//                        ctx.channel().writeAndFlush(new DefaultHttpResponse(httpRequest.protocolVersion(), HttpResponseStatus.INTERNAL_SERVER_ERROR));
+
+//                        ChannelPromise channelPromise = ctx.channel().newPromise();
+//                        channelPromise.setFailure(new IOException("connect ip fail"));
+
                         // 关闭资源
-                        SocksServerUtils.closeOnFlush(ctx.channel());
-                        SocksServerUtils.closeOnFlush(future1.channel());
+                        ctx.channel().close();
+                        future1.channel().close();
+//                        SocksServerUtils.closeOnFlush(ctx.channel());
+//                        SocksServerUtils.closeOnFlush(future1.channel());
                     }
 
                 });
