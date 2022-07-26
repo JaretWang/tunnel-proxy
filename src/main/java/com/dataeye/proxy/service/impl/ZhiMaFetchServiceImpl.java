@@ -282,7 +282,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
         // 套餐每日剩余ip数
         int surplusIpSize = SURPLUS_IP_SIZE.get();
-        // 避免一过12点 就告警
+        // 避免一过12点 套餐剩余量重置为0 就告警，理论上当消耗的ip占比达到70%就会告警，所以不考虑剩余数量为0的情况
         if (surplusIpSize == 0) {
             return 0;
         }

@@ -146,7 +146,7 @@ ab -n 1000 -c 1 http://13.209.21.196:8080/trade-server/test/order/testQueue
 
 ## IP质量测试
 
-### 芝麻
+> 芝麻
 
 > 直连ip
 
@@ -480,7 +480,7 @@ IP=42.6.114.103:8509(2022-04-21 18:11:02), 并发=50, 成功=14, 失败=486, 失
 
 
 
-### 代理云
+> 代理云
 
 第一批
 
@@ -552,7 +552,7 @@ IP=60.185.150.202:57114(2022-04-21 17:20:20), 并发=40, 成功=239, 失败=161,
 
 
 
-### 亿牛云
+> 亿牛云
 
 第一批
 
@@ -652,7 +652,7 @@ IP=114.231.15.191:33108(2023-01-01 01:01:01), 并发=30, 成功=0, 失败=300, �
 
 
 
-### 游杰
+> 游杰
 
 第一批
 
@@ -1133,6 +1133,45 @@ https://jiangguilong2000.blog.csdn.net/article/details/42297873?spm=1001.2101.30
 
 1.代理ip慢，导致慢请求。2.并发数高，处理增多，内存占用高。3.数据包的突然增大，波动很大，导致内存占用过高。
 
+
+
+> 劣质ip导致的tcp连接中，处以 ESTABLISHED 状态的连接非常多
+
+连接ip超时或者连接拒绝，剔除劣质ip或过期ip，会导致建立的tcp连接没有被释放，所以就会出现连接数过多
+
+![image-20220725171514396](C:\Users\caiguanghui\AppData\Roaming\Typora\typora-user-images\image-20220725171514396.png)
+
+```
+[test@adx-proxy-002 tunnel-proxy]$ netstat -anpt | wc -l
+(No info could be read for "-p": geteuid()=1001 but you should be root.)
+10979
+[test@adx-proxy-002 tunnel-proxy]$ cat adx-ApnProxyServer.log | grep '106.32.12.194:4231'
+[2022-07-25 16:19:40] [nioEventLoopGroup-3-302] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5001 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:20:07] [nioEventLoopGroup-3-296] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5000 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:20:16] [nioEventLoopGroup-3-26] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5002 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:20:18] [nioEventLoopGroup-3-449] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5001 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:20:39] [nioEventLoopGroup-3-270] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5001 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:20:49] [nioEventLoopGroup-3-115] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5001 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:02] [nioEventLoopGroup-3-462] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 10635 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:03] [nioEventLoopGroup-3-456] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 9885 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:03] [nioEventLoopGroup-3-31] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5000 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:18] [nioEventLoopGroup-3-147] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5000 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:19] [nioEventLoopGroup-3-157] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 6190 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:21:44] [nioEventLoopGroup-3-398] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 6107 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:10] [nioEventLoopGroup-3-237] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 10552 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:16] [nioEventLoopGroup-3-116] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 7252 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:18] [nioEventLoopGroup-3-437] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5000 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:22] [nioEventLoopGroup-3-293] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5001 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:30] [nioEventLoopGroup-3-420] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5828 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:35] [nioEventLoopGroup-3-473] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5000 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:37] [nioEventLoopGroup-3-341] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 6391 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:44] [nioEventLoopGroup-3-158] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 5003 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:22:47] [nioEventLoopGroup-3-35] [RequestDistributeService.java:lambda$forwardConnectReq$10:624] [ERROR] -> tunnel_handler 连接代理IP失败，耗时: 7980 ms, reason=connection timed out: /106.32.12.194:4231
+[2022-07-25 16:23:07] [nioEventLoopGroup-3-52] [ApnProxyRemoteChooser.java:getProxyConfig:85] [INFO ] -> ip=106.32.12.194:4231 is invalid and will be removed
+```
+
+
+
 # 监控
 
 ## 日常监控命令
@@ -1317,6 +1356,20 @@ adx-crawl-008   172.18.211.169  120.79.147.167   16/32G
 
 调研并扩展socks5协议：
 
+## Netty技术细节记录
+
+> ChannelOption.SO_KEEPALIVE, true
+
+```
+keepalive不是说TCP的常连接，当我们作为服务端，一个客户端连接上来，如果设置了keeplive为true，当对方没有发送任何数据过来，超过一个时间(看系统内核参数配置)，那么我们这边会发送一个ack探测包发到对方，探测双方的TCP/IP连接是否有效(对方可能断点，断网)。如果不设置，那么客户端宕机时，服务器永远也不知道客户端宕机了，仍然保存这个失效的连接。
+
+当然，在客户端也可以使用这个参数。客户端Socket会每隔段的时间（大约两个小时）就会利用空闲的连接向服务器发送一个数据包。这个数据包并没有其它的作用，只是为了检测一下服务器是否仍处于活动状态。如果服务器未响应这个数据包，在大约11分钟后，客户端Socket再发送一个数据包，如果在12分钟内，服务器还没响应，那么客户端Socket将关闭。如果将Socket选项关闭，客户端Socket在服务器无效的情况下可能会长时间不会关闭。
+
+尽管keepalive的好处并不多，但是很多开发者提倡在更高层次的应用程序代码中控制超时设置和死的套接字。同时需要记住，keepalive不允许你为探测套接字终点（endpoint）指定一个值。所以建议开发者使用的另一种比keepalive更好的解决方案是修改超时设置套接字选项。
+说白了：这个参数其实对应用层的程序而言没有什么用。可以通过应用层实现了解服务端或客户端状态，而决定是否继续维持该Socket。
+原文链接：https://blog.csdn.net/qq_24520119/article/details/73650094
+```
+
 
 
 
@@ -1479,6 +1532,28 @@ password: gjb970312
 数据库：ad_adx
 用户名：readonly
 密码：G9KjWYDg+&-TVlE
+```
+
+# 隧道分配
+
+```
+广告联盟：穿山甲(80w),优量广告(60w)   2个媒体, 140w请求，2个隧道
+
+腾讯系: 腾讯视频(20w),腾讯新闻(24w),腾讯QQ(3w),天天快报(13w),QQ浏览器(2w),微信(?w),Qzone(?w)  7个媒体, 62w请求,2个隧道
+
+字节系：{"抖音":187689,"抖音火山版":75400,"西瓜视频":30379,"今日头条":64547,"番茄小说":83266,"皮皮虾":?,"内涵段子":?}   7个媒体, 45w请求,1个隧道
+
+百度系：{"好看视频":43642,"手机百度":118676,"爱奇艺":56351,"百度贴吧":17341,"百度关键字搜索":?,"百度联盟":?,"全民小视频":?,"百度视频":?}  8个媒体, 30w以下请求, 1个隧道
+
+阿里系：{"UC头条":146122,"优酷视频":?,"阿里汇川联盟":?,"墨迹天气":?,"土豆视频":?}  5个媒体, 1个隧道
+
+网易新浪搜狐系：网易新闻(5w),新浪微博,新浪新闻,新浪财经,搜狗浏览器,搜狐新闻,搜狐咨询  7个媒体, 1个隧道
+
+计划数多的媒体：{"快手联盟":9425,"糗事百科":14839,"Bilibili":9497,"OPPO浏览器":28275,"快手":24255,"taptap":15406}  6个媒体, 1个隧道
+
+其他：WiFi万能钥匙,知乎,华为浏览器,虎扑,懂球帝,最右,皮皮搞笑,趣头条,vivo浏览器,东方头条,手机迅雷,傲游浏览器,一点资讯,段友,东方体育,中央天气预报,车来了,360浏览器,引力资讯,悦头条,凤凰新闻,唔哩头条,中华万年历,米尔军事,WAP联盟,猎豹浏览器,今日影视大全,乐视视频,小米浏览器  29个媒体, 1个隧道
+
+共计71个媒体，10个隧道
 ```
 
 
