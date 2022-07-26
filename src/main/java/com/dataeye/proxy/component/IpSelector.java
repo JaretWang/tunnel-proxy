@@ -228,6 +228,7 @@ public class IpSelector {
             log.error("移除失败, queue is null or num <= 0");
             return false;
         }
+        // ip池低于核心值的时候，不能移除，否则会变成0
         // 随机移除ip
         // TODO 优化点: 此处剔除成功率最低的一个ip 等加上ip池优先级队列就可以了
         for (int i = 0; i < num; i++) {

@@ -628,7 +628,7 @@ public class RequestDistributeService {
                         IpMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);
 
                         // Close the connection if the connection attempt has failed.
-//                        ctx.channel().writeAndFlush(new DefaultHttpResponse(httpRequest.protocolVersion(), HttpResponseStatus.INTERNAL_SERVER_ERROR));
+                        ctx.channel().writeAndFlush(new DefaultHttpResponse(httpRequest.protocolVersion(), HttpResponseStatus.INTERNAL_SERVER_ERROR));
 
 //                        ChannelPromise channelPromise = ctx.channel().newPromise();
 //                        channelPromise.setFailure(new IOException("connect ip fail"));

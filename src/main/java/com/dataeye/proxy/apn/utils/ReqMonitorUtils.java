@@ -236,20 +236,22 @@ public class ReqMonitorUtils {
                 logger.warn("放弃动态调整: 真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许ip数{}",
                         realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             }
-        } else {
-            // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip
-            if ((realPercent - minSuccessPercentForRemoveIp) >= 3) {
-                // 即使减少也不能少于核心ip数
-                if (proxyIpPool.size() > coreIpSize) {
-                    boolean status = ipSelector.removeFixedIp(1, proxyIpPool);
-                    logger.info("减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 单位时间内允许拉取的最小ip数={}",
-                            status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
-                } else {
-                    logger.info("放弃动态调整: 真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于单位时间内允许最小ip数{}",
-                            realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
-                }
-            }
         }
+        // nothing to do
+//        else {
+//            // 真实成功率 >= 规定成功率,且百分比超过3个点,则减少ip
+//            if ((realPercent - minSuccessPercentForRemoveIp) >= 3) {
+//                // 即使减少也不能少于核心ip数
+//                if (proxyIpPool.size() > coreIpSize) {
+//                    boolean status = ipSelector.removeFixedIp(1, proxyIpPool);
+//                    logger.info("减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 单位时间内允许拉取的最小ip数={}",
+//                            status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
+//                } else {
+//                    logger.info("放弃动态调整: 真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于单位时间内允许最小ip数{}",
+//                            realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
+//                }
+//            }
+//        }
 
         int maxReqCostForAddIp = defaultTunnel.getMaxReqCostForAddIp();
         if (costAvg > maxReqCostForAddIp) {
