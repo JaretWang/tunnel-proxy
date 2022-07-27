@@ -5,6 +5,7 @@ import com.dataeye.proxy.apn.bean.ProxyIp;
 import com.dataeye.proxy.apn.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
+import com.dataeye.proxy.component.TunnelMonitor;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
@@ -12,10 +13,10 @@ import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MapUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/4/18 10:07
  * @description 请求监控工具
  */
+@Data
 @Component
 public class ReqMonitorUtils {
 
@@ -55,6 +57,8 @@ public class ReqMonitorUtils {
     TunnelInitService tunnelInitService;
     @Autowired
     ProxyServerConfig proxyServerConfig;
+    double costAvg, reqSize, respSize, reqBandwidth, respBandwidth;
+    String percent;
 
     public static void ok(RequestMonitor requestMonitor, String handler) {
         requestMonitor.setSuccess(true);
@@ -115,8 +119,8 @@ public class ReqMonitorUtils {
             long okVal = OK_TIMES.longValue();
             long errorVal = ERROR_TIMES.longValue();
             long total = ERROR_TIMES.addAndGet(okVal);
-            double costAvg, reqSize, respSize, reqBandwidth, respBandwidth;
-            String percent;
+//            double costAvg, reqSize, respSize, reqBandwidth, respBandwidth;
+//            String percent;
             if (COST_TOTAL.get() == 0 || total == 0) {
                 costAvg = 0;
                 reqSize = 0;

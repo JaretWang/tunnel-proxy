@@ -49,6 +49,13 @@
         where alias = #{alias}
     </update>
 
+    <insert id="monitor" parameterType="com.dataeye.proxy.bean.TunnelMonitorLog">
+        INSERT INTO `ip_tunnel`.`tunnel_monitor`(`location`, `name`, `concurrency`, `ok_percent`, `cost`,
+        `req_size`, `resp_size`, `req_bandwidth`, `resp_bandwidth`, `tcp_conn`, `set_meal_surplus_ip`, `ip_limit`, `used_ip`, `ip_pool_size`, `update_time`)
+        VALUES (#{location}, #{name}, #{concurrency}, #{okPercent}, #{cost},
+        #{reqSize}, #{respSize}, #{reqBandwidth}, #{respBandwidth}, #{tcpConn}, #{surplusIp}, #{ipLimit}, #{usedIp}, #{ipPoolSize}, #{updateTime});
+    </insert>
+
     <update id="updateTunnel" parameterType="com.dataeye.proxy.bean.dto.TunnelInstance">
         update tunnel_manage
         set location = #{location},

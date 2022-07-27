@@ -1,5 +1,6 @@
 package com.dataeye.proxy.dao;
 
+import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -38,5 +39,7 @@ public interface TunnelInitMapper {
     int updateUsedIp(@Param("alias") String alias, @Param("usedIp") int usedIp);
 
     int updateSuccessRate(@Param("alias") String alias, @Param("rate") int rate, @Param("useTimes") int useTimes);
+
+    int monitor(TunnelMonitorLog tunnelMonitorLog);
 
 }

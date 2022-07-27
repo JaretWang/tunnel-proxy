@@ -9,6 +9,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLEngine;
@@ -45,6 +47,7 @@ public class TunnelRelayChannelInitializer extends ChannelInitializer<SocketChan
         if (apnProxyRemote.getRemoteListenType() == ApnProxyListenType.PLAIN) {
             // nothing to do
         }
+//        pipeline.addLast("client.datalog", new LoggingHandler("CLIENT_BYTE_LOGGER", LogLevel.DEBUG));
         pipeline.addLast(new TunnelRelayHandler(requestMonitor,  apnProxyRemote.getIpAddr() + " --> UA", uaChannel));
 
     }

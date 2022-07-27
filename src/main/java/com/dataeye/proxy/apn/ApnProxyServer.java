@@ -10,7 +10,6 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -18,7 +17,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.ResourceLeakDetector;
-import org.slf4j.Logger;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -48,6 +47,8 @@ public class ApnProxyServer {
     RequestDistributeService requestDistributeService;
     @Resource
     TunnelInitService tunnelInitService;
+    @Getter
+    ConcurrentLimitHandler concurrentLimitHandler;
 
     /**
      * 初始化隧道实例
@@ -108,11 +109,12 @@ public class ApnProxyServer {
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
+        concurrentLimitHandler = new ConcurrentLimitHandler(tunnelInstance);
         ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
                 .apnProxyRemoteChooser(apnProxyRemoteChooser)
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)
-                .concurrentLimitHandler(new ConcurrentLimitHandler(tunnelInstance))
+                .concurrentLimitHandler(concurrentLimitHandler)
                 .trafficScheduledThreadPool(new ScheduledThreadPoolExecutor(10,
                         new ThreadPoolConfig.TunnelThreadFactory("bandwidth-monitor-"),
                         new ThreadPoolExecutor.AbortPolicy()))

@@ -40,7 +40,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //        pipeline.addLast("idlestate", new WriteTimeoutHandler(writerIdleTime, TimeUnit.SECONDS));
         pipeline.addLast("idlestate", new IdleStateHandler(SERVER_READ_IDLE_TIME, SERVER_WRITE_IDLE_TIME, SERVER_ALL_IDLE_TIME, TimeUnit.SECONDS));
         pipeline.addLast("idlehandler", new IdleHandler());
-//        pipeline.addLast("datalog", new LoggingHandler("PRE_BYTE_LOGGER", LogLevel.DEBUG));
+//        pipeline.addLast("server.datalog", new LoggingHandler("PRE_BYTE_LOGGER", LogLevel.DEBUG));
 //        if (ApnProxyConfig.getConfig().getListenType() == ApnProxyListenType.SSL) {
 //            SSLEngine engine = ApnProxySSLContextFactory.createServerSSLSSLEngine();
 //            pipeline.addLast("apnproxy.encrypt", new SslHandler(engine));

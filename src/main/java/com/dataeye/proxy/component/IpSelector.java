@@ -263,7 +263,10 @@ public class IpSelector {
      * @param queue ip池
      * @return
      */
-    private int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
+    int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
+        if (queue == null) {
+            return 0;
+        }
         return (int) queue.stream()
                 .filter(proxyIp -> proxyIp.getValid().get())
                 .distinct().count();
