@@ -238,6 +238,23 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     @Scheduled(cron = "0/5 * * * * ?")
     void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
+        // 避免因为网络不好，导致获取的剩余ip数为0，重试3次
+        if (surplusIpSize == 0) {
+            int count = 0;
+            while (count < 3) {
+                count++;
+                try {
+                    Thread.sleep(2000L);
+                    // 重试
+                    surplusIpSize = getSurplusIpSize();
+                    if (surplusIpSize > 0) {
+                        break;
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         SURPLUS_IP_SIZE.set(surplusIpSize);
         int usedIp = FETCH_IP_NUM_NOW.get();
         try {
