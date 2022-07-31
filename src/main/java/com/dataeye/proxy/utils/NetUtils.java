@@ -1,5 +1,7 @@
 package com.dataeye.proxy.utils;
 
+import org.slf4j.Logger;
+
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -13,8 +15,11 @@ import java.util.Enumeration;
  */
 public class NetUtils {
 
+    private static final Logger LOGGER = MyLogbackRollingFileUtil.getLogger("NetUtils");
+
     /**
      * 获取eth0网卡对应的ip地址
+     *
      * @return
      */
     public static String getEth0Inet4InnerIp() {
@@ -33,7 +38,9 @@ public class NetUtils {
                 while (addresses.hasMoreElements()) {
                     InetAddress address = addresses.nextElement();
                     if (address instanceof Inet4Address) {
-                        return address.getHostAddress();
+                        String hostAddress = address.getHostAddress();
+                        LOGGER.info("local ip={}", hostAddress);
+                        return hostAddress;
                     }
                 }
             }
