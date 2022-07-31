@@ -148,14 +148,18 @@ public class TunnelInitService {
             if (belong2Local) {
                 String alias = tunnelInstance.getAlias();
                 if (TUNNEL_INSTANCES_CACHE.containsKey(alias)) {
-                    TunnelInstance tunnel = TUNNEL_INSTANCES_CACHE.get(alias);
-                    String oldConfig = tunnel.toString();
-                    String newConfig = tunnelInstance.toString();
-                    if (!oldConfig.equals(newConfig)) {
-                        logger.info("更新隧道参数: {}", tunnelInstance);
-                        // fixed bug: just update tunnel params on the machine
-                        TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
-                    }
+//                    TunnelInstance tunnel = TUNNEL_INSTANCES_CACHE.get(alias);
+//                    String oldConfig = tunnel.toString();
+//                    String newConfig = tunnelInstance.toString();
+//                    if (!oldConfig.equals(newConfig)) {
+//                        logger.info("更新隧道参数: {}", tunnelInstance);
+//                        // fixed bug: just update tunnel params on the machine
+//                        TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
+//                    }
+
+                    logger.info("更新隧道参数: {}", tunnelInstance);
+                    // fixed bug: just update tunnel params on the machine
+                    TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
                 }
             }
         }

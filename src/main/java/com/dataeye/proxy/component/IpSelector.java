@@ -145,6 +145,7 @@ public class IpSelector {
         // 检查ip拉取是否已经超过单位时间内的最大值
         int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
         int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
+        log.info("addReason={}, availableIpPerUnitTime={}, fetchIpPerUnit={}", addReason, availableIpPerUnitTime, fetchIpPerUnit);
         if (fetchIpPerUnit >= availableIpPerUnitTime) {
             log.warn("添加原因={}, 添加失败, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
             return status;
@@ -276,7 +277,7 @@ public class IpSelector {
     /**
      * 获取每个格子（最小检查单位时间）可用的ip数（动态的）
      *
-     * @param logger 日志
+     * @param logger  日志
      * @param period2 检查时间间隔
      * @param unit2   时间单位
      * @return
