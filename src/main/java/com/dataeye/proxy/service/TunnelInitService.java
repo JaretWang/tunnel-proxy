@@ -1,5 +1,6 @@
 package com.dataeye.proxy.service;
 
+import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -191,6 +192,10 @@ public class TunnelInitService {
 
     public int updateUsedIp(String tunnelName, int num) {
         return tunnelInitMapper.updateUsedIp(tunnelName, num);
+    }
+
+    public List<TunnelMonitorLog> getMonitorLog(String name, String updateTime, int from, int to) {
+        return tunnelInitMapper.getMonitorLog(name, updateTime, from, to);
     }
 
 }

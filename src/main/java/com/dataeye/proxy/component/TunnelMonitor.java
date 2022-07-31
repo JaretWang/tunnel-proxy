@@ -80,7 +80,7 @@ public class TunnelMonitor {
             MONITOR_LOG.setIpPoolSize(ipSelector.getValidIpSize(ipSelector.getProxyIpPool().get(tunnel.getAlias())));
             MONITOR_LOG.setUpdateTime(TimeUtils.formatLocalDate(LocalDateTime.now()));
             logger.info("监控记录入库: {}", JSON.toJSONString(MONITOR_LOG));
-            tunnelInitMapper.monitor(MONITOR_LOG);
+            tunnelInitMapper.addMonitorLog(MONITOR_LOG);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

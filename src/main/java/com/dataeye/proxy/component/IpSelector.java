@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 @Data
 @Service
 public class IpSelector {
+    private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpSelector");
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(2,
             new ThreadPoolConfig.TunnelThreadFactory("ip-pool-schedule-"), new ThreadPoolExecutor.AbortPolicy());
@@ -276,14 +277,22 @@ public class IpSelector {
      * 获取每个格子（最小检查单位时间）可用的ip数（动态的）
      *
      * @param logger 日志
-     * @param period 检查时间间隔
-     * @param unit   时间单位
+     * @param period2 检查时间间隔
+     * @param unit2   时间单位
      * @return
      */
-    public int getAvailableIpPerUnitTime(Logger logger, long period, TimeUnit unit, TunnelInstance tunnelInstance) {
+    public int getAvailableIpPerUnitTime(Logger logger, long period2, TimeUnit unit2, TunnelInstance tunnelInstance2) {
+        TunnelInstance tunnelInstance = tunnelInitService.getDefaultTunnel();
+        if (tunnelInstance == null) {
+            dynamicIpLogger.error("tunnelInstance is null");
+            return 0;
+        }
+        dynamicIpLogger.info("隧道配置={}", JSON.toJSONString(tunnelInstance));
+        long period = ReqMonitorUtils.CHECK_INTERVAL;
+        TimeUnit unit = ReqMonitorUtils.CHECK_TIME_UNIT;
         int maxFetchIpNumEveryDay = tunnelInstance.getMaxFetchIpNumEveryDay();
         int availableIp = tunnelInstance.getAvailableIp();
-        if (period <= 0 || unit == null || availableIp <= 0 || maxFetchIpNumEveryDay <= 0) {
+        if (availableIp <= 0 || maxFetchIpNumEveryDay <= 0) {
             logger.error("params check error, period={}, maxFetchIpNumEveryDay={}, availableIp={}", period, maxFetchIpNumEveryDay, availableIp);
             return 0;
         }
@@ -315,7 +324,7 @@ public class IpSelector {
         // 每个格子拥有的ip数
         int ipPerGrids = (int) (availableIp / remainingGrids);
 //        int ipPerGrids = new BigDecimal(surplusIpSize).divide(new BigDecimal(remainingGrids), 2, RoundingMode.HALF_UP).intValue();
-        logger.info("每日ip数限制={}, 已拉取ip数={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, tunnelInstance.getUsedIp(), availableIp, ipPerGrids);
+        dynamicIpLogger.info("每日ip数限制={}, 已拉取ip数={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, tunnelInstance.getUsedIp(), availableIp, ipPerGrids);
         return ipPerGrids;
     }
 

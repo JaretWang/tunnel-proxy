@@ -2,10 +2,17 @@ package com.dataeye.proxy.manage;
 
 import com.dataeye.proxy.TunnelProxyApplication;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.component.IpSelector;
+import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.starter.httpclient.HttpClientResponse;
+import com.dataeye.starter.httpclient.ResponseEntityType;
+import com.dataeye.starter.httpclient.common.CommonHttpClient;
+import com.dataeye.starter.httpclient.simple.SimpleHttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -15,6 +22,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 import javax.annotation.Resource;
 import java.util.StringJoiner;
+import java.util.concurrent.*;
 
 /**
  * @author jaret
@@ -28,7 +36,7 @@ public class TestMybatis {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
 
-//    public static final TunnelInstance TUNNEL_INSTANCE = TunnelInstance.builder()
+    //    public static final TunnelInstance TUNNEL_INSTANCE = TunnelInstance.builder()
 //            .alias("youliang")
 //            .location("localhost")
 //            .enable(1)
@@ -53,15 +61,60 @@ public class TestMybatis {
 //            .createTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
 //            .description("优量")
 //            .build();
-
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+            new ThreadPoolConfig.TunnelThreadFactory("getAvailableIpPerUnitTime-"), new ThreadPoolExecutor.AbortPolicy());
     @Autowired
     ReqMonitorUtils reqMonitorUtils;
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Resource
     SendMailService sendMailService;
+    @Autowired
+    SimpleHttpClient simpleHttpClient;
+    @Autowired
+    CommonHttpClient commonHttpClient;
     @Resource
     TunnelInitService tunnelInitService;
+    @Autowired
+    TunnelInitMapper tunnelInitMapper;
+    @Autowired
+    IpSelector ipSelector;
+
+    /**
+     * 查询每个隧道的请求监控记录
+     */
+    @Test
+    public void getMonitorLog() throws InterruptedException {
+//        List<TunnelMonitorLog> data = tunnelInitService.getMonitorLog("youliang", "2022-07-30%", 0, 10);
+//        List<TunnelMonitorLog> data = tunnelInitMapper.getMonitorLog("youliang", "2022-07-30%", 0, 10);
+//        System.out.println(JSON.toJSONString(data));
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> {
+            try {
+                int ipSelector = this.ipSelector.getAvailableIpPerUnitTime(MyLogbackRollingFileUtil.getLogger("IpSelector"), null);
+                System.out.println("ipSelector-->" + ipSelector);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, 0, 3, TimeUnit.SECONDS);
+        System.out.println("waiting...");
+        countDownLatch.await();
+    }
+
+    @Test
+    public void test2() {
+        String url = "http://c.gdt.qq.com/gdt_click.fcg?viewid=M0sGpdOnGU10ovCRMNMfAiHO1LdGFeMekAbf_kA1jnVczzkBLsiksdUj9ahEtza1D5k!5EzORkZeIlQ2x_cMMJ7ftB6Aq36u7hZDj5iciBBdnitMfEZzuzqgHIVS6EfnXMS0wtEI1hlwKQ5U573IiXD5umaROWFnEJIzcXPT!OP9lvtTEMtpUTO5LyNP18h8ZMDASVBt_i!G7toT6rfeCl!PS4mEz7oSeP6cCCvKtvlRynPrUkVsSw&jtype=0&i=1&os=2&s_lp=101&acttype=__ACT_TYPE__&ch=__CHANNEL_ID__&seq=__SEQ__&aseq=__ABS_SEQ__&rt=__RETURN_TYPE__&s=%7B%22da%22%3A%22__WIDTH__%22%2C%22db%22%3A%22__HEIGHT__%22%2C%22down_x%22%3A%22__DOWN_X__%22%2C%22down_y%22%3A%22__DOWN_Y__%22%2C%22up_x%22%3A%22__UP_X__%22%2C%22up_y%22%3A%22__UP_Y__%22%7D&lpp=click_ext%3DeyJhdWlkIjoiMjM0OTQxNTQiLCJleHBfcGFyYW0iOiJKdW1wVXNlSnNBcGk6MSx3aXRoUGxheUNvbXBvbmVudDoxMSIsImxvbmdfcG9zX2lkIjoiNzA3MDgzMDIyNTQyMDY1MCIsIm1lZGl1bV9pZCI6IjQwODAzMzQzMjgwNjA5In0%253D&clklpp=__CLICK_LPP__&nxjp=1&xp=2&conn_type=__NET_STATUS__&vto=__VIDEO_PLAY_TIME__&tl=1";
+
+//        HttpClientResponse response = commonHttpClient.doGet(url, null, ResponseEntityType.STRING_UTF8, null);
+        HttpClientResponse response = simpleHttpClient.doGet(url, null, null, ResponseEntityType.STRING_UTF8, true);
+//        System.out.println(response.getStatusCode());
+        System.out.println(response.getRedirectLocations());
+        System.out.println(response.getRealRequestUrl());
+//        System.out.println(response.getResponseContent());
+//        System.out.println(response.getContentType());
+//        System.out.println(response.getContentLength());
+    }
 
     @Test
     public void test() throws InterruptedException {
@@ -84,7 +137,6 @@ public class TestMybatis {
         tunnelInitService.updateUsedIp("youliang", 123);
         tunnelInitService.updateSuccessRate("youliang", 11, 22);
     }
-
 
     String getAlarmContent() {
         String content = new StringJoiner(", ")
