@@ -288,7 +288,7 @@ public class IpSelector {
             dynamicIpLogger.error("tunnelInstance is null");
             return 0;
         }
-        dynamicIpLogger.info("隧道配置={}", JSON.toJSONString(tunnelInstance));
+        dynamicIpLogger.debug("隧道配置={}", JSON.toJSONString(tunnelInstance));
         long period = ReqMonitorUtils.CHECK_INTERVAL;
         TimeUnit unit = ReqMonitorUtils.CHECK_TIME_UNIT;
         int maxFetchIpNumEveryDay = tunnelInstance.getMaxFetchIpNumEveryDay();
@@ -325,7 +325,7 @@ public class IpSelector {
         // 每个格子拥有的ip数
         int ipPerGrids = (int) (availableIp / remainingGrids);
 //        int ipPerGrids = new BigDecimal(surplusIpSize).divide(new BigDecimal(remainingGrids), 2, RoundingMode.HALF_UP).intValue();
-        dynamicIpLogger.info("每日ip数限制={}, 已拉取ip数={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, tunnelInstance.getUsedIp(), availableIp, ipPerGrids);
+        dynamicIpLogger.debug("每日ip数限制={}, 已拉取ip数={}, 剩余可用ip数={}, 每个格子分配的ip数={}", maxFetchIpNumEveryDay, tunnelInstance.getUsedIp(), availableIp, ipPerGrids);
         return ipPerGrids;
     }
 

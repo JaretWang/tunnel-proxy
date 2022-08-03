@@ -42,11 +42,4 @@ public interface TunnelInitMapper {
 
     int addMonitorLog(TunnelMonitorLog tunnelMonitorLog);
 
-    List<TunnelMonitorLog> getMonitorLog(@Param("name") String name,
-                      @Param("updateTime") String updateTime,
-                      @Param("from") int from,
-                      @Param("to") int to);
-
-
-
 }

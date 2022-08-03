@@ -5,6 +5,7 @@ import com.dataeye.proxy.apn.ApnProxyServer;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
@@ -57,6 +58,8 @@ public class TunnelMonitor {
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchService;
     @Autowired
+    ProxyServerConfig proxyServerConfig;
+    @Autowired
     TunnelInitService tunnelInitService;
 
     /**
@@ -64,8 +67,15 @@ public class TunnelMonitor {
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     public void stactics() {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
+            if (tunnel == null) {
+                logger.error("tunnel instance is null");
+                return;
+            }
             MONITOR_LOG.setName(tunnel.getAlias());
             MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
             MONITOR_LOG.setOkPercent(reqMonitorUtils.getPercent() + "%");

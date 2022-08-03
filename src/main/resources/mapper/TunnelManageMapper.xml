@@ -56,10 +56,6 @@
         #{reqSize}, #{respSize}, #{reqBandwidth}, #{respBandwidth}, #{tcpConn}, #{surplusIp}, #{ipLimit}, #{usedIp}, #{ipPoolSize}, #{updateTime});
     </insert>
 
-    <select id="getMonitorLog" resultType="com.dataeye.proxy.bean.TunnelMonitorLog">
-        select * from tunnel_monitor where `name` = #{name} and update_time like #{updateTime} limit #{from},#{to}
-    </select>
-
     <update id="updateTunnel" parameterType="com.dataeye.proxy.bean.dto.TunnelInstance">
         update tunnel_manage
         set location = #{location},

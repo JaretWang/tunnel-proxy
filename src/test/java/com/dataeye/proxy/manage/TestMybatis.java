@@ -1,7 +1,9 @@
 package com.dataeye.proxy.manage;
 
+import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.TunnelProxyApplication;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -21,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.*;
 
@@ -85,21 +88,17 @@ public class TestMybatis {
      */
     @Test
     public void getMonitorLog() throws InterruptedException {
-//        List<TunnelMonitorLog> data = tunnelInitService.getMonitorLog("youliang", "2022-07-30%", 0, 10);
-//        List<TunnelMonitorLog> data = tunnelInitMapper.getMonitorLog("youliang", "2022-07-30%", 0, 10);
-//        System.out.println(JSON.toJSONString(data));
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> {
-            try {
-                int ipSelector = this.ipSelector.getAvailableIpPerUnitTime(MyLogbackRollingFileUtil.getLogger("IpSelector"), null);
-                System.out.println("ipSelector-->" + ipSelector);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }, 0, 3, TimeUnit.SECONDS);
-        System.out.println("waiting...");
-        countDownLatch.await();
+//        CountDownLatch countDownLatch = new CountDownLatch(1);
+//        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> {
+//            try {
+//                int ipSelector = this.ipSelector.getAvailableIpPerUnitTime(MyLogbackRollingFileUtil.getLogger("IpSelector"), null);
+//                System.out.println("ipSelector-->" + ipSelector);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }, 0, 3, TimeUnit.SECONDS);
+//        System.out.println("waiting...");
+//        countDownLatch.await();
     }
 
     @Test

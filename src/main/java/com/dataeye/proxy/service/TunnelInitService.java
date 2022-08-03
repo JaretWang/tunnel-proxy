@@ -50,9 +50,9 @@ public class TunnelInitService {
 
     @PostConstruct
     private void getEth0Inet4InnerIp() {
-        if (!proxyServerConfig.isEnable()) {
-            return;
-        }
+//        if (!proxyServerConfig.isEnable()) {
+//            return;
+//        }
         if ("local".equals(profile)) {
             eth0Inet4InnerIp = "localhost";
         } else {
@@ -196,10 +196,6 @@ public class TunnelInitService {
 
     public int updateUsedIp(String tunnelName, int num) {
         return tunnelInitMapper.updateUsedIp(tunnelName, num);
-    }
-
-    public List<TunnelMonitorLog> getMonitorLog(String name, String updateTime, int from, int to) {
-        return tunnelInitMapper.getMonitorLog(name, updateTime, from, to);
     }
 
 }

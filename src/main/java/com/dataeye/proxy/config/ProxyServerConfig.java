@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class ProxyServerConfig {
 
     /**
-     * 是否开启隧道(本地调试用)
+     * 是否开启隧道
      */
     private boolean enable;
     /**

@@ -531,7 +531,7 @@ public class RequestDistributeService {
         Channel uaChannel = ctx.channel();
 
         final Bootstrap bootstrap = new Bootstrap();
-        bootstrap
+        ChannelFuture future = bootstrap
                 .group(uaChannel.eventLoop())
                 .channel(NioSocketChannel.class)
                 // 用于修复 close_wait 过多的问题
@@ -550,8 +550,8 @@ public class RequestDistributeService {
 //                // fixed failed to allocate 2048 byte(s) of direct memory
 //                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel))
-                .connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort())
-                .addListener((ChannelFutureListener) future1 -> {
+                .connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort());
+        future.addListener((ChannelFutureListener) future1 -> {
                     long took = System.currentTimeMillis() - begin;
                     if (future1.isSuccess()) {
                         logger.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
