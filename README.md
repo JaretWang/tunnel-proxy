@@ -1574,10 +1574,18 @@ ip使用数达到最大容错ip数 -> 3级告警 (主动降低移除ip的最低�
 套餐剩余ip总数小于所有隧道的当日最少需要ip数之和 -> 3级告警 (主动降低移除ip的最低成功率为0%, 即完全取消劣质ip剔除规则, 只根据ip是否过期来剔除)
 ```
 
-# 后续优化
+# adx素材下载
 
-ip的动态规划
+芝麻定制高质量ip
 
-ip策略的合理规划
+```shell
+# 添加ip白名单，在ip=的后面添加自己的ip
+http://huangshi07.ltdz.40.jumpsrv.com:120/addip?user=user&passwd=user1&ip=
+# 一次性提取所有的代理ip （共39个）
+http://47.103.37.73:8001/v1/info?username=seonzhang 
+# 获取指定数量的ip（注意：通过修改最后一个数字 1-39，指定不同的网卡序号获取ip，多次访问同一个网卡获取的ip是一样的，想要多少个ip，就轮询多少个网卡）
+http://47.103.37.73:8001/v1/data?username=seonzhang&ipid=lt420201_7__zm_1
+# 指定网卡重拨，更换ip（注意：通过修改最后一个数字 1-39，指定不同的网卡序号进行重新拨号，更换ip）
+http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
+```
 
-git提交记录：有版本更新记录

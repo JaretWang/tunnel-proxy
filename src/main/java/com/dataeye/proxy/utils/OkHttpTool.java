@@ -95,12 +95,15 @@ public class OkHttpTool {
         appendParams(reqUrl, params);
         // reqyest
         Request request = buildGetRequest(reqUrl, null);
+        Response response = null;
         try {
-            Response response = OKHTTP_CLIENT.newCall(request).execute();
+            response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
             logger.error("doGet error, url:{}", reqUrl, e);
             return "";
+        } finally {
+            closeResponse(response);
         }
     }
 
