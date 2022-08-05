@@ -76,7 +76,7 @@ public class TunnelMonitor {
                 logger.error("tunnel instance is null");
                 return;
             }
-            MONITOR_LOG.setName(tunnel.getAlias());
+            MONITOR_LOG.setName(tunnel.getDomain());
             //MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
             MONITOR_LOG.setOkPercent(reqMonitorUtils.getPercent() + "%");
             MONITOR_LOG.setCost(reqMonitorUtils.getCostAvg() + " ms");
