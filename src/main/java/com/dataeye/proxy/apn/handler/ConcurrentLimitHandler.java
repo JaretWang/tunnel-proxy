@@ -3,6 +3,7 @@ package com.dataeye.proxy.apn.handler;
 import com.dataeye.proxy.apn.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.apn.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.component.TunnelMonitor;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.*;
@@ -56,6 +57,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
         Runnable runnable = () -> {
             long conn = connections.get();
             logger.info("{}s 以内, connections={}", cycle, conn);
+            TunnelMonitor.MONITOR_LOG.setConcurrency((int) conn);
             USED.set(conn != 0);
             connections.set(0);
         };

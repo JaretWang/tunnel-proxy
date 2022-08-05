@@ -3,8 +3,6 @@ package com.dataeye.proxy.bean;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.logging.Level;
-
 /**
  * @author jaret
  * @date 2022/7/27 17:05

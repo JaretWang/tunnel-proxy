@@ -77,7 +77,7 @@ public class TunnelMonitor {
                 return;
             }
             MONITOR_LOG.setName(tunnel.getAlias());
-            MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
+            //MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
             MONITOR_LOG.setOkPercent(reqMonitorUtils.getPercent() + "%");
             MONITOR_LOG.setCost(reqMonitorUtils.getCostAvg() + " ms");
             MONITOR_LOG.setReqSize(reqMonitorUtils.getReqSize() + " kb");
@@ -90,9 +90,12 @@ public class TunnelMonitor {
             MONITOR_LOG.setIpPoolSize(ipSelector.getValidIpSize(ipSelector.getProxyIpPool().get(tunnel.getAlias())));
             MONITOR_LOG.setUpdateTime(TimeUtils.formatLocalDate(LocalDateTime.now()));
             logger.info("监控记录入库: {}", JSON.toJSONString(MONITOR_LOG));
-            tunnelInitMapper.addMonitorLog(MONITOR_LOG);
+            int count = tunnelInitMapper.addMonitorLog(MONITOR_LOG);
+            if (count > 0) {
+                logger.info("监控记录入库成功: {}", JSON.toJSONString(MONITOR_LOG));
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.info("监控记录入库异常", e);
         } finally {
             MONITOR_LOG.setName("");
             MONITOR_LOG.setConcurrency(0);
