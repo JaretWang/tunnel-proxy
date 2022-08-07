@@ -41,6 +41,7 @@ public class IpSelector {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("ip-pool-schedule-"), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
+    private final int minIpPoolSize = 5;
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired

@@ -130,13 +130,18 @@ public class IpMonitorUtils {
         if (proxyIpPool.containsKey(tunnelName)) {
             // 在ip池中剔除
             log.warn("ip={} 成功率低于 {}%, 即将从IP池中移除", ip, tunnelInstance.getMinSuccessPercentForRemoveIp());
+            ConcurrentLinkedQueue<ProxyIp> ipPool = proxyIpPool.get(tunnelName);
+            if (ipPool.size() <= ipSelector.getMinIpPoolSize()) {
+                log.warn("ip池大小不能低于最小值, 放弃移除, ipPool={}, minIpPoolSize={}", ipPool.size(), ipSelector.getMinIpPoolSize());
+                return;
+            }
             String ipStr = ip.split(":")[0];
             int port = Integer.parseInt(ip.split(":")[1]);
-            ConcurrentLinkedQueue<ProxyIp> ipPool = proxyIpPool.get(tunnelName);
             for (ProxyIp item : ipPool) {
                 if (item.getHost().equals(ipStr) && item.getPort().equals(port)) {
                     item.getValid().set(false);
                     String ipTimeRecord = ip + "(" + item.getExpireTime() + ")";
+
                     log.info("成功移除ip={}, 并添加一个新IP", ipTimeRecord);
                     // 移除完之后，再添加一个新 ip
                     ipSelector.addFixedIp("IpMonitorUtils: 移除高错误率的ip后追加", ipPool, tunnelInstance, 1, false);
