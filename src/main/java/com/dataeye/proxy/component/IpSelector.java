@@ -77,6 +77,7 @@ public class IpSelector {
         for (TunnelInstance tunnelInstance : tunnelInitService.getTunnelList()) {
             try {
                 ipCheck(tunnelInstance);
+                forceAddIp(tunnelInstance);
                 printIpPool();
             } catch (Throwable e) {
                 log.error("定时更新ip池出现异常", e);
@@ -90,6 +91,23 @@ public class IpSelector {
             int validIpSize = getValidIpSize(queue);
             log.info("tunnel={}, ip-pool-size={}, valid-ip-size={}, ip-pool-list={}", tunnel, queue.size(), validIpSize, JSON.toJSONString(collect));
         });
+    }
+
+    /**
+     * 强制追加ip，但是仍然符合ip最大拉取限制规则
+     */
+    void forceAddIp(TunnelInstance tunnelInstance) throws InterruptedException {
+        int forceAddIp = tunnelInstance.getForceAddIp();
+        if (forceAddIp == 0) {
+            return;
+        }
+        int forceKeepIpPoolSize = tunnelInstance.getForceKeepIpPoolSize();
+        ConcurrentLinkedQueue<ProxyIp> queue = proxyIpPool.get(tunnelInstance.getAlias());
+        int validIpSize = getValidIpSize(queue);
+        if (validIpSize <= forceKeepIpPoolSize) {
+            int needIp = forceKeepIpPoolSize - validIpSize;
+            addFixedIp("强制追加ip", queue, tunnelInstance, needIp, false);
+        }
     }
 
     /**
@@ -132,6 +150,22 @@ public class IpSelector {
     }
 
     /**
+     * 判断是否允许添加ip
+     *
+     * @return
+     */
+    public boolean isAllowAddIp(String addReason, TunnelInstance tunnelInstance) {
+        // 检查ip拉取是否已经超过单位时间内的最大值
+        int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
+        int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
+        if (fetchIpPerUnit >= availableIpPerUnitTime) {
+            log.warn("添加失败, 添加原因={}, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * 添加固定数量的ip
      *
      * @param queue          IP池
@@ -142,16 +176,11 @@ public class IpSelector {
     public boolean addFixedIp(String addReason, ConcurrentLinkedQueue<ProxyIp> queue,
                               TunnelInstance tunnelInstance,
                               int needIpSize, boolean init) throws InterruptedException {
-        boolean status = false;
         // 检查ip拉取是否已经超过单位时间内的最大值
-        int availableIpPerUnitTime = getAvailableIpPerUnitTime(log, tunnelInstance);
-        int fetchIpPerUnit = ReqMonitorUtils.FETCH_IP_NUM_PER_UNIT.get();
-        log.info("addReason={}, availableIpPerUnitTime={}, fetchIpPerUnit={}", addReason, availableIpPerUnitTime, fetchIpPerUnit);
-        if (fetchIpPerUnit >= availableIpPerUnitTime) {
-            log.warn("添加原因={}, 添加失败, 单位时间内拉取的ip数 {} 达到阈值 {}, 放弃添加ip", addReason, fetchIpPerUnit, availableIpPerUnitTime);
-            return status;
+        if (!isAllowAddIp(addReason, tunnelInstance)) {
+            return false;
         }
-
+        boolean status = false;
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         int realCount = 0, expired = 0, exist = 0, empty = 0;
         for (int i = 0; i < proxyServerConfig.getExpiredIpRetryCount(); i++) {
@@ -182,7 +211,7 @@ public class IpSelector {
         if (realCount >= needIpSize) {
             status = true;
         }
-        log.warn("添加原因={}, 添加成功, enough={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
+        log.warn("添加成功, 添加原因={}, enough={}, needIpSize={}, realCount={}, expired={}, exist={}, empty={}",
                 addReason, status, needIpSize, realCount, expired, exist, empty);
         return status;
     }

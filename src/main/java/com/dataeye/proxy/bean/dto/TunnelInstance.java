@@ -138,6 +138,14 @@ public class TunnelInstance implements Serializable, Cloneable {
      * 描述备注信息
      */
     private String description;
+    /**
+     * 是否强制追加 0不强制, 1强制
+     */
+    private int forceAddIp;
+    /**
+     * 强制追加ip, 保持ip池的最低数量
+     */
+    private int forceKeepIpPoolSize;
 
     /**
      * 获取每日剩余可用ip数
