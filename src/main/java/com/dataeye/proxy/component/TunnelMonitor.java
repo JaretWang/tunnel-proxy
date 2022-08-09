@@ -9,10 +9,7 @@ import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
-import com.dataeye.proxy.utils.IpMonitorUtils;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.proxy.utils.NetUtils;
-import com.dataeye.proxy.utils.TimeUtils;
+import com.dataeye.proxy.utils.*;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -35,6 +32,7 @@ public class TunnelMonitor {
     //    public static final AtomicReference<TunnelMonitorLog> MONITOR_LOG = new AtomicReference<TunnelMonitorLog>();
     public static final TunnelMonitorLog MONITOR_LOG = new TunnelMonitorLog();
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelMonitor");
+    private static final String TCP_CONNECT_NUM = "netstat -ant | grep 'tcp' | wc -l";
 
     static {
         String eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
@@ -76,6 +74,13 @@ public class TunnelMonitor {
                 logger.error("tunnel instance is null");
                 return;
             }
+            String exec = CommandUtils.exec(TCP_CONNECT_NUM);
+            if (StringUtils.isNotBlank(exec)) {
+                int tcpConn = Integer.parseInt(exec);
+                if (tcpConn > 0) {
+                    MONITOR_LOG.setTcpConn(tcpConn);
+                }
+            }
             MONITOR_LOG.setName(tunnel.getDomain());
             //MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
             MONITOR_LOG.setOkPercent(reqMonitorUtils.getPercent() + "%");
@@ -112,19 +117,17 @@ public class TunnelMonitor {
             MONITOR_LOG.setIpLimit(0);
             MONITOR_LOG.setUpdateTime("");
         }
-//        Process exec = Runtime.getRuntime().exec("netstat -ant | wc -l");
-//        OutputStream outputStream = exec.getOutputStream();
-//        if (outputStream == null) {
-//            MONITOR_LOG.setTcpConn(0);
-//        } else {
-//            MONITOR_LOG.setTcpConn();
-//        }
     }
 
-    @Scheduled(cron = "0 0 0 ? * SUN")
-    public void clean() {
-        System.out.println("清除以前的日志记录");
-        // TODO 清除以前的日志记录
+    /**
+     * 获取tcp连接数
+     */
+    public int getTcpConn() {
+        String exec = CommandUtils.exec(TCP_CONNECT_NUM);
+        if (StringUtils.isBlank(exec)) {
+            return 0;
+        }
+        return 19;
     }
 
 }
