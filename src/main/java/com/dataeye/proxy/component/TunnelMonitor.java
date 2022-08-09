@@ -74,13 +74,7 @@ public class TunnelMonitor {
                 logger.error("tunnel instance is null");
                 return;
             }
-            String exec = CommandUtils.exec(TCP_CONNECT_NUM);
-            if (StringUtils.isNotBlank(exec)) {
-                int tcpConn = Integer.parseInt(exec);
-                if (tcpConn > 0) {
-                    MONITOR_LOG.setTcpConn(tcpConn);
-                }
-            }
+            MONITOR_LOG.setTcpConn(getTcpConn());
             MONITOR_LOG.setName(tunnel.getDomain());
             //MONITOR_LOG.setConcurrency((int) apnProxyServer.getConcurrentLimitHandler().getConnections());
             MONITOR_LOG.setOkPercent(reqMonitorUtils.getPercent() + "%");
@@ -126,8 +120,13 @@ public class TunnelMonitor {
         String exec = CommandUtils.exec(TCP_CONNECT_NUM);
         if (StringUtils.isBlank(exec)) {
             return 0;
+        } else {
+            int tcpConn = Integer.parseInt(exec.trim());
+            if (tcpConn > 0) {
+                return tcpConn;
+            }
         }
-        return 19;
+        return 0;
     }
 
 }
