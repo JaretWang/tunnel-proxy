@@ -14,16 +14,23 @@ import org.slf4j.Logger;
 public class IdleHandler extends ChannelDuplexHandler {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("IdleHandler");
+    private String source = "unknown";
+
+    public IdleHandler() {
+    }
+
+    public IdleHandler(String source) {
+        this.source = source;
+    }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
 
         if (evt instanceof IdleStateEvent) {
-            logger.debug("idle event is fired, type: {}", evt.getClass().getSimpleName());
-            IdleStateEvent event = (IdleStateEvent)evt;
+            logger.debug("idle event is fired, source:{}, type: {}", source, evt.getClass().getSimpleName());
+            IdleStateEvent event = (IdleStateEvent) evt;
             String name = event.state().name();
-            logger.info("idle event is fired, type: {}", name);
-            logger.info("idle event is fired, type2: {}", event.state());
+            logger.info("idle event is fired, source:{}, type: {}", source, name);
             // 读写空闲，关闭通道
             SocksServerUtils.errorHttpResp(ctx.channel(), "read or write free in a period of time");
             ctx.channel().close();

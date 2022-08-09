@@ -111,6 +111,7 @@ public class ApnProxyServer {
 
         concurrentLimitHandler = new ConcurrentLimitHandler(tunnelInstance);
         ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
+                .tunnelInitService(tunnelInitService)
                 .apnProxyRemoteChooser(apnProxyRemoteChooser)
                 .tunnelInstance(tunnelInstance)
                 .requestDistributeService(requestDistributeService)

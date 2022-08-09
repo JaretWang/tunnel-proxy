@@ -9,6 +9,7 @@ import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -37,6 +38,14 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.debug("schema channelActive");
+        // 随时更新 tunnelInstance
+        TunnelInitService tunnelInitService = apnHandlerParams.getTunnelInitService();
+        if (Objects.nonNull(tunnelInitService)) {
+            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+            if (Objects.nonNull(defaultTunnel)) {
+                apnHandlerParams.setTunnelInstance(defaultTunnel);
+            }
+        }
         // 分配ip
         ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
         RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();

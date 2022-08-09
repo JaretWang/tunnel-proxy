@@ -4,6 +4,7 @@ import com.dataeye.proxy.apn.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.apn.service.RequestDistributeService;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.service.TunnelInitService;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -46,5 +47,9 @@ public class ApnHandlerParams {
      * 带宽流量监控线程池
      */
     ScheduledThreadPoolExecutor trafficScheduledThreadPool;
+    /**
+     * 隧道配置参数初始化和更新服务
+     */
+    TunnelInitService tunnelInitService;
 
 }

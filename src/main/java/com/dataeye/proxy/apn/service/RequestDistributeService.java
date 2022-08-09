@@ -552,7 +552,7 @@ public class RequestDistributeService {
                 .option(ChannelOption.AUTO_READ, false)
 //                // fixed failed to allocate 2048 byte(s) of direct memory
 //                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel))
+                .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel, tunnelInstance))
                 .connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort());
         future.addListener((ChannelFutureListener) future1 -> {
             long took = System.currentTimeMillis() - begin;
@@ -577,13 +577,13 @@ public class RequestDistributeService {
                     // remove之后
                     //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
                     //ctx.pipeline().toMap().keySet().forEach(System.out::println);
-                    ctx.pipeline().addLast("client_idlestate", new IdleStateHandler(
-                            ApnProxyServerChannelInitializer.CLIENT_READ_IDLE_TIME,
-                            ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
-                            ApnProxyServerChannelInitializer.CLIENT_ALL_IDLE_TIME, TimeUnit.SECONDS));
-                    ctx.pipeline().addLast("client_idlehandler", new IdleHandler());
-                    ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(tunnelInstance.getReadTimeoutSeconds()));
-                    ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(tunnelInstance.getWriteTimeoutSeconds()));
+//                    ctx.pipeline().addLast("client_idlestate", new IdleStateHandler(
+//                            ApnProxyServerChannelInitializer.CLIENT_READ_IDLE_TIME,
+//                            ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
+//                            ApnProxyServerChannelInitializer.CLIENT_ALL_IDLE_TIME, TimeUnit.SECONDS));
+//                    ctx.pipeline().addLast("client_idlehandler", new IdleHandler());
+//                    ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(tunnelInstance.getReadTimeoutSeconds()));
+//                    ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(tunnelInstance.getWriteTimeoutSeconds()));
                     ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
                     logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
