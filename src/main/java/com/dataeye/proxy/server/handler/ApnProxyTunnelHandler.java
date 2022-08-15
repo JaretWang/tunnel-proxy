@@ -67,7 +67,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("tunnel exceptionCaught：{}", cause.getMessage());
+        logger.error("tunnel异常", cause);
         ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         ctx.close();

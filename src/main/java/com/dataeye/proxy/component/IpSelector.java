@@ -2,7 +2,6 @@ package com.dataeye.proxy.component;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
-import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;

@@ -64,7 +64,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("forward exceptionCaught：{}", cause.getMessage());
+        logger.error("forward异常", cause);
         ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
         ctx.close();

@@ -4,7 +4,6 @@ import com.dataeye.proxy.bean.IpMonitor;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -125,10 +124,6 @@ public class IpMonitorUtils {
      * ps: 应该是移除优先级队列队尾的元素
      */
     public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpSelector ipSelector) throws InterruptedException {
-        if (tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
-            log.info("海外隧道暂时关闭移除高错误率的ip规则, ip={}", ip);
-            return;
-        }
         String tunnelName = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {

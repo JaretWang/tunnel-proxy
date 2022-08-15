@@ -3,7 +3,6 @@ package com.dataeye.proxy.bean;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.overseas.RolaProxyFetchService;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.server.service.RequestDistributeService;
@@ -54,10 +53,6 @@ public class ApnHandlerParams {
      * 隧道配置参数初始化和更新服务
      */
     TunnelInitService tunnelInitService;
-    /**
-     * 海外代理
-     */
-    RolaProxyFetchService rolaProxyFetchService;
     /**
      * 代理服务配置
      */

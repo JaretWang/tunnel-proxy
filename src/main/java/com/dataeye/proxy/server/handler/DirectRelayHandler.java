@@ -114,7 +114,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("DirectRelayHandler exceptionCaught: {}", cause.getMessage());
+        logger.error("DirectRelayHandler异常", cause);
         ctx.close();
         ReqMonitorUtils.error(requestMonitor, "DirectRelayHandler exceptionCaught", cause.getMessage());
         IpMonitorUtils.error(requestMonitor, "DirectRelayHandler exceptionCaught",cause.getMessage());

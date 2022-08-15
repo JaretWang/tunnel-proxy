@@ -18,13 +18,16 @@ public class ProxyTest {
 
     public static void main(String[] args) throws IOException {
         testWithOkHttp();
-        testSocks5WithOkHttp();
+//        testSocks5WithOkHttp();
     }
 
     public static void testWithOkHttp() throws IOException {
         String url = "http://ip123.in/ip.json";
-        String gateIp = "gate.rola.info";
-        int gatePort = 1000;
+//        String gateIp = "gate.rola.info";
+//        int gatePort = 1000;
+
+        String gateIp = "127.0.0.1";
+        int gatePort = 21331;
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(gateIp, gatePort));
         OkHttpClient client = new OkHttpClient().newBuilder().proxy(proxy).proxyAuthenticator((route, response) -> {
             String credential = Credentials.basic("账户", "密码");
@@ -32,8 +35,6 @@ public class ProxyTest {
                     .header("Proxy-Authorization", credential)
                     .build();
         }).build();
-
-
         Request request = new Request.Builder().url(url).build();
         okhttp3.Response response = client.newCall(request).execute();
         String responseString = response.body().string();

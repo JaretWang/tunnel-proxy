@@ -3,11 +3,9 @@ package com.dataeye.proxy.server;
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ApnHandlerParams;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.overseas.RolaInitService;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
@@ -56,8 +54,6 @@ public class ApnProxyServer {
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
-    RolaInitService rolaInitService;
-    @Autowired
     ReqMonitorUtils reqMonitorUtils;
     @Autowired
     IpMonitorUtils ipMonitorUtils;
@@ -78,13 +74,8 @@ public class ApnProxyServer {
         tunnelInitService.getEth0Inet4InnerIp();
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
-        if (tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
-            // 初始化海外隧道ip池
-            rolaInitService.init();
-        } else {
-            // 初始化国内隧道ip池
-            ipSelector.init();
-        }
+        // 初始化国内隧道ip池
+        ipSelector.init();
         // ip监控
         ipMonitorUtils.schedule();
         // 请求监控
