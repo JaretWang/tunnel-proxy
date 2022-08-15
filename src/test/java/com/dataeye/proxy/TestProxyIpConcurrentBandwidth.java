@@ -1,8 +1,7 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemoteChooser;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
 import com.dataeye.proxy.service.impl.YiniuCloudFetchServiceImpl;

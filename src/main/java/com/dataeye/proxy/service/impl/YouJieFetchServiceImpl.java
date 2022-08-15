@@ -2,7 +2,7 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.proxy.apn.bean.ProxyIp;
+import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.YouJieConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
@@ -13,7 +13,6 @@ import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;

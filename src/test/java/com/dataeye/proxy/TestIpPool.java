@@ -1,7 +1,7 @@
 package com.dataeye.proxy;
 
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.proxy.apn.bean.ProxyIp;
+import com.dataeye.proxy.bean.ProxyIp;
 
 import java.time.LocalDateTime;
 import java.util.LinkedList;

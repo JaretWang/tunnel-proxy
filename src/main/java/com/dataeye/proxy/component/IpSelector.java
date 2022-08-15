@@ -1,8 +1,9 @@
 package com.dataeye.proxy.component;
 
 import com.alibaba.fastjson.JSON;
-import com.dataeye.proxy.apn.bean.ProxyIp;
-import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.enums.TunnelType;
+import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -64,7 +65,7 @@ public class IpSelector {
 
     @PostConstruct
     public void init() {
-        if (!proxyServerConfig.isEnable()) {
+        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
             return;
         }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 3, TimeUnit.SECONDS);

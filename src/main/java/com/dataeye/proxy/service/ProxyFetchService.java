@@ -1,9 +1,9 @@
 package com.dataeye.proxy.service;
 
-import com.dataeye.proxy.apn.bean.ProxyIp;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.config.ApnProxyListenType;
+import com.dataeye.proxy.server.remotechooser.ApnProxyPlainRemote;
+import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 
 import java.util.Objects;

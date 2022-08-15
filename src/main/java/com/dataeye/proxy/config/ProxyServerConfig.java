@@ -1,5 +1,7 @@
 package com.dataeye.proxy.config;
 
+import com.dataeye.proxy.bean.enums.TunnelType;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,10 @@ public class ProxyServerConfig {
      * 是否开启隧道
      */
     private boolean enable;
+    /**
+     * 隧道类型
+     */
+    private TunnelType tunnelType;
     /**
      * 循环检查ip池的时间间隔
      */

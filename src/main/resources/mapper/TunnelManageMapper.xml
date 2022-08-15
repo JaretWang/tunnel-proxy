@@ -6,7 +6,9 @@
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="alias" jdbcType="VARCHAR" property="alias"/>
         <result column="location" jdbcType="VARCHAR" property="location"/>
+        <result column="out_ip" jdbcType="VARCHAR" property="outIp"/>
         <result column="enable" jdbcType="TINYINT" property="enable"/>
+        <result column="type" jdbcType="TINYINT" property="type"/>
         <result column="send_alarm_email" jdbcType="TINYINT" property="sendAlarmEmail"/>
         <result column="auto_get_core_ip_size" jdbcType="TINYINT" property="autoGetCoreIpSize"/>
         <result column="domain" jdbcType="VARCHAR" property="domain"/>

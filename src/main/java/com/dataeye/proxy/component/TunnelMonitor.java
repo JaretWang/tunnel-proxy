@@ -1,8 +1,9 @@
 package com.dataeye.proxy.component;
 
 import com.alibaba.fastjson.JSON;
-import com.dataeye.proxy.apn.ApnProxyServer;
-import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.bean.enums.TunnelType;
+import com.dataeye.proxy.server.ApnProxyServer;
+import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -65,7 +66,7 @@ public class TunnelMonitor {
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     public void stactics() {
-        if (!proxyServerConfig.isEnable()) {
+        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
             return;
         }
         try {

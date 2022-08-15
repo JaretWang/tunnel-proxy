@@ -31,9 +31,17 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private String location;
     /**
+     * 外网ip
+     */
+    private String outIp;
+    /**
      * 是否开启隧道 0关闭 1开启
      */
     private int enable;
+    /**
+     * 隧道类型 1国内 2海外
+     */
+    private int type;
     /**
      * 是否发送告警邮件 0不发送 1发送
      */

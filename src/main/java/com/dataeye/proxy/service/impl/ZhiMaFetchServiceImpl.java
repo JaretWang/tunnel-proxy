@@ -2,8 +2,8 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.proxy.apn.bean.ProxyIp;
-import com.dataeye.proxy.apn.utils.ReqMonitorUtils;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ZhiMaConfig;

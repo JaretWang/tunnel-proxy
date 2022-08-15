@@ -1,9 +1,10 @@
 package com.dataeye.proxy.utils;
 
-import com.dataeye.proxy.apn.bean.IpMonitor;
-import com.dataeye.proxy.apn.bean.ProxyIp;
-import com.dataeye.proxy.apn.bean.RequestMonitor;
+import com.dataeye.proxy.bean.IpMonitor;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -190,7 +191,7 @@ public class IpMonitorUtils {
      */
     @PostConstruct
     public void schedule() {
-        if (!proxyServerConfig.isEnable()) {
+        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
             return;
         }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);

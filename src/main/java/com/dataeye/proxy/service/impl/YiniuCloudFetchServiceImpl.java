@@ -2,17 +2,16 @@ package com.dataeye.proxy.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.proxy.apn.bean.ProxyIp;
-import com.dataeye.proxy.apn.config.ApnProxyListenType;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyPlainRemote;
-import com.dataeye.proxy.apn.remotechooser.ApnProxyRemote;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.config.ApnProxyListenType;
+import com.dataeye.proxy.server.remotechooser.ApnProxyPlainRemote;
+import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.YiNiuCloudConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
 import org.slf4j.Logger;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
