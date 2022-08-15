@@ -131,7 +131,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
      */
     void getRolaAccount(ChannelHandlerContext ctx, FullHttpRequest httpRequest) {
         RolaProxyConfig rolaProxyConfig = getRolaProxyConfigFromHeaders(httpRequest);
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = apnHandlerParams.getIpSelector().getProxyIpPool();
+//        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = apnHandlerParams.getIpSelector().getProxyIpPool();
         //String alias = apnHandlerParams.getTunnelInstance().getAlias();
         String alias = "";
         // alias
@@ -173,7 +173,8 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         } else {
             key = alias + "_" + rolaProxyInfo.getHost();
         }
-        ConcurrentLinkedQueue<ProxyIp> proxyIps = proxyIpPool.get(key);
+//        ConcurrentLinkedQueue<ProxyIp> proxyIps = proxyIpPool.get(key);
+        ConcurrentLinkedQueue<ProxyIp> proxyIps = RolaProxyFetchService.proxyIpPool.get(key);
         if (proxyIps == null) {
             logger.error("ip queue is null, key={}", key);
             return;

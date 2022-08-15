@@ -30,7 +30,7 @@ public class DynamicMachineRoomIpServiceImpl extends RolaProxyFetchService {
                 .filter(value -> !"gate9.rola.info".equals(value.getHost()))
                 .collect(Collectors.toList())
                 .toArray(new RolaProxyInfo[4]);
-        buildIpPool(RolaProxyType.DYNAMIC_MACHINE_ROOM, proxyInfos, ipSelector);
+        buildIpPool(RolaProxyType.DYNAMIC_MACHINE_ROOM, proxyInfos);
     }
 
 }

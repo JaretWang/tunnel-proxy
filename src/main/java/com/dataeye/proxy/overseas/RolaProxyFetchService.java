@@ -41,6 +41,7 @@ public abstract class RolaProxyFetchService {
      * 国家代码
      */
     public static JSONObject COUNTRY_CODE = new JSONObject(0);
+    public static final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
 
     /**
      * 初始化ip池
@@ -52,24 +53,18 @@ public abstract class RolaProxyFetchService {
      *
      * @param proxyType  代理类型
      * @param proxyInfos 代理配置
-     * @param ipSelector ip选择器
      */
-    public void buildIpPool(RolaProxyType proxyType, RolaProxyInfo[] proxyInfos, IpSelector ipSelector) {
-        if (ipSelector == null) {
-            LOGGER.error("buildIpPool error, ipSelector is null");
-            return;
-        }
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
-        if (proxyIpPool == null) {
-            LOGGER.error("buildIpPool error, proxyIpPool is null");
-            return;
-        }
+    public void buildIpPool(RolaProxyType proxyType, RolaProxyInfo[] proxyInfos) {
         // 200年以后
         LocalDateTime expireTime = LocalDateTime.of(2222, 1, 1, 0, 0, 0, 0);
         String nowTime = TimeUtils.formatLocalDate(LocalDateTime.now());
         for (RolaProxyInfo proxyInfo : proxyInfos) {
             String host = proxyInfo.getHost();
             int port = proxyInfo.getPort();
+            String key = proxyType.getTunnelAlias() + ":" + host + ":" + port;
+            if (proxyIpPool.containsKey(key)) {
+                continue;
+            }
             ConcurrentLinkedQueue<ProxyIp> ipPool = new ConcurrentLinkedQueue<>();
             ProxyIp proxyCfg = ProxyIp.builder()
                     .host(host)
@@ -86,43 +81,22 @@ public abstract class RolaProxyFetchService {
                     .rolaAccountNum(new AtomicLong(1))
                     .build();
             ipPool.offer(proxyCfg);
-
-//            for (int i = 1; i <= proxyType.getAccountNum(); i++) {
-//                ProxyIp proxyCfg = ProxyIp.builder()
-//                        .host(host)
-//                        .port(port)
-//                        .userName(proxyType.getAccountPrefix() + i)
-//                        .password(proxyType.getPassword())
-//                        .createTime(nowTime)
-//                        .updateTime(nowTime)
-//                        .expireTime(expireTime)
-//                        .valid(new AtomicBoolean(true))
-//                        .useTimes(new AtomicLong(0))
-//                        .okTimes(new AtomicLong(0))
-//                        .errorTimes(new AtomicLong(0))
-//                        .build();
-//                ipPool.offer(proxyCfg);
-//            }
-            String key = proxyType.getTunnelAlias() + ":" + host + ":" + port;
             proxyIpPool.put(key, ipPool);
         }
     }
+
+
 
     /**
      * 构建 rola 静态机房ip池
      *
      * @param rolaConfig 代理类型
      * @param proxyType  代理配置
-     * @param ipSelector ip选择器
      */
-    public void buildStaticIpPool(RolaConfig rolaConfig, RolaProxyType proxyType, IpSelector ipSelector) {
-        if (ipSelector == null) {
-            LOGGER.error("buildIpPool error, ipSelector is null");
-            return;
-        }
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
-        if (proxyIpPool == null) {
-            LOGGER.error("buildStaticIpPool error, proxyIpPool is null");
+    public void buildStaticIpPool(RolaConfig rolaConfig, RolaProxyType proxyType) {
+//        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
+        String key = proxyType.getTunnelAlias();
+        if (proxyIpPool.containsKey(key)) {
             return;
         }
         List<RolaStaticIp> staticIpList = getStaticIpList(rolaConfig);
@@ -150,7 +124,6 @@ public abstract class RolaProxyFetchService {
                     .build();
             ipPool.offer(proxyIp);
         }
-        String key = proxyType.getTunnelAlias();
         proxyIpPool.put(key, ipPool);
     }
 

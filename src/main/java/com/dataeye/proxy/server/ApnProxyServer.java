@@ -103,31 +103,9 @@ public class ApnProxyServer {
      * 根据配置参数启动
      */
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
-        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(tunnelInstances.size(), "tunnel_create_");
+        int count = tunnelInstances.size();
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(count, count,2*count,"tunnel_create_");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(() -> startProxyServer(instance)));
-    }
-
-    /**
-     * 根据隧道实例个数初始化线程池
-     *
-     * @param instanceSize proxy server 实例个数
-     * @return
-     */
-    public ThreadPoolTaskExecutor getTunnelThreadpool(int instanceSize, String threadNamePrefix) {
-        return getTunnelThreadpool(instanceSize, instanceSize, 2 * instanceSize, threadNamePrefix);
-    }
-
-    public ThreadPoolTaskExecutor getTunnelThreadpool(int coreSize, int maxSize, int queueSize, String threadNamePrefix) {
-        ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
-        pool.setCorePoolSize(coreSize);
-        pool.setMaxPoolSize(maxSize);
-        pool.setQueueCapacity(queueSize);
-        pool.setKeepAliveSeconds(60);
-        pool.setWaitForTasksToCompleteOnShutdown(true);
-        pool.setThreadNamePrefix(threadNamePrefix);
-        pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
-        pool.initialize();
-        return pool;
     }
 
     /**
@@ -184,5 +162,19 @@ public class ApnProxyServer {
             workerGroup.shutdownGracefully();
         }
     }
+
+    public ThreadPoolTaskExecutor getTunnelThreadpool(int coreSize, int maxSize, int queueSize, String threadNamePrefix) {
+        ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
+        pool.setCorePoolSize(coreSize);
+        pool.setMaxPoolSize(maxSize);
+        pool.setQueueCapacity(queueSize);
+        pool.setKeepAliveSeconds(60);
+        pool.setWaitForTasksToCompleteOnShutdown(true);
+        pool.setThreadNamePrefix(threadNamePrefix);
+        pool.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        pool.initialize();
+        return pool;
+    }
+
 
 }

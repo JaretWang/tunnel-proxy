@@ -1,7 +1,6 @@
 package com.dataeye.proxy.overseas.impl;
 
 import com.dataeye.proxy.bean.enums.RolaProxyType;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.RolaConfig;
 import com.dataeye.proxy.overseas.RolaProxyFetchService;
@@ -20,12 +19,10 @@ public class StaticMachineRoomIpServiceImpl extends RolaProxyFetchService {
     ProxyServerConfig proxyServerConfig;
     @Autowired
     RolaConfig rolaConfig;
-    @Autowired
-    IpSelector ipSelector;
 
     @Override
     public void initIpPool() {
-        buildStaticIpPool(rolaConfig, RolaProxyType.STATIC_MACHINE_ROOM, ipSelector);
+        buildStaticIpPool(rolaConfig, RolaProxyType.STATIC_MACHINE_ROOM);
     }
 
 }

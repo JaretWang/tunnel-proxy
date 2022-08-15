@@ -23,7 +23,14 @@ public class DynamicHomeIpServiceImpl extends RolaProxyFetchService {
 
     @Override
     public void initIpPool() {
-        buildIpPool(RolaProxyType.DYNAMIC_HOME, RolaProxyInfo.values(), ipSelector);
+        buildIpPool(RolaProxyType.DYNAMIC_HOME, RolaProxyInfo.values());
+    }
+
+    /**
+     * 改变ip子账号
+     */
+    void changeSubAccount(){
+        
     }
 
     /**

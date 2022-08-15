@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
@@ -126,6 +125,10 @@ public class IpMonitorUtils {
      * ps: 应该是移除优先级队列队尾的元素
      */
     public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpSelector ipSelector) throws InterruptedException {
+        if (tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
+            log.info("海外隧道暂时关闭移除高错误率的ip规则, ip={}", ip);
+            return;
+        }
         String tunnelName = tunnelInstance.getAlias();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
         if (proxyIpPool.containsKey(tunnelName)) {
