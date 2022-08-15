@@ -30,11 +30,7 @@ public class DirectMemoryUtils {
     @Autowired
     ProxyServerConfig proxyServerConfig;
 
-    @PostConstruct
     public void init() throws IllegalAccessException {
-        if (!proxyServerConfig.isEnable()) {
-            return;
-        }
         Field field = ReflectionUtils.findField(PlatformDependent.class, "DIRECT_MEMORY_COUNTER");
         if (field == null) {
             throw new RuntimeException("DIRECT_MEMORY_COUNTER is null");

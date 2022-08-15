@@ -1,6 +1,5 @@
 package com.dataeye.proxy.service;
 
-import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -14,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -48,11 +46,7 @@ public class TunnelInitService {
     @Autowired
     ProxyServerConfig proxyServerConfig;
 
-    @PostConstruct
-    private void getEth0Inet4InnerIp() {
-//        if (!proxyServerConfig.isEnable()) {
-//            return;
-//        }
+    public void getEth0Inet4InnerIp() {
         if ("local".equals(profile)) {
             eth0Inet4InnerIp = "localhost";
         } else {

@@ -2,16 +2,20 @@ package com.dataeye.proxy.server;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ApnHandlerParams;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.component.IpSelector;
+import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.overseas.RolaInitService;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.server.service.RequestDistributeService;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.utils.DirectMemoryUtils;
+import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.utils.ReqMonitorUtils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -51,6 +55,14 @@ public class ApnProxyServer {
     RequestDistributeService requestDistributeService;
     @Resource
     TunnelInitService tunnelInitService;
+    @Autowired
+    RolaInitService rolaInitService;
+    @Autowired
+    ReqMonitorUtils reqMonitorUtils;
+    @Autowired
+    IpMonitorUtils ipMonitorUtils;
+    @Autowired
+    DirectMemoryUtils directMemoryUtils;
     @Getter
     ConcurrentLimitHandler concurrentLimitHandler;
 
@@ -58,18 +70,33 @@ public class ApnProxyServer {
      * 初始化隧道实例
      */
     @PostConstruct
-    public void initMultiTunnel() {
-        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
+    public void initTunnel() throws Exception {
+        if (!proxyServerConfig.isEnable()) {
             return;
         }
+        // 获取eth0网卡内网ip
+        tunnelInitService.getEth0Inet4InnerIp();
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
+        if (tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
+            // 初始化海外隧道ip池
+            rolaInitService.init();
+        } else {
+            // 初始化国内隧道ip池
+            ipSelector.init();
+        }
+        // ip监控
+        ipMonitorUtils.schedule();
+        // 请求监控
+        reqMonitorUtils.schedule();
         // 创建实例
         startByConfig(tunnelList);
-        // 堆外内存： 查看当前Netty程序是否使用noCleaner策略
-//        PlatformDependent.useDirectBufferNoCleaner();
         // 该类会采样应用程序中%1的buffer分配，并进行跟踪。检测堆外内存的泄露。目前检测级别有4种：DISABLE, SIMPLE(默认),ADVANCED, PARANOID
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
+        // 启动堆外内存监控工具
+        directMemoryUtils.init();
+        // 堆外内存： 查看当前Netty程序是否使用noCleaner策略
+        // PlatformDependent.useDirectBufferNoCleaner();
     }
 
     /**

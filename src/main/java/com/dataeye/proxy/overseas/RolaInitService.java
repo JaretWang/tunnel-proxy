@@ -44,11 +44,7 @@ public class RolaInitService {
     @Autowired
     ProxyServerConfig proxyServerConfig;
 
-    @PostConstruct
-    void init() throws IOException {
-        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.domestic.seq) {
-            return;
-        }
+    public void init() throws IOException {
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         assert defaultTunnel != null;
         LOGGER.info("海外隧道 - 添加白名单");
@@ -63,7 +59,7 @@ public class RolaInitService {
         smri.initIpPool();
     }
 
-    public void initCountryCode() throws IOException {
+    void initCountryCode() throws IOException {
         InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("rola/country_code.json");
         assert inputStream != null;
         String json = IOUtils.toString(inputStream, StandardCharsets.UTF_8);

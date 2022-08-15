@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.bean.enums.TunnelType;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -16,7 +15,6 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.concurrent.*;
@@ -103,11 +101,7 @@ public class ReqMonitorUtils {
         RESP_SIZE.addAndGet(requestMonitor.getReponseSize().get());
     }
 
-    @PostConstruct
     public void schedule() {
-        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
-            return;
-        }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::reqMonitorTask, 0, CHECK_INTERVAL, CHECK_TIME_UNIT);
     }
 

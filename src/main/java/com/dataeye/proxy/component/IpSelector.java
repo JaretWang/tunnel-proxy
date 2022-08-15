@@ -63,11 +63,7 @@ public class IpSelector {
         System.out.println(availableIpPerUnitTime);
     }
 
-    @PostConstruct
     public void init() {
-        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
-            return;
-        }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 3, TimeUnit.SECONDS);
     }
 

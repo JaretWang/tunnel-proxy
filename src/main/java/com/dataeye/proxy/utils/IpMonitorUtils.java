@@ -189,11 +189,7 @@ public class IpMonitorUtils {
     /**
      * ip监控列表，定时任务
      */
-    @PostConstruct
     public void schedule() {
-        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() == TunnelType.oversea.seq) {
-            return;
-        }
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(new IpUseMonitorTask(), 0, 2, TimeUnit.SECONDS);
     }
 
