@@ -1,5 +1,6 @@
 package com.dataeye.proxy.service;
 
+import com.dataeye.proxy.bean.CustomIpAllocate;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -46,12 +47,20 @@ public class TunnelInitService {
     @Autowired
     ProxyServerConfig proxyServerConfig;
 
+    public CustomIpAllocate getCustomIpAllocate(String ip, int port) {
+        return tunnelInitMapper.queryCustomIpAllocate(ip, port);
+    }
+
     public void getEth0Inet4InnerIp() {
         if ("local".equals(profile)) {
             eth0Inet4InnerIp = "localhost";
         } else {
             eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
         }
+    }
+
+    public String getInnerIp() {
+        return eth0Inet4InnerIp;
     }
 
     /**

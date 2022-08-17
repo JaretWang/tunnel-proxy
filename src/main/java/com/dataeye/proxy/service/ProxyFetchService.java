@@ -1,13 +1,12 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ApnProxyListenType;
 import com.dataeye.proxy.server.remotechooser.ApnProxyPlainRemote;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author jaret
@@ -15,15 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @description
  */
 public interface ProxyFetchService {
-
-    /**
-     * 每日拉取ip数最大值
-     */
-    AtomicInteger MAX_FETCH_IP_NUM_EVERY_DAY = new AtomicInteger(5000);
-    /**
-     * 最大重试获取ip次数
-     */
-    int MAX_RETRY_TIMES = 3;
 
     /**
      * 获取一个ip

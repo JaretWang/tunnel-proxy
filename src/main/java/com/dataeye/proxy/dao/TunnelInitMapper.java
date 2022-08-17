@@ -1,5 +1,6 @@
 package com.dataeye.proxy.dao;
 
+import com.dataeye.proxy.bean.CustomIpAllocate;
 import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import org.apache.ibatis.annotations.Mapper;
@@ -14,6 +15,8 @@ import java.util.List;
  */
 @Mapper
 public interface TunnelInitMapper {
+
+    CustomIpAllocate queryCustomIpAllocate(@Param("ip") String ip, @Param("port") int port);
 
     /**
      * 查询所有的隧道实例

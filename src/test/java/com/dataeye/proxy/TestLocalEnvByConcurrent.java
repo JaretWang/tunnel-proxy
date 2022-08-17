@@ -36,17 +36,14 @@ public class TestLocalEnvByConcurrent {
 //    private static final String pageUrl = "https://www.taobao.com";
 
     //    private static final String proxyIp = "tunnel-proxy-1.de123.net";
-//    private static final String proxyIp = "tunnel-proxy-1-internet.de123.net";
+    private static final String proxyIp = "tunnel-proxy-11-internet.de123.net";
 //    private static final String proxyIp = "tunnel-proxy-4-internet.de123.net";
-    private static final String proxyIp = "127.0.0.1";
-    private static final int proxyPort = 21332;
-    // (true, 2022-06-22T15:52:44)
-//    private static final String proxyIp = "221.201.193.158";
-//    private static final int proxyPort = 4213;
+//    private static final String proxyIp = "127.0.0.1";
+    private static final int proxyPort = 21331;
     private static final String username = "dataeye";
     private static final String password = "dataeye++123";
     // 本地限流阈值
-    private static final int totalNum = 50;
+    private static final int totalNum = 5;
     private static final int totalTask = totalNum * 1;
     private static final CountDownLatch countDownLatch = new CountDownLatch(totalTask);
     private static final ConcurrentHashMap<String, ReqCount> map = new ConcurrentHashMap<>();

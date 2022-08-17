@@ -43,6 +43,10 @@
         SELECT * FROM tunnel_manage
     </select>
 
+    <select id="queryCustomIpAllocate" resultType="com.dataeye.proxy.bean.CustomIpAllocate">
+        SELECT * FROM custom_ip_allocate where ip=#{} and port=#{port}
+    </select>
+
     <update id="updateUsedIp">
         update tunnel_manage set used_ip = #{usedIp} where alias = #{alias}
     </update>

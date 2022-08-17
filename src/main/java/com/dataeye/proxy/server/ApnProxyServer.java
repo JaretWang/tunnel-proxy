@@ -11,6 +11,7 @@ import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.server.service.RequestDistributeService;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.service.impl.ZhiMaDingZhiServiceImpl;
 import com.dataeye.proxy.utils.DirectMemoryUtils;
 import com.dataeye.proxy.utils.IpMonitorUtils;
 import com.dataeye.proxy.utils.ReqMonitorUtils;
@@ -58,6 +59,8 @@ public class ApnProxyServer {
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired
+    ZhiMaDingZhiServiceImpl zhiMaDingZhiService;
+    @Autowired
     DirectMemoryUtils directMemoryUtils;
     @Getter
     ConcurrentLimitHandler concurrentLimitHandler;
@@ -70,16 +73,21 @@ public class ApnProxyServer {
         if (!proxyServerConfig.isEnable()) {
             return;
         }
+
         // 获取eth0网卡内网ip
         tunnelInitService.getEth0Inet4InnerIp();
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
         // 初始化国内隧道ip池
-        ipSelector.init();
-        // ip监控
-        ipMonitorUtils.schedule();
-        // 请求监控
-        reqMonitorUtils.schedule();
+        if (zhiMaDingZhiService.isStart()) {
+            zhiMaDingZhiService.init();
+        } else {
+            ipSelector.init();
+            // ip监控
+            ipMonitorUtils.schedule();
+            // 请求监控
+            reqMonitorUtils.schedule();
+        }
         // 创建实例
         startByConfig(tunnelList);
         // 该类会采样应用程序中%1的buffer分配，并进行跟踪。检测堆外内存的泄露。目前检测级别有4种：DISABLE, SIMPLE(默认),ADVANCED, PARANOID
