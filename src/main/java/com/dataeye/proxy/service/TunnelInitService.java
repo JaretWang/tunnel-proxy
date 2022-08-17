@@ -138,6 +138,9 @@ public class TunnelInitService {
      */
     @Scheduled(cron = "0/5 * * * * ?")
     public void schduleUpdateTunnelListCache() {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
 //        updateTunnelByTime();
         updateTunnelByEquals();
     }

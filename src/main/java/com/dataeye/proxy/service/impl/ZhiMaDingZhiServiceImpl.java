@@ -10,10 +10,11 @@ import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ZhiMaDingZhiConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,9 +36,10 @@ import java.util.stream.Collectors;
  * @date 2022/8/3 16:24
  * @description 芝麻定制高质量ip
  */
-@Slf4j
 @Service
 public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
+
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaDingZhiServiceImpl");
 
     /**
      * key：进程ip:port
@@ -67,11 +69,11 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
     ZhiMaDingZhiConfig zhiMaDingZhiConfig;
 
     public boolean isStart() {
-        String eth0Inet4InnerIp = getInnerIp();
+        String innerIp = tunnelInitService.getInnerIp();
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         String location = defaultTunnel.getLocation();
         int enable = defaultTunnel.getEnable();
-        return location.equalsIgnoreCase(eth0Inet4InnerIp.trim()) && enable == 1;
+        return location.equalsIgnoreCase(innerIp.trim()) && enable == 1;
     }
 
     public void init() {
@@ -80,7 +82,7 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
         }
 
         log.info("芝麻定制ip - 初始化ip池");
-        String eth0Inet4InnerIp = getInnerIp();
+        String eth0Inet4InnerIp = tunnelInitService.getInnerIp();
         CustomIpAllocate customIpAllocate = tunnelInitService.getCustomIpAllocate(eth0Inet4InnerIp, port);
         if (customIpAllocate == null) {
             throw new RuntimeException("customIpAllocate is null, ip=" + eth0Inet4InnerIp + ", port=" + port);
@@ -91,7 +93,9 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
         netCardSeqList = getRealNetworkCardSeq(customIpAllocate);
         // 初始化ip池
         netCardSeqList.forEach(this::addOne);
-        log.info("初始化完成, processSeq={}, ipPool={}", PROCESS_SEQ.toString(), IP_POOL.toString());
+        String alias = tunnelInitService.getDefaultTunnel().getAlias();
+        ConcurrentLinkedQueue<ProxyIp> proxyIps = ipSelector.getProxyIpPool().get(alias);
+        log.info("定时重播更换ip, processSeq={}, ipPool={}", netCardSeqList.toString(), proxyIps.toString());
     }
 
     /**
