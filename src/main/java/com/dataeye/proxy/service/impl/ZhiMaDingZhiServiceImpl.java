@@ -8,12 +8,14 @@ import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.config.ZhiMaDingZhiConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +29,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -40,14 +41,15 @@ import java.util.stream.Collectors;
 @Service
 public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
 
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaDingZhiServiceImpl");
-
     /**
      * key：进程ip:port
      * value：网卡序号
      */
     public static final ConcurrentHashMap<String, Integer> PROCESS_SEQ = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> IP_POOL = new ConcurrentHashMap<>();
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaDingZhiServiceImpl");
+    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+            new ThreadPoolConfig.TunnelThreadFactory("zhima-dingzhi-heart-check-"), new ThreadPoolExecutor.AbortPolicy());
     /**
      * 最大网卡序号
      */
@@ -98,6 +100,59 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
         String alias = tunnelInitService.getDefaultTunnel().getAlias();
         ConcurrentLinkedQueue<ProxyIp> proxyIps = ipSelector.getProxyIpPool().get(alias);
         log.info("初始化ip池, processSeq={}, alias={}, ipPool={}", netCardSeqList.toString(), alias, proxyIps.toString());
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkNetCard, 1, 5, TimeUnit.MINUTES);
+    }
+
+    /**
+     * 拨号网卡心跳检查
+     */
+    void checkNetCard() {
+        String testUrl = "https://www.baidu.com";
+        for (Integer seq : netCardSeqList) {
+            ProxyIp proxyIp = getIpByNetCardSeq(seq);
+            Response response = null;
+            String resp = null;
+            try {
+                response = OkHttpTool.sendGetByProxy2(testUrl, proxyIp.getHost(), proxyIp.getPort(), proxyIp.getUserName(), proxyIp.getPassword(), null, null);
+                if (response != null && response.code() == 200) {
+                    resp = response.body().string();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                OkHttpTool.closeResponse(response);
+            }
+
+            if (StringUtils.isNotBlank(resp)) {
+                continue;
+            }
+
+            // 重新拨号
+            exchangeIp(seq);
+
+            // 剔除旧ip，更换新ip
+            String alias = tunnelInitService.getDefaultTunnel().getAlias();
+            ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
+            ConcurrentLinkedQueue<ProxyIp> queue = proxyIpPool.get(alias);
+            if (proxyIpPool == null || queue == null) {
+                log.error("拨号网卡心跳检查失败, {} 的ip池为空", alias);
+                continue;
+            }
+            String oldHost = proxyIp.getHost();
+            int oldPort = proxyIp.getPort().intValue();
+            for (ProxyIp ip : queue) {
+                String host = ip.getHost();
+                int port = ip.getPort().intValue();
+                if (host.equalsIgnoreCase(oldHost) && oldPort == port) {
+                    ip.getValid().set(false);
+                    // 追加新的ip
+                    ProxyIp newIp = getIpByNetCardSeq(seq);
+                    queue.offer(newIp);
+                    break;
+                }
+            }
+        }
+
     }
 
     /**
@@ -160,6 +215,20 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
      * @param seq
      */
     void addOne(int seq) {
+        ProxyIp proxyIp = getIpByNetCardSeq(seq);
+
+        String alias = tunnelInitService.getDefaultTunnel().getAlias();
+        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
+        ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
+        queue.offer(proxyIp);
+        ConcurrentLinkedQueue<ProxyIp> old = proxyIpPool.putIfAbsent(alias, queue);
+        if (old != null) {
+            old.offer(proxyIp);
+            proxyIpPool.put(alias, old);
+        }
+    }
+
+    ProxyIp getIpByNetCardSeq(int seq) {
         String realUrl = zhiMaDingZhiConfig.getGetFixedNumIpUrl() + seq;
         String resp = OkHttpTool.doGet(realUrl, null, false);
         if (StringUtils.isBlank(resp)) {
@@ -190,16 +259,14 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
         }
         if (data == null) {
             log.error("添加单个ip失败, data is null");
-            return;
+            return null;
         }
         JSONArray array = (JSONArray) data;
         if (array.isEmpty()) {
             log.error("获取ip列表失败, data is empty");
-            return;
+            return null;
         }
 
-        String alias = tunnelInitService.getDefaultTunnel().getAlias();
-        ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = ipSelector.getProxyIpPool();
         for (Object obj : array) {
             JSONObject element = (JSONObject) obj;
             String expireTime = element.getOrDefault("expiry_time", "").toString();
@@ -217,23 +284,10 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
                         .expireTime(dateTime)
                         .valid(new AtomicBoolean(true))
                         .build();
-                ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
-                queue.offer(proxyIp);
-                ConcurrentLinkedQueue<ProxyIp> old = proxyIpPool.putIfAbsent(alias, queue);
-                if (old != null) {
-                    old.offer(proxyIp);
-                    proxyIpPool.put(alias, old);
-                }
-//                if (proxyIpPool.containsKey(alias)) {
-//                    ConcurrentLinkedQueue<ProxyIp> queue = proxyIpPool.get(alias);
-//                    queue.offer(proxyIp);
-//                } else {
-//                    ConcurrentLinkedQueue<ProxyIp> queue = new ConcurrentLinkedQueue<>();
-//                    queue.offer(proxyIp);
-//                    proxyIpPool.put(alias, queue);
-//                }
+                return proxyIp;
             }
         }
+        return null;
     }
 
     /**
