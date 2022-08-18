@@ -73,7 +73,6 @@ public class ApnProxyServer {
         if (!proxyServerConfig.isEnable()) {
             return;
         }
-
         // 获取eth0网卡内网ip
         tunnelInitService.getEth0Inet4InnerIp();
         // 获取初始化参数
@@ -83,11 +82,11 @@ public class ApnProxyServer {
             zhiMaDingZhiService.init();
         } else {
             ipSelector.init();
-            // ip监控
-            ipMonitorUtils.schedule();
-            // 请求监控
-            reqMonitorUtils.schedule();
         }
+        // ip监控
+        ipMonitorUtils.schedule();
+        // 请求监控
+        reqMonitorUtils.schedule();
         // 创建实例
         startByConfig(tunnelList);
         // 该类会采样应用程序中%1的buffer分配，并进行跟踪。检测堆外内存的泄露。目前检测级别有4种：DISABLE, SIMPLE(默认),ADVANCED, PARANOID

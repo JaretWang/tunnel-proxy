@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.CustomIpAllocate;
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -71,9 +72,10 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
     public boolean isStart() {
         String innerIp = tunnelInitService.getInnerIp();
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        String location = defaultTunnel.getLocation();
-        int enable = defaultTunnel.getEnable();
-        return location.equalsIgnoreCase(innerIp.trim()) && enable == 1;
+        assert defaultTunnel != null;
+        return defaultTunnel.getType() == TunnelType.HIGH_QUALITY.getId()
+                && defaultTunnel.getLocation().equalsIgnoreCase(innerIp.trim())
+                && defaultTunnel.getEnable() == 1;
     }
 
     public void init() {
@@ -95,7 +97,7 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
         netCardSeqList.forEach(this::addOne);
         String alias = tunnelInitService.getDefaultTunnel().getAlias();
         ConcurrentLinkedQueue<ProxyIp> proxyIps = ipSelector.getProxyIpPool().get(alias);
-        log.info("定时重播更换ip, processSeq={}, ipPool={}", netCardSeqList.toString(), proxyIps.toString());
+        log.info("初始化ip池, processSeq={}, alias={}, ipPool={}", netCardSeqList.toString(), alias, proxyIps.toString());
     }
 
     /**

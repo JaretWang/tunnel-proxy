@@ -3,6 +3,7 @@ package com.dataeye.proxy.utils;
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -176,6 +177,9 @@ public class ReqMonitorUtils {
      * @throws InterruptedException
      */
     public void dynamicAdjustIpPool(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit, double costAvg) throws InterruptedException {
+        if (tunnelInitService.getDefaultTunnel().getType() != TunnelType.DOMESTIC.getId()) {
+            return;
+        }
         if (StringUtils.isBlank(realSuccessPercent)) {
             logger.error("realSuccessPercent is empty, quit");
             return;

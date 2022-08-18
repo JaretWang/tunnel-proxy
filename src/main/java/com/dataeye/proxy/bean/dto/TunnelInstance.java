@@ -39,7 +39,7 @@ public class TunnelInstance implements Serializable, Cloneable {
      */
     private int enable;
     /**
-     * 隧道类型 1国内 2海外
+     * 隧道类型  1国内 2高质量 3海外
      */
     private int type;
     /**
