@@ -160,7 +160,7 @@ public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0 0/1 * * ?")
     public void exchange() {
-        if (!proxyServerConfig.isEnable()) {
+        if (!proxyServerConfig.isEnable() || tunnelInitService.getDefaultTunnel().getType() != TunnelType.HIGH_QUALITY.getId()) {
             return;
         }
         // 废除原来的ip

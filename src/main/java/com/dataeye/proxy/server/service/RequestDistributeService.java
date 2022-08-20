@@ -23,6 +23,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
 import okhttp3.Credentials;
@@ -559,16 +561,27 @@ public class RequestDistributeService {
                     //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
                     //ctx.pipeline().toMap().keySet().forEach(System.out::println);
 
+//                    // todo console总是会报没有这个handler
+////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
+////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
+//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
+////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
+//                    ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
+//                    ctx.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
+//                    ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
+
                     // todo console总是会报没有这个handler
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
-                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
-                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
-                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
-//                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
-                    ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
-                    ctx.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
-                    ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
+                    removeHandler(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME,ctx);
+                    removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME,ctx);
+                    removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME,ctx);
+//                    removeHandler(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME,ctx);
+                    removeHandler(ConcurrentLimitHandler.HANDLER_NAME,ctx);
+                    removeHandler(ApnProxySchemaHandler.HANDLER_NAME,ctx);
+                    removeHandler(ApnProxyTunnelHandler.HANDLER_NAME,ctx);
 
                     // remove之后
                     //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
@@ -642,65 +655,12 @@ public class RequestDistributeService {
         });
     }
 
-    /**
-     * 普通请求转发任务
-     */
-    class ForwardRequestTask implements Runnable {
-
-        private final Channel uaChannel;
-        private final ApnProxyRemote apnProxyRemote;
-        private final TunnelInstance tunnelInstance;
-        private final List<HttpContent> httpContentBuffer;
-        private final Object msg;
-        private final ApnHandlerParams apnHandlerParams;
-
-        public ForwardRequestTask(final Channel uaChannel,
-                                  ApnHandlerParams apnHandlerParams,
-                                  ApnProxyRemote apnProxyRemote,
-                                  TunnelInstance tunnelInstance,
-                                  List<HttpContent> httpContentBuffer,
-                                  Object msg) {
-            this.uaChannel = uaChannel;
-            this.apnHandlerParams = apnHandlerParams;
-            this.apnProxyRemote = apnProxyRemote;
-            this.tunnelInstance = tunnelInstance;
-            this.httpContentBuffer = httpContentBuffer;
-            this.msg = msg;
-        }
-
-        @Override
-        public void run() {
-            forwardCommonReq(uaChannel, apnHandlerParams, apnProxyRemote, tunnelInstance, httpContentBuffer, msg);
+    void removeHandler(String name, ChannelHandlerContext ctx){
+        ChannelPipeline pipeline = ctx.pipeline();
+        if (pipeline.names().contains(name)) {
+            pipeline.remove(name);
         }
     }
 
-    /**
-     * connect请求转发任务
-     */
-    class TunnelRequestTask implements Runnable {
-
-        private final ChannelHandlerContext ctx;
-        private final FullHttpRequest httpRequest;
-        private final ApnProxyRemote apnProxyRemote;
-        private final TunnelInstance tunnelInstance;
-        private final RequestMonitor requestMonitor;
-
-        public TunnelRequestTask(RequestMonitor requestMonitor,
-                                 final ChannelHandlerContext ctx,
-                                 FullHttpRequest httpRequest,
-                                 ApnProxyRemote apnProxyRemote,
-                                 TunnelInstance tunnelInstance) {
-            this.requestMonitor = requestMonitor;
-            this.ctx = ctx;
-            this.httpRequest = httpRequest;
-            this.apnProxyRemote = apnProxyRemote;
-            this.tunnelInstance = tunnelInstance;
-        }
-
-        @Override
-        public void run() {
-            forwardConnectReq(requestMonitor, ctx, httpRequest, apnProxyRemote, tunnelInstance);
-        }
-    }
 
 }
