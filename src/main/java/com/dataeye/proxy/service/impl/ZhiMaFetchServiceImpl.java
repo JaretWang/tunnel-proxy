@@ -235,7 +235,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     /**
      * 更新套餐ip剩余数量和使用量
      */
-    @Scheduled(cron = "0/5 * * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ? ")
     void updateSurplusIpSize() {
         int surplusIpSize = getSurplusIpSize();
         // 避免因为网络不好，导致获取的剩余ip数为0，重试3次
@@ -256,6 +256,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             }
         }
         SURPLUS_IP_SIZE.set(surplusIpSize);
+    }
+
+    @Scheduled(cron = "0/5 * * * * ?")
+    void updateUsedIp() {
+        int surplusIpSize = SURPLUS_IP_SIZE.get();
         int usedIp = FETCH_IP_NUM_NOW.get();
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
