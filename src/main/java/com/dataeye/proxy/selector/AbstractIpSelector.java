@@ -29,7 +29,7 @@ public interface AbstractIpSelector {
     List<ProxyIp> getIpList();
 
     /**
-     * ip健康检查
+     * ip池健康检查
      */
     void healthCheck();
 
@@ -47,10 +47,5 @@ public interface AbstractIpSelector {
      * 从ip池中移除ip
      */
     void removeIp(String ip, int port);
-
-    /**
-     * 自动优化ip池
-     */
-    void autoOptimizeIpPool();
 
 }

@@ -66,6 +66,11 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         super.exceptionCaught(ctx, cause);
     }
 
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+    }
+
     /**
      * 获取芝麻ip
      *

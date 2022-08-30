@@ -560,18 +560,6 @@ public class RequestDistributeService {
                     // remove之前
                     //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
                     //ctx.pipeline().toMap().keySet().forEach(System.out::println);
-
-//                    // todo console总是会报没有这个handler
-////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
-////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
-//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
-//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
-//                    ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
-////                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
-//                    ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
-//                    ctx.pipeline().remove(ApnProxySchemaHandler.HANDLER_NAME);
-//                    ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
-
                     // todo console总是会报没有这个handler
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
@@ -593,6 +581,7 @@ public class RequestDistributeService {
 //                    ctx.pipeline().addLast("client_idlehandler", new IdleHandler());
 //                    ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(tunnelInstance.getReadTimeoutSeconds()));
 //                    ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(tunnelInstance.getWriteTimeoutSeconds()));
+//                    ctx.pipeline().addLast(new LoggingHandler(LogLevel.DEBUG));
                     ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
 
                     logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
@@ -604,14 +593,12 @@ public class RequestDistributeService {
                     // ReferenceCountUtil.releaseLater() will keep the reference of buf,
                     // and then release it when the test thread is terminated.
                     // ReferenceCountUtil.releaseLater(reqContent);
-                    //System.out.println("out: httpRequest refCnt=" + httpRequest.refCnt() + ", reqContent refCnt=" + reqContent.refCnt());
                     future1.channel()
                             .writeAndFlush(reqContent)
                             .addListener((ChannelFutureListener) future2 -> {
                                 if (!future2.channel().config().getOption(ChannelOption.AUTO_READ)) {
                                     future2.channel().read();
                                 }
-                                //System.out.println("addListener: httpRequest refCnt=" + httpRequest.refCnt() + ", reqContent refCnt=" + reqContent.refCnt());
                             });
                 } else {
                     logger.debug("tunnel_handler 使用本地ip转发");

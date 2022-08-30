@@ -52,11 +52,6 @@
 //    }
 //
 //    @Override
-//    public void changeIp() {
-//
-//    }
-//
-//    @Override
 //    public void healthCheck() {
 //
 //    }
@@ -73,26 +68,6 @@
 //
 //    @Override
 //    public void removeIp(String ip, int port) {
-//
-//    }
-//
-//    @Override
-//    public void successPercentCheck() {
-//
-//    }
-//
-//    @Override
-//    public void addFixedNumIp() {
-//
-//    }
-//
-//    @Override
-//    public void removeIp() {
-//
-//    }
-//
-//    @Override
-//    public void autoOptimizeIpPool() {
 //
 //    }
 //
@@ -366,11 +341,6 @@
 //            return;
 //        }
 //        log.info("重播成功, code={}, msg={}, 网卡={}", code, msg, ipid);
-//    }
-//
-//    @Override
-//    public ProxyIp getOne(TunnelInstance tunnelInstance) throws Exception {
-//        return null;
 //    }
 //
 //}

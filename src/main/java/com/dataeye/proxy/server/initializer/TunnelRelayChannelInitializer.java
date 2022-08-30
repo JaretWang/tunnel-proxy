@@ -11,6 +11,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.logging.ByteBufFormat;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
@@ -52,7 +55,7 @@ public class TunnelRelayChannelInitializer extends ChannelInitializer<SocketChan
         if (apnProxyRemote.getRemoteListenType() == ApnProxyListenType.PLAIN) {
             // nothing to do
         }
-//        pipeline.addLast("client.datalog", new LoggingHandler("CLIENT_BYTE_LOGGER", LogLevel.DEBUG));
+//        pipeline.addLast("client.datalog", new LoggingHandler("CLIENT_BYTE_LOGGER", LogLevel.DEBUG, ByteBufFormat.HEX_DUMP));
         pipeline.addLast("client_idlestate", new IdleStateHandler(
                 ApnProxyServerChannelInitializer.CLIENT_READ_IDLE_TIME,
                 ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,

@@ -53,17 +53,6 @@
 //    @Resource
 //    TunnelInitService tunnelInitService;
 //
-//    public static void main(String[] args) {
-//        TunnelInstance tunnelInstance = TunnelInstance.builder()
-//                .autoGetCoreIpSize(1)
-//                .maxFetchIpNumEveryDay(20000)
-//                .usedIp(88)
-//                .build();
-//        IpSelector ipSelector = new IpSelector();
-//        int availableIpPerUnitTime = ipSelector.getAvailableIpPerUnitTime(log, 1, TimeUnit.MINUTES, tunnelInstance);
-//        System.out.println(availableIpPerUnitTime);
-//    }
-//
 //    public void init() {
 //        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 3, TimeUnit.SECONDS);
 //    }
@@ -407,11 +396,6 @@
 //    }
 //
 //    @Override
-//    public void changeIp() {
-//
-//    }
-//
-//    @Override
 //    public void healthCheck() {
 //
 //    }
@@ -433,21 +417,6 @@
 //
 //    @Override
 //    public void successPercentCheck() {
-//
-//    }
-//
-//    @Override
-//    public void addFixedNumIp() {
-//
-//    }
-//
-//    @Override
-//    public void removeIp() {
-//
-//    }
-//
-//    @Override
-//    public void autoOptimizeIpPool() {
 //
 //    }
 //

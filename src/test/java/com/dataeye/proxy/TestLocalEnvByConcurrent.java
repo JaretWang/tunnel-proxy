@@ -35,13 +35,14 @@ public class TestLocalEnvByConcurrent {
 //    private static final String pageUrl = "https://www.baidu.com/home/xman/data/tipspluslist?indextype=manht&_req_seqid=0xd4aa61fc0001fd21&asyn=1&t=1650376933156&sid=36310_31254_34813_35912_36165_34584_36121_36195_35802_36234_26350_36061";
 //    private static final String pageUrl = "https://www.taobao.com";
 
-    //    private static final String proxyIp = "tunnel-proxy-1.de123.net";
-    private static final String proxyIp = "tunnel-proxy-11-internet.de123.net";
+    private static final String proxyIp = "111.179.72.120";
+//    private static final String proxyIp = "tunnel-proxy-1.de123.net";
+//    private static final String proxyIp = "tunnel-proxy-11-internet.de123.net";
 //    private static final String proxyIp = "tunnel-proxy-4-internet.de123.net";
 //    private static final String proxyIp = "127.0.0.1";
-    private static final int proxyPort = 21331;
-    private static final String username = "dataeye";
-    private static final String password = "dataeye++123";
+    private static final int proxyPort = 57114;
+    private static final String username = "15779457681";
+    private static final String password = "gjb970312";
     // 本地限流阈值
     private static final int totalNum = 5;
     private static final int totalTask = totalNum * 1;
@@ -53,7 +54,7 @@ public class TestLocalEnvByConcurrent {
     }};
 
     public static void main(String[] args) throws InterruptedException {
-        send(pageUrl, proxyIp, proxyPort, null, null, headers, null);
+        send(pageUrl, proxyIp, proxyPort, username, password, headers, null);
     }
 
     static void send(String targetUrl, String proxyIp, int proxyPort, String username, String password,
@@ -64,7 +65,7 @@ public class TestLocalEnvByConcurrent {
             executorService.submit(() -> {
                 try {
                     int time = new SecureRandom().nextInt(30);
-                    Thread.sleep(time*1000);
+                    Thread.sleep(time * 1000);
                     Response response = OkHttpTool.sendGetByProxy2(targetUrl, proxyIp, proxyPort, username, password, headers, params);
 //                    Response response = OkHttpTool.sendPostByProxy(targetUrl, proxyIp, proxyPort, username, password, headers, null);
                     String result = response.body().string();
