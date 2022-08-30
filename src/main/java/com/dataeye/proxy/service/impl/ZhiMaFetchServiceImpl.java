@@ -255,6 +255,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                 }
             }
         }
+        logger.info("套餐剩余ip: {}", surplusIpSize);
         SURPLUS_IP_SIZE.set(surplusIpSize);
     }
 
@@ -267,7 +268,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             if (tunnel == null) {
                 return;
             }
-//            //更新数据库ip已经拉取的数量
+//            //更新数据库ip已经拉取的数量(ps: 不然重启后已经使用的ip会重置为0)
 //            int usedIp;
 //            // 防止昨天的累计ip数会算到第二天的累计ip数上
 //            if (RESET_GET_USED_IP_STATUS.get()) {
