@@ -3,10 +3,7 @@ package com.dataeye.proxy;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
-import com.dataeye.proxy.service.impl.YiniuCloudFetchServiceImpl;
-import com.dataeye.proxy.service.impl.YouJieFetchServiceImpl;
-import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
+import com.dataeye.proxy.service.impl.*;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -41,8 +38,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/3/28 14:21
  * @description 测试ip并发上限，和带宽上限
  */
-@SpringBootTest
 @RunWith(SpringRunner.class)
+@SpringBootTest
 public class TestProxyIpConcurrentBandwidth {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TestIpConcurrentBandwidth");
@@ -79,6 +76,25 @@ public class TestProxyIpConcurrentBandwidth {
     private YouJieFetchServiceImpl youJieFetchService;
     @Resource
     private YiniuCloudFetchServiceImpl yiniuCloudFetchService;
+    @Autowired
+    private DaiLiYunExclusiveServiceImpl daiLiYunExclusiveService;
+
+    /**
+     * 测试代理云独享ip
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    public void testDailiCloudExclusive() throws InterruptedException {
+        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
+            System.out.println("----------------------- 并发数：" + i + " ------------------------");
+            long begin = System.currentTimeMillis();
+            ApnProxyRemote apnProxyRemote = daiLiYunExclusiveService.apnProxyRemoteAdapter();
+            singleConcurrent(i, apnProxyRemote);
+            long cost = (System.currentTimeMillis() - begin) / 1000;
+            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
+        }
+    }
 
     /**
      * 测试芝麻代理

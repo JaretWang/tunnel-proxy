@@ -1,8 +1,10 @@
 package com.dataeye.proxy.utils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.TimeZone;
 
 /**
  * @author jaret
@@ -42,6 +44,19 @@ public class TimeUtils {
      */
     public static int toPassedMin() {
         return toPassedSecond() / 60;
+    }
+
+    public static LocalDateTime millisecond2LocalDateTime(long millisecond){
+        return LocalDateTime.ofInstant(Instant.ofEpochSecond(millisecond), TimeZone.getDefault().toZoneId());
+    }
+
+    public static LocalDateTime second2LocalDateTime(long second){
+        return LocalDateTime.ofInstant(Instant.ofEpochSecond(second), TimeZone.getDefault().toZoneId());
+    }
+
+    public static void main(String[] args) {
+        LocalDateTime expireTime = TimeUtils.second2LocalDateTime(1661829512L);
+        System.out.println(expireTime);
     }
 
 }
