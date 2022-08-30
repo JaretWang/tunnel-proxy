@@ -3,7 +3,6 @@ package com.dataeye.proxy.service.impl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.ProxyIp;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ZhiMaConfig;
@@ -12,6 +11,7 @@ import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
+import com.dataeye.proxy.utils.ReqMonitorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -237,26 +237,31 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0/5 * * * ? ")
     void updateSurplusIpSize() {
-        int surplusIpSize = getSurplusIpSize();
-        // 避免因为网络不好，导致获取的剩余ip数为0，重试3次
-        if (surplusIpSize == 0) {
-            int count = 0;
-            while (count < 3) {
-                count++;
-                try {
-                    Thread.sleep(2000L);
-                    // 重试
-                    surplusIpSize = getSurplusIpSize();
-                    if (surplusIpSize > 0) {
-                        break;
+        try {
+            int surplusIpSize = getSurplusIpSize();
+            // 避免因为网络不好，导致获取的剩余ip数为0，重试3次
+            if (surplusIpSize <= 0) {
+                int count = 0;
+                while (count < 3) {
+                    count++;
+                    try {
+                        Thread.sleep(2000L);
+                        // 重试
+                        surplusIpSize = getSurplusIpSize();
+                        if (surplusIpSize > 0) {
+                            break;
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
+            } else {
+                logger.info("套餐剩余ip: {}", surplusIpSize);
+                SURPLUS_IP_SIZE.set(surplusIpSize);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        logger.info("套餐剩余ip: {}", surplusIpSize);
-        SURPLUS_IP_SIZE.set(surplusIpSize);
     }
 
     @Scheduled(cron = "0/5 * * * * ?")
@@ -266,6 +271,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
             if (tunnel == null) {
+                logger.error("tunnel is null");
                 return;
             }
 //            //更新数据库ip已经拉取的数量(ps: 不然重启后已经使用的ip会重置为0)
