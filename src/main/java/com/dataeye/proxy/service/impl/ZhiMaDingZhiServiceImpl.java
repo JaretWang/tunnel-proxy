@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * @author jaret
  * @date 2022/8/3 16:24
- * @description 芝麻定制高质量ip
+ * @description 芝麻定制ip拉取
  */
 @Service
 public class ZhiMaDingZhiServiceImpl implements ProxyFetchService {
