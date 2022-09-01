@@ -139,6 +139,14 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
         }
     }
 
+    /**
+     * 获取有效的ip字符串，便于去重
+     * @return
+     */
+    public List<String> getRealIpList(){
+        return IP_POOL.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
+    }
+
     public void printIpPool() {
         List<String> collect = IP_POOL.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
         String tunnel = tunnelInitService.getDefaultTunnel().getAlias();
@@ -153,6 +161,7 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
      * @param needIpSize     需要的ip数
      */
     public boolean addFixedIp(String addReason, ConcurrentLinkedQueue<ProxyIp> queue, int needIpSize) {
+        List<String> realIpList = getRealIpList();
         boolean status = false;
         // 先检查，从代理商拉取的ip可能马上或者已经过期
         int realCount = 0, expired = 0, exist = 0, empty = 0;
@@ -174,6 +183,11 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
                 if (queue.contains(newProxyIp)) {
                     log.warn("拉取的IP={} 在IP池中已存在，即将重试", newProxyIp.getIpAddr());
                     exist++;
+                    continue;
+                }
+                if (realIpList.contains(newProxyIp.getIpAddrWithTimeAndValid())) {
+                    exist++;
+                    log.info("手动去重: {}", newProxyIp.getIpAddrWithTime());
                     continue;
                 }
                 realCount++;
