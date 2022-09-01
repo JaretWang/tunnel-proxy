@@ -11,9 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
-import java.net.*;
+import java.net.URLEncoder;
 import java.text.MessageFormat;
 
+/**
+ * @author jaret
+ * @date 2022/9/1 12:34
+ * @description
+ */
 @Service
 public class SendMailService {
 

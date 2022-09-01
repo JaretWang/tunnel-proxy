@@ -60,6 +60,10 @@ public class OkHttpTool {
         }
     }
 
+    public static String doGet(String reqUrl) {
+        return doGet(reqUrl, null, false);
+    }
+
     /**
      * OKHTTP GET 请求
      *

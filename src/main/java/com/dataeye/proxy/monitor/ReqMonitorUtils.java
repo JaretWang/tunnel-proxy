@@ -1,15 +1,17 @@
-package com.dataeye.proxy.utils;
+package com.dataeye.proxy.monitor;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
+import com.dataeye.proxy.utils.MapUtils;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -48,7 +50,7 @@ public class ReqMonitorUtils {
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchService;
     @Autowired
-    IpSelector ipSelector;
+    ZhiMaOrdinaryIpSelector ipSelector;
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
@@ -111,8 +113,6 @@ public class ReqMonitorUtils {
             long okVal = OK_TIMES.longValue();
             long errorVal = ERROR_TIMES.longValue();
             long total = ERROR_TIMES.addAndGet(okVal);
-//            double costAvg, reqSize, respSize, reqBandwidth, respBandwidth;
-//            String percent;
             if (COST_TOTAL.get() == 0 || total == 0) {
                 costAvg = 0;
                 reqSize = 0;

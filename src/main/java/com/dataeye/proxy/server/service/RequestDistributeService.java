@@ -3,28 +3,20 @@ package com.dataeye.proxy.server.service;
 import com.dataeye.proxy.bean.ApnHandlerParams;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
+import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.server.handler.*;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.initializer.DirectRelayChannelInitializer;
 import com.dataeye.proxy.server.initializer.TunnelRelayChannelInitializer;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.utils.ApnProxySSLContextFactory;
-import com.dataeye.proxy.utils.HttpErrorUtils;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
-import com.dataeye.proxy.utils.IpMonitorUtils;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.proxy.utils.OkHttpTool;
-import com.dataeye.proxy.utils.SocksServerUtils;
+import com.dataeye.proxy.utils.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
 import okhttp3.Credentials;
@@ -54,17 +46,15 @@ public class RequestDistributeService {
 
     @Autowired
     OkHttpTool okHttpTool;
-    @Autowired
-    IpSelector ipSelector;
 
     public HttpRequest constructReqForCommon(HttpRequest httpRequest,
-                                             ApnProxyRemote apnProxyRemote) {
+                                             ProxyIp proxyIp) {
 
         String uri = httpRequest.getUri();
 
-        if (!apnProxyRemote.isAppleyRemoteRule()) {
-            uri = this.getPartialUrl(uri);
-        }
+//        if (!apnProxyRemote.isAppleyRemoteRule()) {
+//            uri = this.getPartialUrl(uri);
+//        }
 
         HttpRequest _httpRequest = new DefaultHttpRequest(httpRequest.getProtocolVersion(),
                 httpRequest.getMethod(), uri);
@@ -89,9 +79,10 @@ public class RequestDistributeService {
         // 更改长连接为短链接
         _httpRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
 
-        if (StringUtils.isNotBlank(apnProxyRemote.getProxyUserName())
-                && StringUtils.isNotBlank(apnProxyRemote.getProxyPassword())) {
-            _httpRequest.headers().set("Proxy-Authorization", Credentials.basic(apnProxyRemote.getProxyUserName(), apnProxyRemote.getProxyPassword()));
+        String userName = proxyIp.getUserName();
+        String password = proxyIp.getPassword();
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            _httpRequest.headers().set("Proxy-Authorization", Credentials.basic(userName, password));
         }
 
         return _httpRequest;
@@ -107,7 +98,7 @@ public class RequestDistributeService {
     }
 
     public String constructReqForConnect(HttpRequest httpRequest,
-                                         ApnProxyRemote apnProxyRemote) {
+                                         ProxyIp proxyIp) {
         String CRLF = "\r\n";
         String url = httpRequest.getUri();
         StringBuilder sb = new StringBuilder();
@@ -132,9 +123,10 @@ public class RequestDistributeService {
 //        sb.append("Connection").append(": ").append("close").append(CRLF);
 //        sb.append("Proxy-Connection").append(": ").append("close").append(CRLF);
 
-        if (StringUtils.isNotBlank(apnProxyRemote.getProxyUserName())
-                && StringUtils.isNotBlank(apnProxyRemote.getProxyPassword())) {
-            sb.append("Proxy-Authorization: ").append(Credentials.basic(apnProxyRemote.getProxyUserName(), apnProxyRemote.getProxyPassword())).append(CRLF);
+        String userName = proxyIp.getUserName();
+        String password = proxyIp.getPassword();
+        if (StringUtils.isNotBlank(userName) && StringUtils.isNotBlank(password)) {
+            sb.append("Proxy-Authorization: ").append(Credentials.basic(userName, password)).append(CRLF);
         }
 
         sb.append(CRLF);
@@ -142,7 +134,7 @@ public class RequestDistributeService {
     }
 
     public String buildReqForConnect(HttpRequest httpRequest,
-                                     ApnProxyRemote apnProxyRemote) {
+                                     ProxyIp proxyIp) {
         String lineSeparator = System.lineSeparator();
         StringBuilder sb = new StringBuilder();
         sb.append(httpRequest.method().name())
@@ -167,8 +159,8 @@ public class RequestDistributeService {
 //        sb.append("Connection").append(": ").append("close").append(lineSeparator);
 //        sb.append("Proxy-Connection").append(": ").append("close").append(lineSeparator);
 
-        String proxyUserName = apnProxyRemote.getProxyUserName();
-        String proxyPassword = apnProxyRemote.getProxyPassword();
+        String proxyUserName = proxyIp.getUserName();
+        String proxyPassword = proxyIp.getPassword();
         if (StringUtils.isNotBlank(proxyUserName) && StringUtils.isNotBlank(proxyPassword)) {
             sb.append("Proxy-Authorization: ").append(Credentials.basic(proxyUserName, proxyPassword)).append(lineSeparator);
         }
@@ -187,7 +179,7 @@ public class RequestDistributeService {
     }
 
     public void sendReqByOkHttp(final Channel uaChannel,
-                                ApnProxyRemote apnProxyRemote,
+                                ProxyIp proxyIp,
                                 ApnHandlerParams apnHandlerParams,
                                 FullHttpRequest fullHttpRequest,
                                 String handler) throws IOException {
@@ -197,10 +189,10 @@ public class RequestDistributeService {
         // get uri params
         String method = fullHttpRequest.method().name();
         String uri = fullHttpRequest.uri();
-        String remoteHost = apnProxyRemote.getRemoteHost();
-        int remotePort = apnProxyRemote.getRemotePort();
-        String proxyUserName = apnProxyRemote.getProxyUserName();
-        String proxyPassword = apnProxyRemote.getProxyPassword();
+        String remoteHost = proxyIp.getHost();
+        int remotePort = proxyIp.getPort();
+        String proxyUserName = proxyIp.getUserName();
+        String proxyPassword = proxyIp.getPassword();
 
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
@@ -418,19 +410,19 @@ public class RequestDistributeService {
      *
      * @param uaChannel         源通道
      * @param apnHandlerParams  handler相关参数
-     * @param apnProxyRemote    代理ip
+     * @param proxyIp    代理ip
      * @param tunnelInstance    隧道实例
      * @param httpContentBuffer http content缓存
      * @param msg               传递的源数据
      */
     public void forwardCommonReq(final Channel uaChannel,
                                  ApnHandlerParams apnHandlerParams,
-                                 ApnProxyRemote apnProxyRemote,
+                                 ProxyIp proxyIp,
                                  TunnelInstance tunnelInstance,
                                  List<HttpContent> httpContentBuffer,
                                  Object msg) {
         long begin = System.currentTimeMillis();
-        String remoteAddr = apnProxyRemote.getRemote();
+        String remoteAddr = proxyIp.getRemote();
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         DirectRelayHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
             logger.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
@@ -459,16 +451,16 @@ public class RequestDistributeService {
 //                .option(ChannelOption.SO_TIMEOUT, tunnelInstance.getConnectTimeoutMillis())
 //                // fixed failed to allocate 2048 byte(s) of direct memory
 //                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                .handler(new DirectRelayChannelInitializer(apnHandlerParams, apnProxyRemote, uaChannel, remoteAddr, cb))
-                .connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort())
+                .handler(new DirectRelayChannelInitializer(apnHandlerParams, proxyIp, uaChannel, remoteAddr, cb))
+                .connect(proxyIp.getHost(),proxyIp.getPort())
                 .addListener((ChannelFutureListener) future -> {
                     long took = System.currentTimeMillis() - begin;
                     // 执行连接后操作，可能连接成功，也可能失败
                     if (future.isSuccess()) {
-                        logger.debug("forward_handler 连接代理IP成功, ip={}, 耗时={} ms", apnProxyRemote.getRemote(), took);
+                        logger.debug("forward_handler 连接代理IP成功, ip={}, 耗时={} ms", proxyIp.getRemote(), took);
                         HttpRequest oldRequest = (HttpRequest) msg;
                         logger.debug("forward_handler 构造请求之前：{}", oldRequest);
-                        HttpRequest newRequest = constructReqForCommon(oldRequest, apnProxyRemote);
+                        HttpRequest newRequest = constructReqForCommon(oldRequest, proxyIp);
                         logger.debug("forward_handler 构造请求之后：{}", newRequest);
                         future.channel().write(newRequest);
 
@@ -485,7 +477,9 @@ public class RequestDistributeService {
                         // todo 如果失败，需要在这里使用新的ip重试（后续改造）
                         String errorMsg;
 //                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipPoolScheduleService.getProxyIpPool().get(tunnelInstance.getAlias());
-                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipSelector.getProxyIpPool().get(tunnelInstance.getAlias());
+//                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = ipSelector.getProxyIpPool().get(tunnelInstance.getAlias());
+                        // todo 暂时关闭掉 整理代码
+                        ConcurrentLinkedQueue<ProxyIp> proxyCfgs = null;
                         if (proxyCfgs == null || proxyCfgs.isEmpty()) {
                             errorMsg = "forward_handler连接代理IP失败, ip=" + remoteAddr + ", 具体原因: ip池为空";
                         } else {
@@ -520,13 +514,13 @@ public class RequestDistributeService {
      * @param requestMonitor 请求监控工具
      * @param ctx            处理器上下文
      * @param httpRequest    请求
-     * @param apnProxyRemote 代理ip
+     * @param proxyIp        代理ip
      * @param tunnelInstance 隧道实例
      */
     public void forwardConnectReq(RequestMonitor requestMonitor,
                                   final ChannelHandlerContext ctx,
                                   FullHttpRequest httpRequest,
-                                  ApnProxyRemote apnProxyRemote,
+                                  ProxyIp proxyIp,
                                   TunnelInstance tunnelInstance) {
         long begin = System.currentTimeMillis();
         Channel uaChannel = ctx.channel();
@@ -550,30 +544,29 @@ public class RequestDistributeService {
                 .option(ChannelOption.AUTO_READ, false)
 //                // fixed failed to allocate 2048 byte(s) of direct memory
 //                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
-                .handler(new TunnelRelayChannelInitializer(requestMonitor, apnProxyRemote, uaChannel, tunnelInstance))
-                .connect(apnProxyRemote.getRemoteHost(), apnProxyRemote.getRemotePort());
+                .handler(new TunnelRelayChannelInitializer(requestMonitor, proxyIp, uaChannel, tunnelInstance))
+                .connect(proxyIp.getHost(), proxyIp.getPort());
         future.addListener((ChannelFutureListener) future1 -> {
             long took = System.currentTimeMillis() - begin;
             if (future1.isSuccess()) {
-                logger.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", apnProxyRemote.getRemote(), took);
-                if (apnProxyRemote.isAppleyRemoteRule()) {
-                    // remove之前
-                    //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
-                    //ctx.pipeline().toMap().keySet().forEach(System.out::println);
-                    // todo console总是会报没有这个handler
+                logger.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", proxyIp.getRemote(), took);
+                // remove之前
+                //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
+                //ctx.pipeline().toMap().keySet().forEach(System.out::println);
+                // todo console总是会报没有这个handler
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_STATE_NAME);
 //                            ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_IDLE_HANDLER_NAME);
-                    removeHandler(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME,ctx);
-                    removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME,ctx);
-                    removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME,ctx);
+                removeHandler(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME, ctx);
+                removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME, ctx);
+                removeHandler(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME, ctx);
 //                    removeHandler(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME,ctx);
-                    removeHandler(ConcurrentLimitHandler.HANDLER_NAME,ctx);
-                    removeHandler(ApnProxySchemaHandler.HANDLER_NAME,ctx);
-                    removeHandler(ApnProxyTunnelHandler.HANDLER_NAME,ctx);
+                removeHandler(ConcurrentLimitHandler.HANDLER_NAME, ctx);
+                removeHandler(ApnProxySchemaHandler.HANDLER_NAME, ctx);
+                removeHandler(ApnProxyTunnelHandler.HANDLER_NAME, ctx);
 
-                    // remove之后
-                    //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
-                    //ctx.pipeline().toMap().keySet().forEach(System.out::println);
+                // remove之后
+                //System.out.println("tunnel_handler remove之后=" + ctx.pipeline().toMap().size());
+                //ctx.pipeline().toMap().keySet().forEach(System.out::println);
 //                    ctx.pipeline().addLast("client_idlestate", new IdleStateHandler(
 //                            ApnProxyServerChannelInitializer.CLIENT_READ_IDLE_TIME,
 //                            ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
@@ -582,42 +575,47 @@ public class RequestDistributeService {
 //                    ctx.pipeline().addLast("client_read_timeout", new ReadTimeoutHandler(tunnelInstance.getReadTimeoutSeconds()));
 //                    ctx.pipeline().addLast("client_write_timeout", new WriteTimeoutHandler(tunnelInstance.getWriteTimeoutSeconds()));
 //                    ctx.pipeline().addLast(new LoggingHandler(LogLevel.DEBUG));
-                    ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
+                ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + proxyIp.getIpAddr(), future1.channel()));
 
-                    logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
-                    String newConnectRequest = constructReqForConnect(httpRequest, apnProxyRemote);
+                logger.debug("tunnel_handler 重新构造请求之前：{}", httpRequest);
+                String newConnectRequest = constructReqForConnect(httpRequest, proxyIp);
 //                            String newConnectRequest = buildReqForConnect(httpRequest, apnProxyRemote);
-                    logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
+                logger.debug("tunnel_handler 重新构造请求之后：{}", newConnectRequest);
 
-                    ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
-                    // ReferenceCountUtil.releaseLater() will keep the reference of buf,
-                    // and then release it when the test thread is terminated.
-                    // ReferenceCountUtil.releaseLater(reqContent);
-                    future1.channel()
-                            .writeAndFlush(reqContent)
-                            .addListener((ChannelFutureListener) future2 -> {
-                                if (!future2.channel().config().getOption(ChannelOption.AUTO_READ)) {
-                                    future2.channel().read();
-                                }
-                            });
-                } else {
-                    logger.debug("tunnel_handler 使用本地ip转发");
-                    // send connect success msg to UA
-                    HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-                            new HttpResponseStatus(200, "Connection established"));
-                    ctx.writeAndFlush(proxyConnectSuccessResponse)
-                            .addListener((ChannelFutureListener) future2 -> {
-                                // remove handlers
-                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
-                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
-                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
-                                //ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
-                                ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
-                                ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
-                                // add relay handler
-                                ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
-                            });
-                }
+                ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
+                // ReferenceCountUtil.releaseLater() will keep the reference of buf,
+                // and then release it when the test thread is terminated.
+                // ReferenceCountUtil.releaseLater(reqContent);
+                future1.channel()
+                        .writeAndFlush(reqContent)
+                        .addListener((ChannelFutureListener) future2 -> {
+                            if (!future2.channel().config().getOption(ChannelOption.AUTO_READ)) {
+                                future2.channel().read();
+                            }
+                        });
+
+
+                // 废弃
+//                if (apnProxyRemote.isAppleyRemoteRule()) {
+//
+//                } else {
+//                    logger.debug("tunnel_handler 使用本地ip转发");
+//                    // send connect success msg to UA
+//                    HttpResponse proxyConnectSuccessResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+//                            new HttpResponseStatus(200, "Connection established"));
+//                    ctx.writeAndFlush(proxyConnectSuccessResponse)
+//                            .addListener((ChannelFutureListener) future2 -> {
+//                                // remove handlers
+//                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_CODEC_NAME);
+//                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_AGG_NAME);
+//                                ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_REQUEST_DECOMPRESSOR_NAME);
+//                                //ctx.pipeline().remove(ApnProxyServerChannelInitializer.SERVER_BANDWIDTH_MONITOR_NAME);
+//                                ctx.pipeline().remove(ConcurrentLimitHandler.HANDLER_NAME);
+//                                ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
+//                                // add relay handler
+//                                ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + apnProxyRemote.getIpAddr(), future1.channel()));
+//                            });
+//                }
             } else {
                 String errorMessage = future1.cause().getMessage();
                 logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
@@ -628,7 +626,6 @@ public class RequestDistributeService {
 
                 // Close the connection if the connection attempt has failed.
                 ctx.channel().writeAndFlush(new DefaultHttpResponse(httpRequest.protocolVersion(), HttpResponseStatus.INTERNAL_SERVER_ERROR));
-
 //                        ChannelPromise channelPromise = ctx.channel().newPromise();
 //                        channelPromise.setFailure(new IOException("connect ip fail"));
 
@@ -642,7 +639,7 @@ public class RequestDistributeService {
         });
     }
 
-    void removeHandler(String name, ChannelHandlerContext ctx){
+    void removeHandler(String name, ChannelHandlerContext ctx) {
         ChannelPipeline pipeline = ctx.pipeline();
         if (pipeline.names().contains(name)) {
             pipeline.remove(name);

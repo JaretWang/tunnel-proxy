@@ -1,6 +1,6 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
 import lombok.AllArgsConstructor;
 import lombok.Data;

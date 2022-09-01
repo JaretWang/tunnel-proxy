@@ -3,16 +3,22 @@ package com.dataeye.proxy.selector;
 import com.dataeye.proxy.bean.ProxyIp;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 一般的ip选择器包含以下几个功能：
- * 分发ip，维护ip池，自动更换ip，自动剔除劣质ip，监控ip使用情况，监控请求使用情况
+ * 初始化ip池，添加ip白名单，分发ip，维护ip池，自动更换ip，自动剔除劣质ip，监控ip使用情况，监控请求使用情况
  *
  * @author jaret
  * @date 2022/8/17 23:01
  * @description
  */
-public interface AbstractIpSelector {
+public interface CommonIpSelector {
+
+    /**
+     * 初始化ip池
+     */
+    void init();
 
     /**
      * 获取一个ip
@@ -26,7 +32,12 @@ public interface AbstractIpSelector {
      *
      * @return
      */
-    List<ProxyIp> getIpList();
+    List<ProxyIp> getIpList(int count) throws InterruptedException;
+
+    /**
+     * 添加ip白名单
+     */
+    void addWhiteList();
 
     /**
      * ip池健康检查
@@ -47,5 +58,12 @@ public interface AbstractIpSelector {
      * 从ip池中移除ip
      */
     void removeIp(String ip, int port);
+
+    /**
+     * 获取ip池
+     *
+     * @return
+     */
+    ConcurrentLinkedQueue<ProxyIp> getIpPool();
 
 }

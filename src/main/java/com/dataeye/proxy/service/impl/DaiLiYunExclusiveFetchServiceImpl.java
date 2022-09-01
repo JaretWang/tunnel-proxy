@@ -13,6 +13,7 @@ import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -30,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @description 代理云独享ip拉取服务
  */
 @Service
-public class DaiLiYunExclusiveServiceImpl implements ProxyFetchService {
+public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
 
@@ -51,14 +52,14 @@ public class DaiLiYunExclusiveServiceImpl implements ProxyFetchService {
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws Exception {
-        List<ProxyIp> ipList = getFixedNumIp(1);
-        if (ipList == null || ipList.isEmpty()) {
+        List<ProxyIp> ipList = getIpList(1);
+        if (CollectionUtils.isEmpty(ipList)) {
             return null;
         }
         return ipList.get(0);
     }
 
-    public List<ProxyIp> getFixedNumIp(int count) {
+    public List<ProxyIp> getIpList(int count) {
         if (count > 0) {
             params.put("count", String.valueOf(count));
         }

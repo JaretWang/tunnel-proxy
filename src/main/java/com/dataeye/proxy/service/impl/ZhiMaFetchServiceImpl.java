@@ -4,14 +4,14 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ZhiMaConfig;
+import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -20,6 +20,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -55,7 +56,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     @Resource
     ZhiMaConfig zhiMaConfig;
     @Autowired
-    IpSelector ipSelector;
+    ZhiMaOrdinaryIpSelector zhiMaOrdinaryIpSelector;
     @Autowired
     SendMailService sendMailService;
     @Resource
@@ -71,7 +72,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
-        return getIpList(1, tunnelInstance, false).get(0);
+        List<ProxyIp> ipList = getIpList(1, tunnelInstance, false);
+        if (CollectionUtils.isEmpty(ipList)) {
+            return null;
+        }
+        return ipList.get(0);
     }
 
     public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance, boolean init) throws InterruptedException {
@@ -235,6 +240,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     /**
      * 更新套餐ip剩余数量和使用量
      */
+    @PostConstruct
     @Scheduled(cron = "0 0/5 * * * ? ")
     void updateSurplusIpSize() {
         try {
@@ -322,7 +328,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     int getAlarmLevel(boolean enableReduceIpQualityCheck, TunnelInstance tunnelInstance) {
         int currentFetchIpSize = tunnelInstance.getUsedIp();
-        int coreIpSize = ipSelector.getCoreIpSize(logger, tunnelInstance);
+        int coreIpSize = zhiMaOrdinaryIpSelector.getCoreIpSize(logger, tunnelInstance);
         // 告警等级应该是在总的限制之上做比对,所以不用剩余可用ip数: getAvailableIp()
         int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
         if (currentFetchIpSize <= 0 || coreIpSize <= 0 || maxIpLimit <= 0) {

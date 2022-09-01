@@ -2,11 +2,11 @@ package com.dataeye.proxy.server.handler;
 
 
 import com.dataeye.proxy.bean.ApnHandlerParams;
+import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.cons.GlobalParams;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.server.service.RequestDistributeService;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
-import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -41,15 +41,15 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("forward 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
-                ApnProxyRemote cacheIpResult = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
-                if (Objects.isNull(cacheIpResult)) {
+                ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
+                if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("forward 获取缓存ip为空");
                 }
                 final Channel uaChannel = ctx.channel();
-                logger.debug("转发普通请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+                logger.debug("转发普通请求 to {} for {}", proxyIp.getRemote(), fullHttpRequest.uri());
                 // send proxy request
                 apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
-                requestDistributeService.sendReqByOkHttp(uaChannel, cacheIpResult, apnHandlerParams, fullHttpRequest, "forward");
+                requestDistributeService.sendReqByOkHttp(uaChannel, proxyIp, apnHandlerParams, fullHttpRequest, "forward");
             }
         } finally {
             ReferenceCountUtil.release(msg);

@@ -1,14 +1,13 @@
 package com.dataeye.proxy.manage;
 
 import com.dataeye.proxy.TunnelProxyApplication;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.starter.httpclient.HttpClientResponse;
 import com.dataeye.starter.httpclient.ResponseEntityType;
 import com.dataeye.starter.httpclient.common.CommonHttpClient;
@@ -22,7 +21,9 @@ import org.springframework.context.annotation.ComponentScan;
 
 import javax.annotation.Resource;
 import java.util.StringJoiner;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author jaret
@@ -77,8 +78,6 @@ public class TestMybatis {
     TunnelInitService tunnelInitService;
     @Autowired
     TunnelInitMapper tunnelInitMapper;
-    @Autowired
-    IpSelector ipSelector;
 
     /**
      * 查询每个隧道的请求监控记录

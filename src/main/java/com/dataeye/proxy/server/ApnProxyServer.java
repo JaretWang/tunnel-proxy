@@ -2,19 +2,22 @@ package com.dataeye.proxy.server;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ApnHandlerParams;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
+import com.dataeye.proxy.selector.CommonIpSelector;
+import com.dataeye.proxy.selector.custom.ZhiMaCustomIpSelector;
+import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.selector.oversea.OverseaIpSelector;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.server.service.RequestDistributeService;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.service.impl.ZhiMaDingZhiServiceImpl;
 import com.dataeye.proxy.utils.DirectMemoryUtils;
-import com.dataeye.proxy.utils.IpMonitorUtils;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
+import com.dataeye.proxy.utils.SpringTool;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -23,11 +26,11 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.ResourceLeakDetector;
 import lombok.Getter;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -40,16 +43,12 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @date 2022/4/7 10:30
  */
 @Component
-public class ApnProxyServer {
+public class ApnProxyServer implements InitializingBean {
 
     private static final java.lang.String LOCAL_ADDRESS = "0.0.0.0";
 
     @Autowired
-    IpSelector ipSelector;
-    @Autowired
     ProxyServerConfig proxyServerConfig;
-    @Autowired
-    ApnProxyRemoteChooser apnProxyRemoteChooser;
     @Autowired
     RequestDistributeService requestDistributeService;
     @Resource
@@ -59,30 +58,29 @@ public class ApnProxyServer {
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired
-    ZhiMaDingZhiServiceImpl zhiMaDingZhiService;
+    SpringTool springTool;
     @Autowired
     DirectMemoryUtils directMemoryUtils;
     @Getter
     ConcurrentLimitHandler concurrentLimitHandler;
 
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        initTunnel();
+    }
+
     /**
      * 初始化隧道实例
      */
-    @PostConstruct
     public void initTunnel() throws Exception {
         if (!proxyServerConfig.isEnable()) {
             return;
         }
-        // 获取eth0网卡内网ip
-        tunnelInitService.getEth0Inet4InnerIp();
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
-        // 初始化国内隧道ip池
-        if (zhiMaDingZhiService.isStart()) {
-            zhiMaDingZhiService.init();
-        } else {
-            ipSelector.init();
-        }
+        // 初始化ip池
+        CommonIpSelector commonIpSelector = TunnelType.getIpSelector(springTool, tunnelInitService.getDefaultTunnel().getType());
+        commonIpSelector.init();
         // ip监控
         ipMonitorUtils.schedule();
         // 请求监控
@@ -100,10 +98,33 @@ public class ApnProxyServer {
     /**
      * 根据配置参数启动
      */
+    public void startByConfig(TunnelInstance tunnelInstance) {
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(1, 1,2,"tunnel_create_");
+        threadPoolTaskExecutor.submit(() -> startProxyServer(tunnelInstance));
+    }
+
     public void startByConfig(List<TunnelInstance> tunnelInstances) {
         int count = tunnelInstances.size();
         ThreadPoolTaskExecutor threadPoolTaskExecutor = getTunnelThreadpool(count, count,2*count,"tunnel_create_");
         tunnelInstances.forEach(instance -> threadPoolTaskExecutor.submit(() -> startProxyServer(instance)));
+    }
+
+    ApnHandlerParams buildHandlerConfig(TunnelInstance tunnelInstance){
+        ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(10,
+                new ThreadPoolConfig.TunnelThreadFactory("bandwidth-monitor-"),
+                new ThreadPoolExecutor.AbortPolicy());
+
+        // ip选择器
+        CommonIpSelector commonIpSelector = TunnelType.getIpSelector(springTool, tunnelInstance.getType());
+        concurrentLimitHandler = new ConcurrentLimitHandler(tunnelInstance);
+        return ApnHandlerParams.builder()
+                .tunnelInitService(tunnelInitService)
+                .tunnelInstance(tunnelInstance)
+                .requestDistributeService(requestDistributeService)
+                .concurrentLimitHandler(concurrentLimitHandler)
+                .trafficScheduledThreadPool(scheduledThreadPoolExecutor)
+                .commonIpSelector(commonIpSelector)
+                .build();
     }
 
     /**
@@ -116,31 +137,22 @@ public class ApnProxyServer {
         int bossThreadSize = tunnelInstance.getBossThreadSize();
         int workerThreadSize = tunnelInstance.getWorkerThreadSize();
 
-        concurrentLimitHandler = new ConcurrentLimitHandler(tunnelInstance);
-        ApnHandlerParams apnHandlerParams = ApnHandlerParams.builder()
-                .ipSelector(ipSelector)
-                .tunnelInitService(tunnelInitService)
-                .apnProxyRemoteChooser(apnProxyRemoteChooser)
-                .tunnelInstance(tunnelInstance)
-                .requestDistributeService(requestDistributeService)
-                .concurrentLimitHandler(concurrentLimitHandler)
-                .trafficScheduledThreadPool(new ScheduledThreadPoolExecutor(10,
-                        new ThreadPoolConfig.TunnelThreadFactory("bandwidth-monitor-"),
-                        new ThreadPoolExecutor.AbortPolicy()))
-                .build();
+        // 构建handler需要的配置参数
+        ApnHandlerParams apnHandlerParams = buildHandlerConfig(tunnelInstance);
 
+        // 创建server
         EventLoopGroup bossGroup = new NioEventLoopGroup(bossThreadSize);
         EventLoopGroup workerGroup = new NioEventLoopGroup(workerThreadSize);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .localAddress(LOCAL_ADDRESS, port)
                 .channel(NioServerSocketChannel.class)
-//                // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
-//                .option(ChannelOption.SO_RCVBUF, 1024)
-//                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows默认为200，linux为128。
-//                .option(ChannelOption.SO_BACKLOG, 1024)
-//                // 修复 failed to allocate 2048 byte(s) of direct memory
-//                .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
+                // .option(ChannelOption.SO_RCVBUF, 1024)
+                // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows默认为200，linux为128。
+                // .option(ChannelOption.SO_BACKLOG, 1024)
+                // 修复 failed to allocate 2048 byte(s) of direct memory
+                // .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))
                 // 为了避免tcp主动关闭方最后都会等待2MSL才会彻底释放连接,处于TIME-WAIT的连接占用的资源不会被操作系统内核释放,这个时候重启server,就会出现 Address already in use 错误
                 .option(ChannelOption.SO_REUSEADDR, true)
@@ -153,8 +165,8 @@ public class ApnProxyServer {
             System.out.println("隧道启动成功, 配置参数=" + System.lineSeparator() + JSON.toJSONString(tunnelInstance, true));
             future.channel().closeFuture().sync();
         } catch (Exception e) {
-            e.printStackTrace();
             System.out.println("启动代理服务器时，出现异常=" + e.getMessage());
+            e.printStackTrace();
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
@@ -173,6 +185,5 @@ public class ApnProxyServer {
         pool.initialize();
         return pool;
     }
-
 
 }

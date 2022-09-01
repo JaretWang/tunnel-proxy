@@ -1,14 +1,15 @@
-package com.dataeye.proxy.utils;
+package com.dataeye.proxy.monitor;
 
 import com.dataeye.proxy.bean.IpMonitor;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,7 +35,7 @@ public class IpMonitorUtils {
             new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
 
     @Autowired
-    IpSelector ipSelector;
+    ZhiMaOrdinaryIpSelector ipSelector;
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
@@ -124,7 +125,7 @@ public class IpMonitorUtils {
      * 从ip池移除高错误率的ip
      * ps: 应该是移除优先级队列队尾的元素
      */
-    public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, IpSelector ipSelector) throws InterruptedException {
+    public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, ZhiMaOrdinaryIpSelector ipSelector) throws InterruptedException {
         if (tunnelInstance.getType() != TunnelType.DOMESTIC.getId()) {
             return;
         }

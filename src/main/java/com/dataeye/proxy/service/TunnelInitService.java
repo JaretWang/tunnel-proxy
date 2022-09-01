@@ -6,7 +6,6 @@ import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
-import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,24 +41,44 @@ public class TunnelInitService {
     TunnelInitMapper tunnelInitMapper;
     @Value("${spring.profiles.active}")
     String profile;
-    String eth0Inet4InnerIp;
     @Autowired
     ProxyServerConfig proxyServerConfig;
 
+    /**
+     * 定时更新隧道列表缓存
+     */
+    @Scheduled(cron = "0/5 * * * * ?")
+    public void schduleUpdateTunnelListCache() {
+        if (!proxyServerConfig.isEnable()) {
+            return;
+        }
+        updateTunnelByEquals();
+    }
+
+    /**
+     * 获取定制ip网卡序号分配情况
+     *
+     * @param ip
+     * @param port
+     * @return
+     */
     public CustomIpAllocate getCustomIpAllocate(String ip, int port) {
         return tunnelInitMapper.queryCustomIpAllocate(ip, port);
     }
 
-    public void getEth0Inet4InnerIp() {
+    /**
+     * 获取eth0网卡内网ip
+     *
+     * @return
+     */
+    public String getEth0Inet4InnerIp() {
+        String ip = "";
         if ("local".equals(profile)) {
-            eth0Inet4InnerIp = "localhost";
+            ip = "localhost";
         } else {
-            eth0Inet4InnerIp = NetUtils.getEth0Inet4InnerIp();
+            ip = NetUtils.getEth0Inet4InnerIp();
         }
-    }
-
-    public String getInnerIp() {
-        return eth0Inet4InnerIp;
+        return ip;
     }
 
     /**
@@ -95,6 +113,7 @@ public class TunnelInitService {
         if (!TUNNEL_INSTANCES_CACHE.isEmpty()) {
             return TUNNEL_INSTANCES_CACHE.values().stream().distinct().collect(Collectors.toList());
         }
+        String eth0Inet4InnerIp = getEth0Inet4InnerIp();
         if (StringUtils.isBlank(eth0Inet4InnerIp)) {
             logger.error("获取本机eth0网卡ip地址失败");
             return Collections.emptyList();
@@ -134,18 +153,10 @@ public class TunnelInitService {
     }
 
     /**
-     * 定时更新隧道列表缓存
+     * 更新隧道参数
      */
-    @Scheduled(cron = "0/5 * * * * ?")
-    public void schduleUpdateTunnelListCache() {
-        if (!proxyServerConfig.isEnable()) {
-            return;
-        }
-//        updateTunnelByTime();
-        updateTunnelByEquals();
-    }
-
     void updateTunnelByEquals() {
+        String eth0Inet4InnerIp = getEth0Inet4InnerIp();
         // get from db
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         // check element and update
@@ -169,31 +180,6 @@ public class TunnelInitService {
                 }
             }
         }
-    }
-
-    void updateTunnelByTime() {
-        // get from db
-        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
-        // check element and update
-        for (TunnelInstance tunnelInstance : tunnelInstances) {
-            String lastModified = tunnelInstance.getLastModified();
-            LocalDateTime lastUpdateTime = TimeUtils.str2LocalDate(lastModified);
-            boolean update = LocalDateTime.now().isBefore(lastUpdateTime.plusSeconds(5));
-            boolean belong2Local = tunnelInstance.getLocation().equals(eth0Inet4InnerIp.trim()) && tunnelInstance.getEnable() == 1;
-            if (update && belong2Local) {
-                logger.info("更新隧道参数: {}", tunnelInstance);
-                // fixed bug: just update tunnel params on the machine
-                String alias = tunnelInstance.getAlias();
-                TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
-            }
-        }
-    }
-
-    /**
-     * 更新ip检查规则
-     */
-    public int updateTunnel(TunnelInstance tunnelInstance) {
-        return tunnelInitMapper.updateTunnel(tunnelInstance);
     }
 
     public int updateSuccessRate(String tunnelName, int rate, int useTimes) {

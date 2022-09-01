@@ -1,14 +1,14 @@
 package com.dataeye.proxy;
 
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
-import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.service.impl.*;
+import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.service.impl.DaiLiYunExclusiveFetchServiceImpl;
+import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
+import com.dataeye.proxy.service.impl.YouJieFetchServiceImpl;
+import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import okhttp3.*;
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
@@ -17,12 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.annotation.Resource;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
@@ -65,19 +62,13 @@ public class TestProxyIpConcurrentBandwidth {
     int intervalSecondForEachRound = 2;
 
     @Autowired
-    private ApnProxyRemoteChooser apnProxyRemoteChooser;
-    @Resource
-    private TunnelInitService tunnelInitService;
-    @Resource
-    private DailiCloudFetchServiceImpl dailiCloudFetchService;
-    @Resource
-    private ZhiMaFetchServiceImpl zhiMaFetchService;
-    @Resource
-    private YouJieFetchServiceImpl youJieFetchService;
-    @Resource
-    private YiniuCloudFetchServiceImpl yiniuCloudFetchService;
+    DaiLiYunExclusiveFetchServiceImpl daiLiYunExclusiveService;
     @Autowired
-    private DaiLiYunExclusiveServiceImpl daiLiYunExclusiveService;
+    DailiCloudFetchServiceImpl dailiCloudFetchService;
+    @Autowired
+    ZhiMaFetchServiceImpl zhiMaFetchService;
+    @Autowired
+    YouJieFetchServiceImpl youJieFetchService;
 
     /**
      * 测试代理云独享ip
@@ -85,12 +76,12 @@ public class TestProxyIpConcurrentBandwidth {
      * @throws InterruptedException
      */
     @Test
-    public void testDailiCloudExclusive() throws InterruptedException {
+    public void testDailiCloudExclusive() throws Exception {
         for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = daiLiYunExclusiveService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
+            ProxyIp proxyIp = daiLiYunExclusiveService.getOne(null);
+            singleConcurrent(i, proxyIp);
             long cost = (System.currentTimeMillis() - begin) / 1000;
             System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
         }
@@ -106,8 +97,8 @@ public class TestProxyIpConcurrentBandwidth {
         for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = zhiMaFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
+            ProxyIp proxyIp = zhiMaFetchService.getOne(null);
+            singleConcurrent(i, proxyIp);
             long cost = (System.currentTimeMillis() - begin) / 1000;
             System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
         }
@@ -123,83 +114,8 @@ public class TestProxyIpConcurrentBandwidth {
         for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = dailiCloudFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
-            long cost = (System.currentTimeMillis() - begin) / 1000;
-            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
-        }
-    }
-
-    @Test
-    public void testDailiCloud2() throws InterruptedException {
-        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
-            System.out.println("----------------------- 并发数：" + i + " ------------------------");
-            long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = dailiCloudFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
-            long cost = (System.currentTimeMillis() - begin) / 1000;
-            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
-        }
-    }
-
-    @Test
-    public void testDailiCloud3() throws InterruptedException {
-        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
-            System.out.println("----------------------- 并发数：" + i + " ------------------------");
-            long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = dailiCloudFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
-            long cost = (System.currentTimeMillis() - begin) / 1000;
-            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
-        }
-    }
-
-    /**
-     * 测试亿牛云(一次拉取多个ip),并且测试三批
-     */
-    @Test
-    public void testYiniuCloud() throws InterruptedException {
-        int batch = 3;
-        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\gitlab\\tunnel-proxy\\src\\main\\resources\\yiniucloud_";
-        List<ApnProxyRemote> many = yiniuCloudFetchService.getMany(batch);
-        ExecutorService executorService = Executors.newFixedThreadPool(batch);
-        CountDownLatch countDownLatch = new CountDownLatch(batch);
-        for (int i = 0; i < batch; i++) {
-            int finalI = i;
-            Runnable runnable = () -> {
-                for (int i1 = initThreadSize; i1 <= maxThreadSize; i1 += threadSizeIncremental) {
-                    System.out.println("----------------------- 并发数：" + i1 + " ------------------------");
-                    long begin = System.currentTimeMillis();
-                    ApnProxyRemote apnProxyRemote = many.get(0);
-                    many.remove(0);
-                    try {
-                        singleConcurrentForYiNiuCloud(i1, apnProxyRemote, finalI, path);
-                    } catch (Exception e) {
-                        System.out.println(e.getMessage());
-                    }
-                    long cost = (System.currentTimeMillis() - begin) / 1000;
-                    System.out.println("并发数：" + i1 + ", 耗时：" + cost + "s");
-                }
-                countDownLatch.countDown();
-            };
-            executorService.submit(runnable);
-        }
-        countDownLatch.await();
-        executorService.shutdown();
-    }
-
-    /**
-     * 测试亿牛云(一次拉取1个ip)
-     *
-     * @throws InterruptedException
-     */
-    @Test
-    public void testYiniuCloud2() throws InterruptedException {
-        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
-            System.out.println("----------------------- 并发数：" + i + " ------------------------");
-            long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = yiniuCloudFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
+            ProxyIp proxyIp = dailiCloudFetchService.getOne(null);
+            singleConcurrent(i, proxyIp);
             long cost = (System.currentTimeMillis() - begin) / 1000;
             System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
         }
@@ -215,69 +131,11 @@ public class TestProxyIpConcurrentBandwidth {
         for (int i = 10; i <= maxThreadSize; i += threadSizeIncremental) {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();
-            ApnProxyRemote apnProxyRemote = youJieFetchService.apnProxyRemoteAdapter();
-            singleConcurrent(i, apnProxyRemote);
+            ProxyIp proxyIp = youJieFetchService.getOne(null);
+            singleConcurrent(i, proxyIp);
             long cost = (System.currentTimeMillis() - begin) / 1000;
             System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
         }
-    }
-
-//    /**
-//     * 测试单次指定并发数
-//     *
-//     * @param concurrency
-//     */
-//    void singleConcurrent(int concurrency) throws InterruptedException {
-//        ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
-//        List<String> resultList = new LinkedList<>();
-//
-//        List<TunnelInstance> tunnelInstances = tunnelInitService.getTunnelList();
-//        for (int i = 0; i < round; i++) {
-//            ApnProxyRemote proxyConfig = apnProxyRemoteChooser.getProxyConfig(tunnelInstances.get(0));
-//            // 保证测试过程 ip 都在有效期内
-//            LocalDateTime expireTime = proxyConfig.getExpireTime();
-//            LocalDateTime validTime = LocalDateTime.now().plusMinutes(minIpValidMinute);
-//            boolean valid = validTime.isBefore(expireTime);
-//            String result = "";
-//            if (valid) {
-//                result = testConcurrentBandwidth(proxyConfig, concurrency, executorService);
-//            } else {
-//                System.out.println("ip " + proxyConfig.getRemote() + " 有效期小于" + minIpValidMinute + "分钟，重新拉取");
-//            }
-//            if (StringUtils.isNotBlank(result)) {
-//                resultList.add(result);
-//            }
-//        }
-//        resultList.forEach(System.out::println);
-//        executorService.shutdown();
-//    }
-
-    void singleConcurrentForYiNiuCloud(int concurrency, ApnProxyRemote proxyConfig, int num, String path) throws InterruptedException, IOException {
-        ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
-        List<String> resultList = new LinkedList<>();
-
-        for (int i = 0; i < round; i++) {
-            // 保证测试过程 ip 都在有效期内
-            LocalDateTime expireTime = proxyConfig.getExpireTime();
-            LocalDateTime validTime = LocalDateTime.now().plusMinutes(minIpValidMinute);
-            boolean valid = validTime.isBefore(expireTime);
-            String result = "";
-            if (valid) {
-                result = testConcurrentBandwidth(proxyConfig, concurrency, executorService);
-            } else {
-                System.out.println("ip " + proxyConfig.getRemote() + " 有效期小于" + minIpValidMinute + "分钟，重新拉取");
-            }
-            if (StringUtils.isNotBlank(result)) {
-                resultList.add(result);
-            }
-            // 每一轮时间间隔
-            Thread.sleep(intervalSecondForEachRound * 1000L);
-        }
-        resultList.forEach(System.out::println);
-        // 写入文件
-        String savePath = path + num + ".txt";
-        FileUtils.writeLines(new File(savePath), StandardCharsets.UTF_8.name(), resultList, System.lineSeparator(), true);
-        executorService.shutdown();
     }
 
     /**
@@ -287,7 +145,7 @@ public class TestProxyIpConcurrentBandwidth {
      * @param proxyConfig 代理ip配置
      * @throws InterruptedException
      */
-    void singleConcurrent(int concurrency, ApnProxyRemote proxyConfig) throws InterruptedException {
+    void singleConcurrent(int concurrency, ProxyIp proxyConfig) throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(concurrency);
         List<String> resultList = new LinkedList<>();
 
@@ -319,7 +177,7 @@ public class TestProxyIpConcurrentBandwidth {
      * @param proxyConfig ip配置
      * @throws InterruptedException 异常
      */
-    String testConcurrentBandwidth(ApnProxyRemote proxyConfig, int concurrency, ExecutorService executorService) throws InterruptedException {
+    String testConcurrentBandwidth(ProxyIp proxyConfig, int concurrency, ExecutorService executorService) throws InterruptedException {
         int errorTotal = 0;
         int okTotal = 0;
         int totalTask = concurrency * taskNumPerThread;
@@ -327,11 +185,11 @@ public class TestProxyIpConcurrentBandwidth {
         CountDownLatch countDownLatch = new CountDownLatch(totalTask);
         AtomicInteger bandwidthTotal = new AtomicInteger(0);
 
-        String remoteHost = proxyConfig.getRemoteHost();
-        int remotePort = proxyConfig.getRemotePort();
+        String remoteHost = proxyConfig.getHost();
+        int remotePort = proxyConfig.getPort();
         String remoteAddr = proxyConfig.getRemote();
-        String username = proxyConfig.getProxyUserName();
-        String password = proxyConfig.getProxyPassword();
+        String username = proxyConfig.getUserName();
+        String password = proxyConfig.getPassword();
 
         AtomicLong total = new AtomicLong(0);
         for (int i = 0; i < totalTask; i++) {

@@ -1,8 +1,8 @@
-package com.dataeye.proxy.component;
+package com.dataeye.proxy.monitor;
 
 import com.alibaba.fastjson.JSON;
+import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.server.ApnProxyServer;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
 import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
@@ -29,7 +29,6 @@ import java.time.LocalDateTime;
 @Component
 public class TunnelMonitor {
 
-    //    public static final AtomicReference<TunnelMonitorLog> MONITOR_LOG = new AtomicReference<TunnelMonitorLog>();
     public static final TunnelMonitorLog MONITOR_LOG = new TunnelMonitorLog();
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelMonitor");
     private static final String TCP_CONNECT_NUM = "netstat -ant | grep 'tcp' | wc -l";
@@ -46,7 +45,7 @@ public class TunnelMonitor {
     @Resource
     TunnelInitMapper tunnelInitMapper;
     @Autowired
-    IpSelector ipSelector;
+    ZhiMaOrdinaryIpSelector zhiMaOrdinaryIpSelector;
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired
@@ -86,7 +85,7 @@ public class TunnelMonitor {
             MONITOR_LOG.setSurplusIp(zhiMaFetchService.getSurplusIp());
             MONITOR_LOG.setIpLimit(tunnel.getMaxFetchIpNumEveryDay());
             MONITOR_LOG.setUsedIp(zhiMaFetchService.getFetchIp());
-            MONITOR_LOG.setIpPoolSize(ipSelector.getValidIpSize(ipSelector.getProxyIpPool().get(tunnel.getAlias())));
+            MONITOR_LOG.setIpPoolSize(zhiMaOrdinaryIpSelector.getValidIpSize(zhiMaOrdinaryIpSelector.getProxyIpPool().get(tunnel.getAlias())));
             MONITOR_LOG.setUpdateTime(TimeUtils.formatLocalDate(LocalDateTime.now()));
             logger.info("监控记录入库: {}", JSON.toJSONString(MONITOR_LOG));
             int count = tunnelInitMapper.addMonitorLog(MONITOR_LOG);

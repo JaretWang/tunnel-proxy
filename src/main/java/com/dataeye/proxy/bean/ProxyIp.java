@@ -1,5 +1,6 @@
 package com.dataeye.proxy.bean;
 
+import com.dataeye.proxy.utils.TimeUtils;
 import lombok.Builder;
 import lombok.Data;
 
@@ -45,6 +46,11 @@ public class ProxyIp {
 
     public String getIpAddrWithTimeAndValid() {
         return this.host + ":" + this.port + "(" + valid.get() + ", " + expireTime + ")";
+    }
+
+    public final String getRemote() {
+        String formatLocalDate = TimeUtils.formatLocalDate(expireTime);
+        return this.host + ":" + this.port + "(" + formatLocalDate + ")";
     }
 
 }

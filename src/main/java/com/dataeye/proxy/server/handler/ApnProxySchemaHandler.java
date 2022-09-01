@@ -2,16 +2,13 @@ package com.dataeye.proxy.server.handler;
 
 
 import com.dataeye.proxy.bean.ApnHandlerParams;
+import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.cons.GlobalParams;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
-import com.dataeye.proxy.server.service.RequestDistributeService;
-import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -38,8 +35,7 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         logger.debug("schema channelActive");
-        getZhiMaIp(ctx);
-        IpMonitorUtils.invoke(true, requestMonitor, true, HANDLER_NAME);
+        getProxyIp(ctx);
         super.channelActive(ctx);
     }
 
@@ -53,8 +49,10 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             } else {
                 ctx.pipeline().remove(ApnProxyTunnelHandler.HANDLER_NAME);
             }
-            apnHandlerParams.getRequestMonitor().setRequestType(httpRequest.method().name());
-            apnHandlerParams.getRequestMonitor().setTargetAddr(httpRequest.uri());
+            String name = httpRequest.method().name();
+            String uri = httpRequest.uri();
+            apnHandlerParams.getRequestMonitor().setRequestType(name);
+            apnHandlerParams.getRequestMonitor().setTargetAddr(uri);
         }
         ctx.fireChannelRead(msg);
     }
@@ -66,44 +64,29 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
         super.exceptionCaught(ctx, cause);
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
-    }
-
-    /**
-     * 获取芝麻ip
-     *
-     * @param ctx
-     * @throws InterruptedException
-     */
-    void getZhiMaIp(ChannelHandlerContext ctx) throws InterruptedException {
-        // 随时更新 tunnelInstance
-        TunnelInitService tunnelInitService = apnHandlerParams.getTunnelInitService();
-        if (Objects.nonNull(tunnelInitService)) {
-            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-            if (Objects.nonNull(defaultTunnel)) {
-                apnHandlerParams.setTunnelInstance(defaultTunnel);
-            }
+    void getProxyIp(ChannelHandlerContext ctx) throws InterruptedException {
+        // 随时更新隧道配置
+        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInitService().getDefaultTunnel();
+        if (Objects.nonNull(tunnelInstance)) {
+            apnHandlerParams.setTunnelInstance(tunnelInstance);
         }
         // 分配ip
-        ApnProxyRemoteChooser apnProxyRemoteChooser = apnHandlerParams.getApnProxyRemoteChooser();
-        RequestDistributeService requestDistributeService = apnHandlerParams.getRequestDistributeService();
-        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-        ApnProxyRemote apnProxyRemote = apnProxyRemoteChooser.getProxyConfig(tunnelInstance);
-        if (Objects.isNull(apnProxyRemote)) {
-            requestDistributeService.handleProxyIpIsEmpty(ctx);
+        ProxyIp proxyIp = apnHandlerParams.getCommonIpSelector().getOne();
+        if (Objects.isNull(proxyIp)) {
+            logger.error("分配ip失败, proxyIp is null");
+            apnHandlerParams.getRequestDistributeService().handleProxyIpIsEmpty(ctx);
+        } else {
+            logger.debug("分配ip：{}", proxyIp.toString());
+            ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).set(proxyIp);
+            // ip, 请求监控
+            requestMonitor.setTunnelName(tunnelInstance.getAlias());
+            requestMonitor.setBegin(System.currentTimeMillis());
+            requestMonitor.setProxyAddr(proxyIp.getIpAddr());
+            requestMonitor.setExpireTime(proxyIp.getExpireTime());
+            requestMonitor.setSuccess(true);
+            apnHandlerParams.setRequestMonitor(requestMonitor);
+            IpMonitorUtils.invoke(true, requestMonitor, true, HANDLER_NAME);
         }
-        logger.debug("分配ip结果：{}", apnProxyRemote);
-        ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).set(apnProxyRemote);
-
-        // ip, 请求监控
-        requestMonitor.setTunnelName(tunnelInstance.getAlias());
-        requestMonitor.setBegin(System.currentTimeMillis());
-        requestMonitor.setProxyAddr(apnProxyRemote.getIpAddr());
-        requestMonitor.setExpireTime(apnProxyRemote.getExpireTime());
-        requestMonitor.setSuccess(true);
-        apnHandlerParams.setRequestMonitor(requestMonitor);
     }
 
 }

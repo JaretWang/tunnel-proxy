@@ -3,7 +3,7 @@ package com.dataeye.proxy.server.handler;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.TunnelMonitor;
+import com.dataeye.proxy.monitor.TunnelMonitor;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.*;

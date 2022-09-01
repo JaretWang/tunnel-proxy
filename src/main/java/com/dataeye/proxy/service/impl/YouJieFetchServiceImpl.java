@@ -13,6 +13,7 @@ import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -41,7 +42,11 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
-        return getIpList(1, tunnelInstance).get(0);
+        List<ProxyIp> ipList = getIpList(1, tunnelInstance);
+        if (CollectionUtils.isEmpty(ipList)) {
+            return null;
+        }
+        return ipList.get(0);
     }
 
     public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance) throws InterruptedException {

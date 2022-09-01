@@ -1,13 +1,13 @@
 package com.dataeye.proxy.server.handler;
 
 import com.dataeye.proxy.bean.ApnHandlerParams;
+import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.cons.GlobalParams;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemote;
 import com.dataeye.proxy.server.service.RequestDistributeService;
-import com.dataeye.proxy.utils.ReqMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.utils.IpMonitorUtils;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -40,17 +40,17 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("tunnel 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
-                ApnProxyRemote cacheIpResult = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
-                if (Objects.isNull(cacheIpResult)) {
+                ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
+                if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("tunnel 获取缓存ip为空");
                 }
-                logger.debug("转发 CONNECT 请求 to {} for {}", cacheIpResult.getRemote(), fullHttpRequest.uri());
+                logger.debug("转发 CONNECT 请求 to {} for {}", proxyIp.getRemote(), fullHttpRequest.uri());
                 TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
                 RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
                 // send proxy request
                 requestMonitor.getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
                 //requestMonitor.getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
-                requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, cacheIpResult, tunnelInstance);
+                requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, proxyIp, tunnelInstance);
             }
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用

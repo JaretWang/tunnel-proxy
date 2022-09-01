@@ -1,10 +1,9 @@
 package com.dataeye.proxy.bean;
 
 import com.dataeye.proxy.bean.dto.TunnelInstance;
-import com.dataeye.proxy.component.IpSelector;
 import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
-import com.dataeye.proxy.server.remotechooser.ApnProxyRemoteChooser;
 import com.dataeye.proxy.server.service.RequestDistributeService;
 import com.dataeye.proxy.service.TunnelInitService;
 import lombok.AllArgsConstructor;
@@ -25,10 +24,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @AllArgsConstructor
 public class ApnHandlerParams {
 
-    /**
-     * 代理ip抽取工具
-     */
-    ApnProxyRemoteChooser apnProxyRemoteChooser;
     /**
      * 隧道实例
      */
@@ -58,8 +53,18 @@ public class ApnHandlerParams {
      */
     ProxyServerConfig proxyServerConfig;
     /**
-     * ip选择器
+     * 公共ip选择器
      */
-    IpSelector ipSelector;
+    CommonIpSelector commonIpSelector;
+
+//    @Scheduled(cron = "0/5 * * * * ?")
+//    void update(){
+//        if (tunnelInitService != null) {
+//            TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+//            if (Objects.nonNull(tunnelInstance)) {
+//                this.tunnelInstance = defaultTunnel;
+//            }
+//        }
+//    }
 
 }

@@ -12,20 +12,13 @@ import java.util.Random;
 /**
  * @author jaret
  * @date 2022/8/15 14:50
- * @description
+ * @description 海外 rola 代理
  */
-@Service
+//@Service
 public class RolaFetchServiceImpl implements ProxyFetchService {
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws Exception {
-        return null;
-    }
-
-    public List<ProxyIp> getIpList(int needIpSize, TunnelInstance tunnelInstance, boolean init){
-        Random random = new Random();
-        int num = random.nextInt(100000);
-        List<ProxyIp> ipList = new LinkedList<>();
         return null;
     }
 

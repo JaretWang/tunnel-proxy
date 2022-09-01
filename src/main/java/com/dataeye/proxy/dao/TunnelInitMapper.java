@@ -16,6 +16,13 @@ import java.util.List;
 @Mapper
 public interface TunnelInitMapper {
 
+    /**
+     * 查询定制ip分配情况
+     *
+     * @param ip
+     * @param port
+     * @return
+     */
     CustomIpAllocate queryCustomIpAllocate(@Param("ip") String ip, @Param("port") int port);
 
     /**
@@ -41,8 +48,22 @@ public interface TunnelInitMapper {
      */
     int updateUsedIp(@Param("alias") String alias, @Param("usedIp") int usedIp);
 
+    /**
+     * 更新成功率
+     *
+     * @param alias
+     * @param rate
+     * @param useTimes
+     * @return
+     */
     int updateSuccessRate(@Param("alias") String alias, @Param("rate") int rate, @Param("useTimes") int useTimes);
 
+    /**
+     * 添加监控日志
+     *
+     * @param tunnelMonitorLog
+     * @return
+     */
     int addMonitorLog(TunnelMonitorLog tunnelMonitorLog);
 
 }
