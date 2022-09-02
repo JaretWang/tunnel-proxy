@@ -17,8 +17,8 @@ import org.springframework.util.CollectionUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,20 +35,11 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
 
-    //String url = "http://18922868909.user.xiecaiyun.com/api/proxies?action=getJSON&key=NP7A76CFEF&count=1&word=&rand=false&norepeat=true&detail=true&ltime=10";
-    String url = "http://18922868909.user.xiecaiyun.com/api/proxies";
-    Map<String, String> params = new HashMap<String, String>() {
-        {
-            put("action", "getJSON");
-            put("key", "NP7A76CFEF");
-            put("count", "1");
-            put("word", "");
-            put("rand", "false");
-            put("norepeat", "false");
-            put("detail", "true");
-            put("ltime", "10");
-        }
-    };
+    String buildFetchUrl(int count) {
+        //String url = "http://18922868909.user.xiecaiyun.com/api/proxies?action=getJSON&key=NP7A76CFEF&count=1&word=&rand=false&norepeat=true&detail=true&ltime=10";
+        String url2 = "http://18922868909.user.xiecaiyun.com/api/proxies?action={0}&key={1}&count={2}&word={3}&rand={4}&norepeat={5}&detail={6}&ltime={7}";
+        return MessageFormat.format(url2, "getJSON", "NP7A76CFEF", String.valueOf(count), "", "false", "false", "true", "10");
+    }
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws Exception {
@@ -60,13 +51,13 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
     }
 
     public List<ProxyIp> getIpList(int count) {
-        if (count > 0) {
-            params.put("count", String.valueOf(count));
+        if (count <= 0) {
+            return null;
         }
-        String targetUrl = buildUrl(url, params);
+        String targetUrl = buildFetchUrl(count);
 
         // send
-        String resp = OkHttpTool.doGet(targetUrl, params, false);
+        String resp = OkHttpTool.doGet(targetUrl);
         if (!JSON.isValid(resp)) {
             logger.error("响应内容不是json");
             return null;
