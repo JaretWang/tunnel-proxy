@@ -223,7 +223,8 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
         long instanceSecond = expireTime.toEpochSecond(ZoneOffset.of("+8"));
         long nowSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.of("+8"));
         long duration = instanceSecond - nowSecond;
-        return duration < proxyServerConfig.getJudgeExpiredIpMinSeconds();
+//        return duration < proxyServerConfig.getJudgeExpiredIpMinSeconds();
+        return duration < 30;
     }
 
     /**
