@@ -129,6 +129,11 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
             addFixedIp("initQueue: 初始化添加", IP_POOL, 5);
             return;
         }
+        int size = IP_POOL.size();
+        if (size < 5) {
+            int needSize = 5 - size;
+            addFixedIp("ip池不足5个，补充ip", IP_POOL, needSize);
+        }
         // 逐个检查ip的过期时间
         for (ProxyIp ip : IP_POOL) {
             if (isExpired(ip)) {
@@ -141,9 +146,10 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
 
     /**
      * 获取有效的ip字符串，便于去重
+     *
      * @return
      */
-    public List<String> getRealIpList(){
+    public List<String> getRealIpList() {
         return IP_POOL.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
     }
 
@@ -157,8 +163,8 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
     /**
      * 添加固定数量的ip
      *
-     * @param queue          IP池
-     * @param needIpSize     需要的ip数
+     * @param queue      IP池
+     * @param needIpSize 需要的ip数
      */
     public boolean addFixedIp(String addReason, ConcurrentLinkedQueue<ProxyIp> queue, int needIpSize) {
         List<String> realIpList = getRealIpList();
