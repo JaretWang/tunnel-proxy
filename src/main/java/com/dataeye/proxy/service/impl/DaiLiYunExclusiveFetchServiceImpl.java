@@ -8,6 +8,7 @@ import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
 import com.dataeye.proxy.utils.TimeUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,11 +35,15 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
-
-    String buildFetchUrl(int count) {
-        //String url = "http://18922868909.user.xiecaiyun.com/api/proxies?action=getJSON&key=NP7A76CFEF&count=1&word=&rand=false&norepeat=true&detail=true&ltime=10";
-        String url2 = "http://18922868909.user.xiecaiyun.com/api/proxies?action={0}&key={1}&count={2}&word={3}&rand={4}&norepeat={5}&detail={6}&ltime={7}";
-        return MessageFormat.format(url2, "getJSON", "NP7A76CFEF", String.valueOf(count), "", "false", "false", "true", "10");
+    private static String account;
+    static {
+        String innerIp = NetUtils.getEth0Inet4InnerIp();
+        // adx-proxy-012  172.18.211.184  39.108.4.144
+        if ("172.18.211.184".equalsIgnoreCase(innerIp)) {
+            account = "17381585447";
+        } else {
+            account = "18922868909";
+        }
     }
 
     @Override
@@ -50,11 +55,25 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
         return ipList.get(0);
     }
 
+    /**
+     * 构建拉取ip的url
+     *
+     * @param count ip数量
+     * @return
+     */
+    String buildFetchUrl(int count) {
+        // http://17381585447.user.xiecaiyun.com/api/proxies?action=getText&key=NP87731636&count=1&word=&rand=true&norepeat=false&detail=false&ltime=0
+        // http://18922868909.user.xiecaiyun.com/api/proxies?action=getJSON&key=NP7A76CFEF&count=1&word=&rand=false&norepeat=true&detail=true&ltime=10
+        String url2 = "http://{0}.user.xiecaiyun.com/api/proxies?action={1}&key={2}&count={3}&word={4}&rand={5}&norepeat={6}&detail={7}&ltime={8}";
+        return MessageFormat.format(url2, account, "getJSON", "NP7A76CFEF", String.valueOf(count), "", "false", "false", "true", "10");
+    }
+
     public List<ProxyIp> getIpList(int count) {
         if (count <= 0) {
             return null;
         }
         String targetUrl = buildFetchUrl(count);
+        logger.info("获取ip的url: {}", targetUrl);
 
         // send
         String resp = OkHttpTool.doGet(targetUrl);
@@ -86,8 +105,8 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
                         .host(ip)
                         .port(port)
                         .expireTime(expireTime)
-                        .userName("")
-                        .password("")
+                        .userName(account)
+                        .password(account)
                         .valid(new AtomicBoolean(true))
                         .useTimes(new AtomicLong(0))
                         .okTimes(new AtomicLong(0))

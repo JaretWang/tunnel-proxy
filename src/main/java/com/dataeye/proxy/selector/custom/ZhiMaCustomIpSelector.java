@@ -286,8 +286,15 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
         }
     }
 
-    ProxyIp getIpByNetCardSeq(int seq) {
+    public ProxyIp getIpByNetCardSeq(int seq) {
         String realUrl = zhiMaDingZhiConfig.getGetFixedNumIpUrl() + seq;
+        return getIpByNetCardSeq(realUrl);
+    }
+
+    public ProxyIp getIpByNetCardSeq(String realUrl) {
+        if (StringUtils.isBlank(realUrl)) {
+            throw new RuntimeException("realUrl is blank");
+        }
         String resp = OkHttpTool.doGet(realUrl, null, false);
         if (StringUtils.isBlank(resp)) {
             throw new RuntimeException("添加单个ip失败");

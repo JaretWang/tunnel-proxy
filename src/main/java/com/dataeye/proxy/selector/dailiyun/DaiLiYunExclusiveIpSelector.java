@@ -37,8 +37,6 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("DaiLiYunExclusiveIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentLinkedQueue<ProxyIp> IP_POOL = new ConcurrentLinkedQueue<>();
-    String username = "18922868909";
-    String password = "18922868909";
     @Autowired
     DaiLiYunExclusiveFetchServiceImpl daiLiYunExclusiveFetchService;
     @Autowired
@@ -197,10 +195,6 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
                     continue;
                 }
                 realCount++;
-
-                // 设置用户名密码
-                newProxyIp.setUserName(username);
-                newProxyIp.setPassword(password);
                 queue.offer(newProxyIp);
             }
             break;

@@ -1,10 +1,7 @@
 package com.dataeye.proxy;
 
 import com.dataeye.proxy.bean.ProxyIp;
-import com.dataeye.proxy.service.impl.DaiLiYunExclusiveFetchServiceImpl;
-import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
-import com.dataeye.proxy.service.impl.YouJieFetchServiceImpl;
-import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
+import com.dataeye.proxy.service.impl.*;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @description 测试ip并发上限，和带宽上限
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(classes = TunnelProxyApplication.class)
 public class TestProxyIpConcurrentBandwidth {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TestIpConcurrentBandwidth");
@@ -68,7 +65,27 @@ public class TestProxyIpConcurrentBandwidth {
     @Autowired
     ZhiMaFetchServiceImpl zhiMaFetchService;
     @Autowired
+    ZhiMaExclusiveFetchServiceImpl zhiMaExclusiveFetchService;
+    @Autowired
     YouJieFetchServiceImpl youJieFetchService;
+
+    /**
+     * 测试芝麻独享ip
+     */
+    @Test
+    public void testZhiMaExclusive() throws InterruptedException {
+        for (int i = initThreadSize; i <= maxThreadSize; i += threadSizeIncremental) {
+            System.out.println("----------------------- 并发数：" + i + " ------------------------");
+            long begin = System.currentTimeMillis();
+            ProxyIp proxyIp = zhiMaExclusiveFetchService.getOne(null);
+            if (proxyIp == null) {
+                System.out.println("代理ip为空, 并发：" + i);
+            }
+            singleConcurrent(i, proxyIp);
+            long cost = (System.currentTimeMillis() - begin) / 1000;
+            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
+        }
+    }
 
     /**
      * 测试代理云独享ip
