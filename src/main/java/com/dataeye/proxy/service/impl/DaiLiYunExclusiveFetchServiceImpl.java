@@ -36,15 +36,18 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
     private static String account;
+    private static String password;
     private static String key;
     static {
         String innerIp = NetUtils.getEth0Inet4InnerIp();
         // adx-proxy-012  172.18.211.184  39.108.4.144
         if ("172.18.211.184".equalsIgnoreCase(innerIp)) {
             account = "17381585447";
+            password = "LL17381585447";
             key = "NP87731636";
         } else {
             account = "18922868909";
+            password = "18922868909";
             key = "NP7A76CFEF";
         }
     }
@@ -76,7 +79,6 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
             return null;
         }
         String targetUrl = buildFetchUrl(count);
-        logger.info("获取ip的url: {}", targetUrl);
 
         // send
         String resp = OkHttpTool.doGet(targetUrl);
@@ -109,7 +111,7 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
                         .port(port)
                         .expireTime(expireTime)
                         .userName(account)
-                        .password(account)
+                        .password(password)
                         .valid(new AtomicBoolean(true))
                         .useTimes(new AtomicLong(0))
                         .okTimes(new AtomicLong(0))
