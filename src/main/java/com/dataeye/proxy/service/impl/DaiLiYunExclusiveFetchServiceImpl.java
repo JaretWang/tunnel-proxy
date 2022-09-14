@@ -36,13 +36,16 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
     private static String account;
+    private static String key;
     static {
         String innerIp = NetUtils.getEth0Inet4InnerIp();
         // adx-proxy-012  172.18.211.184  39.108.4.144
         if ("172.18.211.184".equalsIgnoreCase(innerIp)) {
             account = "17381585447";
+            key = "NP87731636";
         } else {
             account = "18922868909";
+            key = "NP7A76CFEF";
         }
     }
 
@@ -65,7 +68,7 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
         // http://17381585447.user.xiecaiyun.com/api/proxies?action=getText&key=NP87731636&count=1&word=&rand=true&norepeat=false&detail=false&ltime=0
         // http://18922868909.user.xiecaiyun.com/api/proxies?action=getJSON&key=NP7A76CFEF&count=1&word=&rand=false&norepeat=true&detail=true&ltime=10
         String url2 = "http://{0}.user.xiecaiyun.com/api/proxies?action={1}&key={2}&count={3}&word={4}&rand={5}&norepeat={6}&detail={7}&ltime={8}";
-        return MessageFormat.format(url2, account, "getJSON", "NP7A76CFEF", String.valueOf(count), "", "false", "false", "true", "10");
+        return MessageFormat.format(url2, account, "getJSON", key, String.valueOf(count), "", "false", "false", "true", "10");
     }
 
     public List<ProxyIp> getIpList(int count) {
