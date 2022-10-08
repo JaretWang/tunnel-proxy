@@ -1,6 +1,10 @@
 package com.dataeye.proxy.excel;
 
 import com.alibaba.excel.EasyExcel;
+import com.dataeye.proxy.excel.bean.IpUseCount;
+import com.dataeye.proxy.excel.bean.IpUseLog;
+import com.dataeye.proxy.excel.listener.IpUseCountListener;
+import com.dataeye.proxy.excel.listener.IpUseLogListener;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
@@ -14,8 +18,9 @@ import java.io.File;
 public class ExcelTest {
 
     public static void main(String[] args) {
-//        ipUseLog();
-        rolaCountryCode();
+        ipUseLog();
+//        ipUseLog2();
+//        rolaCountryCode();
     }
 
     static void rolaCountryCode() {
@@ -24,8 +29,13 @@ public class ExcelTest {
     }
 
     static void ipUseLog() {
-        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\8.3用量.xlsx";
+        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\228695-20221007用量.xlsx";
         EasyExcel.read(new File(path), IpUseLog.class, new IpUseLogListener()).sheet(0).doRead();
+    }
+
+    static void ipUseLog2() {
+        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\2022-10-07芝麻拉取情况.xlsx";
+        EasyExcel.read(new File(path), IpUseCount.class, new IpUseCountListener()).sheet(0).doRead();
     }
 
 }

@@ -200,6 +200,7 @@ public class RequestDistributeService {
             // parse okhttp response and send netty response
             constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
         } else if ("connect".equalsIgnoreCase(method)) {
+            logger.error("okhttp 遇到了 connect 请求");
             // add ssl
             // todo 待测试,暂时没有调通
             String keyStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\tunnel-server.jks";

@@ -1,4 +1,4 @@
-package com.dataeye.proxy.excel;
+package com.dataeye.proxy.excel.bean;
 
 import com.alibaba.excel.annotation.ExcelProperty;
 import lombok.AllArgsConstructor;
@@ -13,19 +13,15 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class IpUseLog {
+public class IpUseCount {
 
     @ExcelProperty(index = 0)
-    String id;
-    @ExcelProperty(index = 1)
-    String username;
-    @ExcelProperty(index = 2)
-    String whiteIIp;
-    @ExcelProperty(index = 3)
-    String userIpPort;
-    @ExcelProperty(index = 4)
-    String menu;
-    @ExcelProperty(index = 5)
     String time;
+    @ExcelProperty(index = 1)
+    String ourIp;
+    @ExcelProperty(index = 2)
+    String proxyIp;
+    @ExcelProperty(index = 3)
+    String proxyPort;
 
 }

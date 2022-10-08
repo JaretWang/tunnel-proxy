@@ -1,6 +1,5 @@
 package com.dataeye.proxy.selector.dailiyun;
 
-import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -116,7 +115,9 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
      */
     public void checkAndUpdateIpPool() {
         ipCheck();
-        printIpPool();
+        handleInvalidIp(log, IP_POOL);
+        String tunnel = tunnelInitService.getDefaultTunnel().getAlias();
+        printIpPool(log, tunnel, IP_POOL);
     }
 
     /**
@@ -149,13 +150,6 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
      */
     public List<String> getRealIpList() {
         return IP_POOL.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
-    }
-
-    public void printIpPool() {
-        List<String> collect = IP_POOL.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
-        String tunnel = tunnelInitService.getDefaultTunnel().getAlias();
-        int validIpSize = getValidIpSize(IP_POOL);
-        log.info("tunnel={}, ip-pool-size={}, valid-ip-size={}, ip-pool-list={}", tunnel, IP_POOL.size(), validIpSize, JSON.toJSONString(collect));
     }
 
     /**

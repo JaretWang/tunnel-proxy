@@ -5,12 +5,12 @@ import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import com.dataeye.proxy.monitor.IpMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
-import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.utils.TimeUtils;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 /**
  * 芝麻ip 普通套餐2: 单日定制套餐-(22-04-07 09:39~23-02-21 09:39)
@@ -143,19 +142,12 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
             try {
                 ipCheck(tunnelInstance);
                 forceAddIp(tunnelInstance);
-                printIpPool();
+                handleInvalidIp(log, tunnelInstance, proxyIpPool);
+                printIpPool(log, proxyIpPool);
             } catch (Throwable e) {
                 log.error("定时更新ip池出现异常", e);
             }
         }
-    }
-
-    public void printIpPool() {
-        proxyIpPool.forEach((tunnel, queue) -> {
-            List<String> collect = queue.stream().map(ProxyIp::getIpAddrWithTimeAndValid).distinct().collect(Collectors.toList());
-            int validIpSize = getValidIpSize(queue);
-            log.info("tunnel={}, ip-pool-size={}, valid-ip-size={}, ip-pool-list={}", tunnel, queue.size(), validIpSize, JSON.toJSONString(collect));
-        });
     }
 
     /**
@@ -352,21 +344,6 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
         long nowSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.of("+8"));
         long duration = instanceSecond - nowSecond;
         return duration < proxyServerConfig.getJudgeExpiredIpMinSeconds();
-    }
-
-    /**
-     * 获取ip池有效ip数量
-     *
-     * @param queue ip池
-     * @return
-     */
-    public int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
-        if (queue == null) {
-            return 0;
-        }
-        return (int) queue.stream()
-                .filter(proxyIp -> proxyIp.getValid().get())
-                .distinct().count();
     }
 
     /**

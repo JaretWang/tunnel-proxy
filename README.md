@@ -1763,3 +1763,51 @@ http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
 密码: LL17381585447
 管理地址: http://17381585447.user.xiecaiyun.com
 
+
+
+# 隧道地址分配
+
+## 普通域名
+
+```shell
+# ----------------- 国内 -----------------
+地址：tunnel-proxy-6.de123.net
+端口：21331
+账号：dataeye
+密码：dataeye++123
+# ----------------- 海外 -----------------
+地址：ses-proxy-2.de123.net
+端口：15031
+账号：dataeye
+密码：dataeye++123
+请求头: proxy-config: eyJjaXR5IjoiIiwiY291bnRyeSI6InRoIiwicHJvdmluY2UiOiIifQ== （如果不传，默认国家为美国）
+# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：US
+{
+    "country":"us",
+    "province":"",
+    "city":""
+}
+```
+
+## 负载均衡
+
+```shell
+# ----------------- 国内负载均衡 -----------------
+地址：clb-tunnel-proxy-1.de123.net
+端口：21331
+账号：dataeye
+密码：dataeye++123
+# ----------------- 海外负载均衡 -----------------
+地址：clb-sea-proxy-1.de123.net
+端口：15031
+账号：dataeye
+密码：dataeye++123
+请求头: proxy-config: eyJjaXR5IjoiIiwiY291bnRyeSI6InRoIiwicHJvdmluY2UiOiIifQ== （如果不传，默认国家为美国）
+# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：US
+{
+    "country":"us",
+    "province":"",
+    "city":""
+}
+```
+

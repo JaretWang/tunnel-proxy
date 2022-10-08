@@ -159,7 +159,11 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
         String alias = tunnelInitService.getDefaultTunnel().getAlias();
         ConcurrentLinkedQueue<ProxyIp> proxyIps = IP_POOL.get(alias);
         log.info("初始化ip池, processSeq={}, alias={}, ipPool={}", JSON.toJSONString(netCardSeqList), alias, JSON.toJSONString(proxyIps));
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkNetCard, 1, 5, TimeUnit.MINUTES);
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> {
+            checkNetCard();
+            handleInvalidIp(log, proxyIps);
+            printIpPool(log, IP_POOL);
+        }, 1, 5, TimeUnit.MINUTES);
     }
 
     /**
