@@ -30,6 +30,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
+    String uri = "";
+    String method = "";
 
     public ApnProxyForwardHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -39,12 +41,12 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
         logger.debug("forward channelRead");
-        String uri = "";
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("forward 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
                 uri = fullHttpRequest.uri();
+                method = fullHttpRequest.method().name();
                 ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("forward 获取缓存ip为空");
@@ -56,7 +58,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 requestDistributeService.sendReqByOkHttp(uaChannel, proxyIp, apnHandlerParams, fullHttpRequest, "forward");
             }
         } catch (Exception e) {
-            logger.error("forward 异常：{}, 关闭通道, uri={}", e.getMessage(), uri, e);
+            logger.error("forward 异常：{}, 关闭通道, method={}, uri={}", e.getMessage(), method, uri, e);
             SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             ReferenceCountUtil.release(msg);
@@ -72,7 +74,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        logger.error("forward exceptionCaught, targetAddr={}, cause={}", requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        logger.error("forward exceptionCaught, method={}, uri={}, targetAddr={}, cause={}", method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();

@@ -200,7 +200,7 @@ public class RequestDistributeService {
             try {
                 response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
                 // parse okhttp response and send netty response
-                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
+                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor(), method, uri);
             } finally {
                 // 释放资源
                 OkHttpTool.closeResponse(response);
@@ -250,7 +250,7 @@ public class RequestDistributeService {
                                                 // send real request
                                                 Response response = sendCommonReq(method, url, remoteHost, remotePort,
                                                         proxyUserName, proxyPassword, reqHeaders, fullHttpRequest, handler);
-                                                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
+                                                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor(), "connect", "");
 
                                                 // close
                                                 httpContents.clear();
@@ -346,7 +346,7 @@ public class RequestDistributeService {
         return null;
     }
 
-    void constructResponseAndSend(Channel uaChannel, Response response, RequestMonitor requestMonitor) throws IOException {
+    void constructResponseAndSend(Channel uaChannel, Response response, RequestMonitor requestMonitor, String method, String uri) throws IOException {
         // headers
         Headers headers = response.headers();
         Map<String, String> headerCollect = new HashMap<>(headers.size());
@@ -383,7 +383,8 @@ public class RequestDistributeService {
                 httpResponseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             }
             String errMsg = Objects.requireNonNull(response.body()).string();
-            String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
+            String proxyAddr = requestMonitor.getProxyAddr();
+            String msg = "okHttp not 200, proxyAddr=" + proxyAddr + ", method=" + method + ", uri=" + uri + ", code=" + code + ", reason=" + errMsg;
             logger.error(msg);
 
             // 模拟 netty 响应

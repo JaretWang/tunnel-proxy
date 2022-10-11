@@ -28,6 +28,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
+    String uri = "";
+    String method = "";
 
     public ApnProxyTunnelHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -37,12 +39,12 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.debug("tunnel channelRead");
-        String uri = "";
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("tunnel 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
                 uri = fullHttpRequest.uri();
+                method = fullHttpRequest.method().name();
                 ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("tunnel 获取缓存ip为空");
@@ -56,7 +58,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, proxyIp, tunnelInstance);
             }
         } catch (Exception e) {
-            logger.error("tunnel 异常：{}, 关闭通道, uri={}", e.getMessage(), uri, e);
+            logger.error("tunnel 异常：{}, 关闭通道, method={}, uri={}", e.getMessage(), method, uri, e);
             SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
@@ -74,7 +76,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        logger.error("tunnel exceptionCaught, targetAddr={}, cause={}", requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        logger.error("tunnel exceptionCaught, method={}, uri={}, targetAddr={}, cause={}", method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
