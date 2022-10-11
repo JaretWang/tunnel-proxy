@@ -43,24 +43,30 @@ public class IpUseLogListener extends AnalysisEventListener<IpUseLog> {
     private AtomicInteger total = new AtomicInteger(0);
     private AtomicInteger tunnel = new AtomicInteger(0);
     private AtomicInteger other = new AtomicInteger(0);
+    String menu1 = "185013";
+    String menu2 = "228695";
 
     @Override
     public void invoke(IpUseLog data, AnalysisContext context) {
         if (data != null) {
-            String whiteIIp = data.getWhiteIIp();
-            if (tunnels.contains(whiteIIp)) {
-                tunnel.incrementAndGet();
-            } else {
-                other.incrementAndGet();
-            }
-            if (tunnels.contains(whiteIIp)) {
-                return;
-            }
-            AtomicInteger value = ipUseCount.putIfAbsent(whiteIIp, new AtomicInteger(1));
-            if (value != null) {
-                value.incrementAndGet();
-                total.incrementAndGet();
-                ipUseCount.put(whiteIIp, value);
+            String menu = data.getMenu();
+            // 套餐二：228695 套餐一：185013
+            if (menu.equals(menu2)) {
+                String whiteIIp = data.getWhiteIIp();
+                if (tunnels.contains(whiteIIp)) {
+                    tunnel.incrementAndGet();
+                } else {
+                    other.incrementAndGet();
+                }
+                if (tunnels.contains(whiteIIp)) {
+                    return;
+                }
+                AtomicInteger value = ipUseCount.putIfAbsent(whiteIIp, new AtomicInteger(1));
+                if (value != null) {
+                    value.incrementAndGet();
+                    total.incrementAndGet();
+                    ipUseCount.put(whiteIIp, value);
+                }
             }
         }
     }

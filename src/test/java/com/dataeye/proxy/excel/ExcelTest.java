@@ -29,7 +29,8 @@ public class ExcelTest {
     }
 
     static void ipUseLog() {
-        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\228695-20221007用量.xlsx";
+        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\芝麻用量\\2022-10-10 (1).xlsx";
+//        String path = "C:\\Users\\caiguanghui\\Desktop\\DataEye\\芝麻用量\\2022-10-10.xlsx";
         EasyExcel.read(new File(path), IpUseLog.class, new IpUseLogListener()).sheet(0).doRead();
     }
 

@@ -9,6 +9,7 @@ import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -36,10 +37,12 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.debug("tunnel channelRead");
+        String uri = "";
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("tunnel 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
+                uri = fullHttpRequest.uri();
                 ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("tunnel 获取缓存ip为空");
@@ -52,6 +55,9 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 //requestMonitor.getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, proxyIp, tunnelInstance);
             }
+        } catch (Exception e) {
+            logger.error("tunnel 异常：{}, 关闭通道, uri={}", e.getMessage(), uri, e);
+            SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
             ReferenceCountUtil.release(msg);
@@ -67,9 +73,10 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("tunnel异常", cause);
-        ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
-        IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        logger.error("tunnel exceptionCaught, targetAddr={}, cause={}", requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
+        IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
     }
 

@@ -196,9 +196,16 @@ public class RequestDistributeService {
 
         // send request
         if (!"connect".equalsIgnoreCase(method)) {
-            Response response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
-            // parse okhttp response and send netty response
-            constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
+            Response response = null;
+            try {
+                response = sendCommonReq(method, uri, remoteHost, remotePort, proxyUserName, proxyPassword, headers, fullHttpRequest, handler);
+                // parse okhttp response and send netty response
+                constructResponseAndSend(uaChannel, response, apnHandlerParams.getRequestMonitor());
+            } finally {
+                // 释放资源
+                OkHttpTool.closeResponse(response);
+                SocksServerUtils.closeOnFlush(uaChannel);
+            }
         } else if ("connect".equalsIgnoreCase(method)) {
             logger.error("okhttp 遇到了 connect 请求");
             // add ssl
@@ -340,64 +347,58 @@ public class RequestDistributeService {
     }
 
     void constructResponseAndSend(Channel uaChannel, Response response, RequestMonitor requestMonitor) throws IOException {
-        try {
-            // headers
-            Headers headers = response.headers();
-            Map<String, String> headerCollect = new HashMap<>(headers.size());
-            for (String key : headers.names()) {
-                String value = headers.get(key);
-                headerCollect.put(key, value);
+        // headers
+        Headers headers = response.headers();
+        Map<String, String> headerCollect = new HashMap<>(headers.size());
+        for (String key : headers.names()) {
+            String value = headers.get(key);
+            headerCollect.put(key, value);
+        }
+        headerCollect.put(HttpHeaders.Names.CONNECTION, "close");
+
+        // handle reponse
+        int code = response.code();
+        if (code == HttpResponseStatus.OK.code()) {
+            // 注意：response.body().bytes() 被调用完，就会close
+            byte[] result = Objects.requireNonNull(response.body()).bytes();
+            //System.out.println("响应=====" + new String(result, StandardCharsets.UTF_8) + ", result====" + result.length);
+            requestMonitor.getReponseSize().addAndGet(result.length);
+
+            // collect headers and construct netty response
+            ByteBuf responseContent = Unpooled.copiedBuffer(result);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
+            headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
+            //System.out.println("ok responseContent refCnt=" + responseContent.refCnt());
+            //System.out.println("ok fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
+            uaChannel.writeAndFlush(fullHttpResponse);
+
+            // 监控
+            ReqMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
+            IpMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
+            //System.out.println("ok responseContent2 refCnt=" + responseContent.refCnt());
+            //System.out.println("ok fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
+        } else {
+            HttpResponseStatus httpResponseStatus = HttpResponseStatus.valueOf(code);
+            if (httpResponseStatus == null) {
+                httpResponseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             }
-            headerCollect.put(HttpHeaders.Names.CONNECTION, "close");
+            String errMsg = Objects.requireNonNull(response.body()).string();
+            String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
+            logger.error(msg);
 
-            // handle reponse
-            int code = response.code();
-            if (code == HttpResponseStatus.OK.code()) {
-                // 注意：response.body().bytes() 被调用完，就会close
-                byte[] result = Objects.requireNonNull(response.body()).bytes();
-                //System.out.println("响应=====" + new String(result, StandardCharsets.UTF_8) + ", result====" + result.length);
-                requestMonitor.getReponseSize().addAndGet(result.length);
+            // 模拟 netty 响应
+            ByteBuf responseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
+            DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, responseContent);
+            headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
+            //System.out.println("error responseContent refCnt=" + responseContent.refCnt());
+            //System.out.println("error fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
+            uaChannel.writeAndFlush(fullHttpResponse);
 
-                // collect headers and construct netty response
-                ByteBuf responseContent = Unpooled.copiedBuffer(result);
-                DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
-                headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
-                //System.out.println("ok responseContent refCnt=" + responseContent.refCnt());
-                //System.out.println("ok fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
-                uaChannel.writeAndFlush(fullHttpResponse);
-
-                // 监控
-                ReqMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
-                IpMonitorUtils.ok(requestMonitor, "OK_HTTP_TOOL");
-                //System.out.println("ok responseContent2 refCnt=" + responseContent.refCnt());
-                //System.out.println("ok fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
-            } else {
-                HttpResponseStatus httpResponseStatus = HttpResponseStatus.valueOf(code);
-                if (httpResponseStatus == null) {
-                    httpResponseStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                }
-                String errMsg = Objects.requireNonNull(response.body()).string();
-                String msg = "ok http send fail, code=" + code + ", reason=" + errMsg;
-                logger.error(msg);
-
-                // 模拟 netty 响应
-                ByteBuf responseContent = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
-                DefaultFullHttpResponse fullHttpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseStatus, responseContent);
-                headerCollect.forEach((key, value) -> fullHttpResponse.headers().add(key, value));
-                //System.out.println("error responseContent refCnt=" + responseContent.refCnt());
-                //System.out.println("error fullHttpResponse refCnt=" + fullHttpResponse.refCnt());
-                uaChannel.writeAndFlush(fullHttpResponse);
-
-                // 监控
-                ReqMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
-                IpMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
-                //System.out.println("error responseContent2 refCnt=" + responseContent.refCnt());
-                //System.out.println("error fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
-            }
-        } finally {
-            // 释放资源
-            OkHttpTool.closeResponse(response);
-            SocksServerUtils.closeOnFlush(uaChannel);
+            // 监控
+            ReqMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
+            IpMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
+            //System.out.println("error responseContent2 refCnt=" + responseContent.refCnt());
+            //System.out.println("error fullHttpResponse2 refCnt=" + fullHttpResponse.refCnt());
         }
     }
 
@@ -411,7 +412,7 @@ public class RequestDistributeService {
      *
      * @param uaChannel         源通道
      * @param apnHandlerParams  handler相关参数
-     * @param proxyIp    代理ip
+     * @param proxyIp           代理ip
      * @param tunnelInstance    隧道实例
      * @param httpContentBuffer http content缓存
      * @param msg               传递的源数据
@@ -453,7 +454,7 @@ public class RequestDistributeService {
 //                // fixed failed to allocate 2048 byte(s) of direct memory
 //                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .handler(new DirectRelayChannelInitializer(apnHandlerParams, proxyIp, uaChannel, remoteAddr, cb))
-                .connect(proxyIp.getHost(),proxyIp.getPort())
+                .connect(proxyIp.getHost(), proxyIp.getPort())
                 .addListener((ChannelFutureListener) future -> {
                     long took = System.currentTimeMillis() - begin;
                     // 执行连接后操作，可能连接成功，也可能失败

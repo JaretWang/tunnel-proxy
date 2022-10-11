@@ -3,11 +3,13 @@ package com.dataeye.proxy.server.handler;
 
 import com.dataeye.proxy.bean.ApnHandlerParams;
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.cons.GlobalParams;
 import com.dataeye.proxy.server.service.RequestDistributeService;
 import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -37,10 +39,12 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, final Object msg) throws IOException {
         logger.debug("forward channelRead");
+        String uri = "";
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("forward 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
+                uri = fullHttpRequest.uri();
                 ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("forward 获取缓存ip为空");
@@ -51,6 +55,9 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 apnHandlerParams.getRequestMonitor().getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
                 requestDistributeService.sendReqByOkHttp(uaChannel, proxyIp, apnHandlerParams, fullHttpRequest, "forward");
             }
+        } catch (Exception e) {
+            logger.error("forward 异常：{}, 关闭通道, uri={}", e.getMessage(), uri, e);
+            SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             ReferenceCountUtil.release(msg);
         }
@@ -64,9 +71,10 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("forward异常", cause);
-        ReqMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
-        IpMonitorUtils.error(apnHandlerParams.getRequestMonitor(), HANDLER_NAME, cause.getMessage());
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        logger.error("forward exceptionCaught, targetAddr={}, cause={}", requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
+        IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
     }
 
