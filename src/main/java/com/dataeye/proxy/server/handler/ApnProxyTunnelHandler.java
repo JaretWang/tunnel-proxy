@@ -58,7 +58,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, proxyIp, tunnelInstance);
             }
         } catch (Exception e) {
-            logger.error("tunnel 异常：{}, 关闭通道, method={}, uri={}", e.getMessage(), method, uri, e);
+            logger.error("tunnel异常, 关闭通道, srcIp={}, method={}, uri={}, cause={}",
+                    ctx.channel().remoteAddress().toString(), method, uri, e.getMessage(), e);
             SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
@@ -76,7 +77,8 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        logger.error("tunnel exceptionCaught, method={}, uri={}, targetAddr={}, cause={}", method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        logger.error("tunnel exceptionCaught, srcIp={}, method={}, uri={}, targetAddr={}, cause={}",
+                ctx.channel().remoteAddress().toString(), method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();

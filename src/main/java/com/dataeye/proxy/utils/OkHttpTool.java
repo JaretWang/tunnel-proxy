@@ -295,7 +295,6 @@ public class OkHttpTool {
                 .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
                 .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
                 .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS)
-                //TODO 禁止连接失败重试
                 .retryOnConnectionFailure(false);
         // 问号拼接参数
         appendParams(targetUrl, params);
@@ -387,7 +386,8 @@ public class OkHttpTool {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                 .connectTimeout(defaultTunnel.getConnectTimeoutMillis(), TimeUnit.MILLISECONDS)
                 .readTimeout(defaultTunnel.getReadTimeoutSeconds(), TimeUnit.SECONDS)
-                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS);
+                .writeTimeout(defaultTunnel.getWriteTimeoutSeconds(), TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false);
         // auth
         buildAuth(clientBuilder, username, password);
         // proxy

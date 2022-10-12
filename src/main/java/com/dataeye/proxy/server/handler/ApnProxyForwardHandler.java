@@ -58,7 +58,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
                 requestDistributeService.sendReqByOkHttp(uaChannel, proxyIp, apnHandlerParams, fullHttpRequest, "forward");
             }
         } catch (Exception e) {
-            logger.error("forward 异常：{}, 关闭通道, method={}, uri={}", e.getMessage(), method, uri, e);
+            logger.error("forward异常, 关闭通道, srcIp={}, method={}, uri={}, cause={}",
+                    ctx.channel().remoteAddress().toString(), method, uri, e.getMessage(), e);
             SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             ReferenceCountUtil.release(msg);
@@ -74,7 +75,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-        logger.error("forward exceptionCaught, method={}, uri={}, targetAddr={}, cause={}", method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+        logger.error("forward exceptionCaught, srcIp={}, method={}, uri={}, targetAddr={}, cause={}",
+                ctx.channel().remoteAddress().toString(), method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();

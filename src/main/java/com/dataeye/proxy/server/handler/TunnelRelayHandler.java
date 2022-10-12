@@ -104,7 +104,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.error("TunnelRelayHandler异常", cause);
+        logger.error("转发通道 exceptionCaught: {}, tag: {}", cause.getMessage(), tag);
         ReqMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         IpMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         ctx.close();
