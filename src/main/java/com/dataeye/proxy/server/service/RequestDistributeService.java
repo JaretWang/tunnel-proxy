@@ -204,7 +204,7 @@ public class RequestDistributeService {
             } finally {
                 // 释放资源
                 OkHttpTool.closeResponse(response);
-                //SocksServerUtils.closeOnFlush(uaChannel);
+                SocksServerUtils.closeOnFlush(uaChannel);
             }
         } else if ("connect".equalsIgnoreCase(method)) {
             logger.error("okhttp 遇到了 connect 请求");
