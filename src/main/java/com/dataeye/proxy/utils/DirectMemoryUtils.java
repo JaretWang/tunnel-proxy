@@ -37,7 +37,7 @@ public class DirectMemoryUtils {
         }
         field.setAccessible(true);
         DIRECT_MEM = (AtomicLong) field.get(PlatformDependent.class);
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::doReport, 0, 5, TimeUnit.SECONDS);
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::doReport, 0, 60, TimeUnit.SECONDS);
     }
 
     public void doReport() {

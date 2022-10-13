@@ -12,6 +12,7 @@ import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.config.ZhiMaDingZhiConfig;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
+import com.dataeye.proxy.service.impl.ZhiMaExclusiveFetchServiceImpl;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
@@ -53,6 +54,8 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
     ProxyServerConfig proxyServerConfig;
     @Autowired
     ZhiMaDingZhiConfig zhiMaDingZhiConfig;
+    @Autowired
+    ZhiMaExclusiveFetchServiceImpl zhiMaExclusiveFetchService;
 
     @Override
     public ProxyIp getOne() {
@@ -145,6 +148,8 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
         }
 
         log.info("芝麻定制ip - 初始化ip池");
+        zhiMaExclusiveFetchService.init();
+
         String eth0Inet4InnerIp = tunnelInitService.getEth0Inet4InnerIp();
         CustomIpAllocate customIpAllocate = tunnelInitService.getCustomIpAllocate(eth0Inet4InnerIp, port);
         if (customIpAllocate == null) {

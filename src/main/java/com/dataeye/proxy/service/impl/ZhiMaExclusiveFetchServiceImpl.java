@@ -37,8 +37,10 @@ public class ZhiMaExclusiveFetchServiceImpl implements ProxyFetchService {
     @Autowired
     ZhiMaCustomIpSelector zhiMaCustomIpSelector;
 
-    @PostConstruct
-    void init() {
+    /**
+     * 注意：初始化ip池（只是用于测试芝麻得独享ip，跟素材下载得那40个独享ip，不是一起的）
+     */
+    public void init() {
         for (int i = 1; i <= 19; i++) {
             String realUrl = "http://47.103.37.73:8001/v1/data?username=seonzhang&ipid=dx340700_92__zm_" + i;
             ProxyIp proxyIp = zhiMaCustomIpSelector.getIpByNetCardSeq(realUrl);
