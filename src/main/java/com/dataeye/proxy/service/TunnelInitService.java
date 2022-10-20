@@ -73,7 +73,7 @@ public class TunnelInitService {
      */
     public String getEth0Inet4InnerIp() {
         String ip;
-        if ("local".equals(profile)) {
+        if ("dev".equals(profile)) {
             ip = "localhost";
         } else {
             ip = NetUtils.getEth0Inet4InnerIp();
