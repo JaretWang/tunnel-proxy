@@ -7,7 +7,7 @@ import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
@@ -72,7 +72,7 @@ public class IpMonitorUtils {
                 // 使用次数
                 oldIpMonitor.getUseTimes().incrementAndGet();
                 // 请求报文的大小
-                oldIpMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
+//                oldIpMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
                 oldIpMonitor.setExpireTime(requestMonitor.getExpireTime());
             }
 
@@ -92,7 +92,7 @@ public class IpMonitorUtils {
         IpMonitor ipMonitor = new IpMonitor();
         ipMonitor.setTunnelName(requestMonitor.getTunnelName());
         ipMonitor.setProxyIp(requestMonitor.getProxyAddr());
-        ipMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
+//        ipMonitor.getBandwidth().addAndGet(requestMonitor.getBandwidth() / 1024);
         if (ok) {
             ipMonitor.getOkTimes().incrementAndGet();
         } else {

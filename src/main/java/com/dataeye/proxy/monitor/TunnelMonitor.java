@@ -1,7 +1,7 @@
 package com.dataeye.proxy.monitor;
 
 import com.alibaba.fastjson.JSON;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.server.ApnProxyServer;
 import com.dataeye.proxy.bean.TunnelMonitorLog;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
@@ -70,7 +70,7 @@ public class TunnelMonitor {
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
             if (tunnel == null) {
-                logger.error("tunnel instance is null");
+                logger.error("tunnelInstance is null");
                 return;
             }
             MONITOR_LOG.setTcpConn(getTcpConn());

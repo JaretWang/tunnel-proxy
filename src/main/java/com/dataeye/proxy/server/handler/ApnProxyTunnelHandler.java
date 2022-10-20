@@ -4,10 +4,9 @@ import com.dataeye.proxy.bean.ApnHandlerParams;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.cons.GlobalParams;
-import com.dataeye.proxy.server.service.RequestDistributeService;
-import com.dataeye.proxy.monitor.ReqMonitorUtils;
-import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
+import com.dataeye.proxy.server.service.RequestDistributeService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,8 +27,6 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final RequestDistributeService requestDistributeService;
     private final ApnHandlerParams apnHandlerParams;
-    String uri = "";
-    String method = "";
 
     public ApnProxyTunnelHandler(ApnHandlerParams apnHandlerParams) {
         this.requestDistributeService = apnHandlerParams.getRequestDistributeService();
@@ -37,29 +34,31 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        logger.debug("tunnel channelActive");
+        super.channelActive(ctx);
+    }
+
+    @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.debug("tunnel channelRead");
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         try {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("tunnel 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
-                uri = fullHttpRequest.uri();
-                method = fullHttpRequest.method().name();
                 ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("tunnel 获取缓存ip为空");
                 }
-                logger.debug("转发 CONNECT 请求 to {} for {}", proxyIp.getRemote(), fullHttpRequest.uri());
-                TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
-                RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
-                // send proxy request
-                requestMonitor.getRequestSize().addAndGet(fullHttpRequest.content().readableBytes());
-                //requestMonitor.getRequestSize().addAndGet(fullHttpRequest.toString().getBytes().length);
-                requestDistributeService.forwardConnectReq(requestMonitor, ctx, fullHttpRequest, proxyIp, tunnelInstance);
+                logger.debug("转发 CONNECT 请求, proxy={}, srcIp={}, method={}, uri={}",
+                        proxyIp.getRemote(), SocksServerUtils.getReqSrcIp(ctx), requestMonitor.getMethod(), requestMonitor.getUri());
+                requestDistributeService.sendConnectReqByNettyClient(requestMonitor, ctx, fullHttpRequest, proxyIp, apnHandlerParams.getTunnelInstance());
             }
         } catch (Exception e) {
             logger.error("tunnel异常, 关闭通道, srcIp={}, method={}, uri={}, cause={}",
-                    ctx.channel().remoteAddress().toString(), method, uri, e.getMessage(), e);
+                    SocksServerUtils.getReqSrcIp(ctx), requestMonitor.getMethod(), requestMonitor.getUri(), e.getMessage(), e);
+            SocksServerUtils.errorHttpResp(ctx.channel(), e.getMessage());
             SocksServerUtils.closeOnFlush(ctx.channel());
         } finally {
             // 这里的 msg 释放引用就是对 fullHttpRequest 释放引用
@@ -78,7 +77,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
         logger.error("tunnel exceptionCaught, srcIp={}, method={}, uri={}, targetAddr={}, cause={}",
-                ctx.channel().remoteAddress().toString(), method, uri, requestMonitor.getTargetAddr(), cause.getMessage(), cause);
+                SocksServerUtils.getReqSrcIp(ctx), requestMonitor.getMethod(), requestMonitor.getUri(), requestMonitor.getUri(), cause.getMessage(), cause);
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();

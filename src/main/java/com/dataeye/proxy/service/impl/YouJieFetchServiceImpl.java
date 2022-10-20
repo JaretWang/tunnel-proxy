@@ -109,7 +109,7 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
      */
 //    @Scheduled(cron = "0 0 0 * * ?")
     public void reSetFetchIpNum() {
-        logger.info("游杰代理 - 重置当日累计拉取的ip数量为0");
+        logger.debug("游杰代理 - 重置当日累计拉取的ip数量为0");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
     }
@@ -119,7 +119,7 @@ public class YouJieFetchServiceImpl implements ProxyFetchService {
      */
 //    @Scheduled(cron = "0 0 0/1 * * ?")
     void getIpFetchNumNow() {
-        logger.info("游杰代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
+        logger.debug("游杰代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
     }
 
 }

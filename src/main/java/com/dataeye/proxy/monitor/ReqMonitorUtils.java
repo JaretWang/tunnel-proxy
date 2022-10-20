@@ -7,7 +7,7 @@ import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MapUtils;
@@ -75,9 +75,9 @@ public class ReqMonitorUtils {
             return;
         }
         requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-        logger.debug("{} ms, {}, {}, {}, {}, {}, {}, {}",
+        logger.info("{} ms, {}, {}, {}, {}, {}, {}, {}",
                 requestMonitor.getCost(), requestMonitor.isSuccess(), requestMonitor.getTunnelName(), handler,
-                requestMonitor.getProxyAddr(), requestMonitor.getFailReason(), requestMonitor.getRequestType(), requestMonitor.getTargetAddr());
+                requestMonitor.getProxyAddr(), requestMonitor.getFailReason(), requestMonitor.getMethod(), requestMonitor.getUri());
         String failReason = requestMonitor.getFailReason();
         if (StringUtils.isNotBlank(failReason)) {
             // 释放内存,防止错误日志撑爆内存

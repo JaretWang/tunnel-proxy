@@ -48,4 +48,13 @@ public class NetUtils {
         return null;
     }
 
+    /**
+     * 获取公网ip
+     *
+     * @return
+     */
+    public static String getOuterIp() {
+        return OkHttpTool.doGet("https://ipinfo.io/ip").trim();
+    }
+
 }

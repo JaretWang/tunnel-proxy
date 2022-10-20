@@ -43,6 +43,7 @@ public class TunnelRelayChannelInitializer extends ChannelInitializer<SocketChan
                 ApnProxyServerChannelInitializer.CLIENT_WRITE_IDLE_TIME,
                 ApnProxyServerChannelInitializer.CLIENT_ALL_IDLE_TIME, TimeUnit.SECONDS));
         pipeline.addLast("client_idlehandler", new IdleHandler("client"));
+        //pipeline.addLast("client.datalog", new LoggingHandler("CLIENT_BYTE_LOGGER", LogLevel.INFO, ByteBufFormat.HEX_DUMP));
         pipeline.addLast(new TunnelRelayHandler(requestMonitor,  proxyIp.getIpAddr() + " --> UA", uaChannel));
 
 //        ChannelPipeline pipeline = channel.pipeline();

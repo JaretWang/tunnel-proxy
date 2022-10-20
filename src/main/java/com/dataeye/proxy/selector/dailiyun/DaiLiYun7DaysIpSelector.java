@@ -1,4 +1,4 @@
-package com.dataeye.proxy.selector.normal;
+package com.dataeye.proxy.selector.dailiyun;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
@@ -29,22 +29,22 @@ import java.util.Objects;
 import java.util.concurrent.*;
 
 /**
- * 芝麻ip 普通套餐2: 单日定制套餐-(22-04-07 09:39~23-02-21 09:39)
+ * 代理云7天临时套餐
  *
  * @author jaret
  * @date 2022/8/17 23:01
  * @description
  */
-@Data
-@Component
-public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
+//@Data
+//@Component
+public class DaiLiYun7DaysIpSelector implements CommonIpSelector {
 
-    private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaOrdinaryIpSelector");
-    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("ZhiMaOrdinaryIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
+    private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dailiyun-dynamic-adjust-ip");
+    private static final Logger log = MyLogbackRollingFileUtil.getLogger("DaiLiYun7DaysIpSelector");
+    private static final String username = "18284011551";
+    private static final String password = "18284011551";
+    private static ScheduledExecutorService SCHEDULE_EXECUTOR;
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
-    private final int minIpPoolSize = 5;
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired
@@ -55,15 +55,28 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
     TunnelInitService tunnelInitService;
 
     @Override
+    public void init() {
+        SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+                new ThreadPoolConfig.TunnelThreadFactory("DaiLiYun7DaysIpSelector-"),
+                new ThreadPoolExecutor.AbortPolicy());
+        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::healthCheck, 0, 3, TimeUnit.SECONDS);
+    }
+
+    @Override
     public ProxyIp getOne() {
         TunnelInstance tunnelInstance = tunnelInitService.getDefaultTunnel();
         if (tunnelInstance == null) {
             log.error("get ip error, tunnelInstance is null");
             return null;
         }
-        ConcurrentLinkedQueue<ProxyIp> proxyCfgsQueue = proxyIpPool.get(tunnelInstance.getAlias());
+        String alias = tunnelInstance.getAlias();
+        if (StringUtils.isBlank(alias)) {
+            log.error("alias is blank");
+            return null;
+        }
+        ConcurrentLinkedQueue<ProxyIp> proxyCfgsQueue = proxyIpPool.get(alias);
         if (Objects.isNull(proxyCfgsQueue)) {
-            log.error("queue is not exist");
+            log.error("queue is not exist, alias={}", alias);
             return null;
         }
         ProxyIp poll = proxyCfgsQueue.poll();
@@ -77,7 +90,7 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
             log.info("ip={} is invalid and will be removed", poll.getIpAddr());
             return getOne();
         }
-        // 取了需要再放进去
+        // 取了再放进去
         proxyCfgsQueue.offer(poll);
         return poll;
     }
@@ -96,12 +109,24 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
 
     @Override
     public void addWhiteList() {
-
+        // 在 http://18284011551.user.xiecaiyun.com/main.html 控制台添加ip白名单 120.77.156.128 （11号隧道）
     }
 
     @Override
     public void healthCheck() {
-
+        TunnelInstance tunnelInstance = tunnelInitService.getDefaultTunnel();
+        if (tunnelInstance == null) {
+            log.error("healthCheck quit, tunnelInstance is null");
+            return;
+        }
+        try {
+            ipCheck(tunnelInstance);
+            forceAddIp(tunnelInstance);
+            handleInvalidIp(log, tunnelInstance, proxyIpPool);
+            printIpPool(log, proxyIpPool);
+        } catch (Throwable e) {
+            log.error("定时更新ip池出现异常", e);
+        }
     }
 
     @Override
@@ -127,27 +152,6 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
             return null;
         }
         return proxyIpPool.get(tunnelInstance.getAlias());
-    }
-
-    @Override
-    public void init() {
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 3, TimeUnit.SECONDS);
-    }
-
-    /**
-     * 检查更新代理IP池
-     */
-    public void checkAndUpdateIpPool() {
-        for (TunnelInstance tunnelInstance : tunnelInitService.getTunnelList()) {
-            try {
-                ipCheck(tunnelInstance);
-                forceAddIp(tunnelInstance);
-                handleInvalidIp(log, tunnelInstance, proxyIpPool);
-                printIpPool(log, proxyIpPool);
-            } catch (Throwable e) {
-                log.error("定时更新ip池出现异常", e);
-            }
-        }
     }
 
     /**

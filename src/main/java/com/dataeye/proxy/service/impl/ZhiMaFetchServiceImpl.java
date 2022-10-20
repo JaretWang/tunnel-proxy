@@ -1,17 +1,19 @@
 package com.dataeye.proxy.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ZhiMaConfig;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
+import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
-import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -53,6 +55,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      * 是否开启降低请求成功率
      */
     private static final boolean ENABLE_REDUCE_REQ_SUCCESS_PERCENT = false;
+    private static String currentOuterIp;
     @Resource
     ZhiMaConfig zhiMaConfig;
     @Autowired
@@ -77,6 +80,49 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             return null;
         }
         return ipList.get(0);
+    }
+
+    @Scheduled(cron = "0/10 * * * * ?")
+    public void monitorIpWhite() {
+        // 每隔10s检查公网ip是否变化了，变了则需要删除原来的ip，添加新ip
+        String innerIp = NetUtils.getEth0Inet4InnerIp();
+        if (StringUtils.isBlank(innerIp)) {
+            return;
+        }
+        if (!innerIp.startsWith("10.1.9")) {
+            return;
+        }
+        String outerIp = NetUtils.getOuterIp();
+        if (StringUtils.isBlank(outerIp)) {
+            logger.error("公网ip获取失败, 退出");
+            return;
+        }
+        if (outerIp.equals(currentOuterIp.trim())) {
+            logger.warn("公网ip没有变化, 退出");
+            return;
+        }
+        String addIpWhiteListUrl = zhiMaConfig.getAddIpWhiteListUrl();
+        String deleteIpWhiteListUrl = zhiMaConfig.getDeleteIpWhiteListUrl();
+        String addResp;
+        try {
+            addResp = OkHttpTool.doGet(addIpWhiteListUrl + outerIp);
+        } catch (Exception e) {
+            logger.error("添加ip白名单错误, cause={}", e.getMessage(), e);
+            return;
+        }
+        if (StringUtils.isNotBlank(addResp) && JSON.isValid(addResp) && JSONObject.parseObject(addResp).getIntValue("code") == 0) {
+            String deleteResp = "";
+            try {
+                deleteResp = OkHttpTool.doGet(deleteIpWhiteListUrl + outerIp);
+            } catch (Exception e) {
+                logger.error("删除ip白名单错误, cause={}", e.getMessage(), e);
+            } finally {
+                currentOuterIp = outerIp;
+            }
+            logger.info("ip白名单更新: addResp={}, deleteResp={}", addResp, deleteResp);
+            return;
+        }
+        logger.error("添加ip白名单返回错误, addResp={}", addResp);
     }
 
     public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance, boolean init) throws InterruptedException {

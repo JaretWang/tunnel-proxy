@@ -4,7 +4,7 @@ import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.selector.CommonIpSelector;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
+import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;

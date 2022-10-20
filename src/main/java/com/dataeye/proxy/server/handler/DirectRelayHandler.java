@@ -49,7 +49,7 @@ public class DirectRelayHandler extends ChannelInboundHandlerAdapter {
 
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse httpResponse = (FullHttpResponse) msg;
-//            logger.info("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
+//            logger.debug("HttpProxyHandler -> httpResponse:{}", httpResponse.toString());
 //            httpResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
 //            httpResponse.headers().set("Proxy-Connection", HttpHeaders.Values.KEEP_ALIVE);
 

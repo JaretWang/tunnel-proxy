@@ -29,5 +29,13 @@ public class ZhiMaConfig {
      * 获取套餐剩余ip的数量
      */
     String getRemainIpNumUrl;
+    /**
+     * 添加白名单接口
+     */
+    String addIpWhiteListUrl;
+    /**
+     * 删除白名单接口
+     */
+    String deleteIpWhiteListUrl;
 
 }

@@ -9,9 +9,6 @@ import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.selector.CommonIpSelector;
-import com.dataeye.proxy.selector.custom.ZhiMaCustomIpSelector;
-import com.dataeye.proxy.selector.normal.ZhiMaOrdinaryIpSelector;
-import com.dataeye.proxy.selector.oversea.OverseaIpSelector;
 import com.dataeye.proxy.server.handler.ConcurrentLimitHandler;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.service.RequestDistributeService;
@@ -24,6 +21,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.NetUtil;
 import io.netty.util.ResourceLeakDetector;
 import lombok.Getter;
 import org.springframework.beans.factory.InitializingBean;
@@ -150,7 +148,7 @@ public class ApnProxyServer implements InitializingBean {
                 // 当设置值超过64KB时，需要在绑定到本地端口前设置。该值设置的是由ServerSocketChannel使用accept接受的SocketChannel的接收缓冲区。
                 // .option(ChannelOption.SO_RCVBUF, 1024)
                 // 服务端接受连接的队列长度，如果队列已满，客户端连接将被拒绝。默认值，Windows默认为200，linux为128。
-                // .option(ChannelOption.SO_BACKLOG, 1024)
+                // .option(ChannelOption.SO_BACKLOG, NetUtil.SOMAXCONN)
                 // 修复 failed to allocate 2048 byte(s) of direct memory
                 // .childOption(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .childHandler(new ApnProxyServerChannelInitializer(apnHandlerParams))

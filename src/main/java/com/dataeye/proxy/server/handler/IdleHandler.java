@@ -27,10 +27,9 @@ public class IdleHandler extends ChannelDuplexHandler {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
 
         if (evt instanceof IdleStateEvent) {
-            logger.debug("idle event is fired, source:{}, type: {}", source, evt.getClass().getSimpleName());
             IdleStateEvent event = (IdleStateEvent) evt;
             String name = event.state().name();
-            logger.info("idle event is fired, source:{}, type: {}", source, name);
+            logger.info("idle event is fired, source:{}, type: {}, class={}", source, name, evt.getClass().getSimpleName());
             // 读写空闲，关闭通道
             SocksServerUtils.errorHttpResp(ctx.channel(), "read or write free in a period of time");
             ctx.channel().close();

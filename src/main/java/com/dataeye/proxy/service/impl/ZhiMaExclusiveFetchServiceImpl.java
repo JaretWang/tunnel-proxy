@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ZhiMaConfig;
-import com.dataeye.proxy.selector.custom.ZhiMaCustomIpSelector;
+import com.dataeye.proxy.selector.zhima.ZhiMaCustomIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
