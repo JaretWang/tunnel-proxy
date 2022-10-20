@@ -87,9 +87,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         // 每隔10s检查公网ip是否变化了，变了则需要删除原来的ip，添加新ip
         String innerIp = NetUtils.getEth0Inet4InnerIp();
         if (StringUtils.isBlank(innerIp)) {
+            logger.error("innerIp is blank, quit");
             return;
         }
         if (!innerIp.startsWith("10.1.9")) {
+            logger.error("内网ip不是 10.1.9 开头, quit");
             return;
         }
         if (StringUtils.isBlank(currentOuterIp)) {
