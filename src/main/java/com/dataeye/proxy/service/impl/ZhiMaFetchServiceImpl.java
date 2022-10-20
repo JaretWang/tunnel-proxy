@@ -92,6 +92,12 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (!innerIp.startsWith("10.1.9")) {
             return;
         }
+        if (StringUtils.isBlank(currentOuterIp)) {
+            String addIpWhiteListUrl = zhiMaConfig.getAddIpWhiteListUrl();
+            String initAdd = OkHttpTool.doGet(addIpWhiteListUrl + NetUtils.getOuterIp().trim());
+            logger.info("初始化添加ip白名单, 结果={}", initAdd);
+            return;
+        }
         String outerIp = NetUtils.getOuterIp();
         if (StringUtils.isBlank(outerIp)) {
             logger.error("公网ip获取失败, 退出");
