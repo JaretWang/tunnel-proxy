@@ -1613,25 +1613,10 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 > SSL证书生成
 
 ```shell
-第一步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
-keytool -genkey -alias securechat -keysize 2048 -validity 365 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
- 
-第二步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
-keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
- 
-第三步：生成客户端的私钥和证书仓库，用于将服务端的证书保存到客户端的授信证书仓库中 
-keytool -genkey -alias smcc -keysize 2048 -validity 365  -keyalg RSA -dname "CN=localhost" -keypass 123456  -storepass 123456 -keystore tunnel-client.jks
- 
-第四步: 生成客户端自签名证书
-keytool -export -alias smcc -keystore tunnel-client.jks -storepass 123456 -file tunnel-client.cer
- 
-第五步：将Netty服务端证书导入到客户端的证书仓库中
-keytool -import -trustcacerts -alias securechat -file tunnel-server.cer -storepass 123456 -keystore tunnel-client.jks
- 
-第六步:将客户端的自签名证书导入到服务端的信任证书仓库中：
-keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123456 -keystore tunnel-server.jks
- 
- 
+第1步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
+keytool -genkey -alias securechat -keysize 2048 -validity 36500 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
+
+-alias securechat 指定别名
 -keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
 -validity 365 证书有效期365天
 -keyalg RSA 使用RSA非对称加密算法
@@ -1639,6 +1624,27 @@ keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123
 -keypass 123456 密钥的访问密码为123456
 -storepass 123456 密钥库的访问密码为123456（其实这两个密码也可以设置一样，通常都设置一样，方便记）
 -keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks 
+ 
+第2步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
+keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
+
+第3步: 导入证书到truststore文件中
+keytool -import -alias securechat -file tunnel-server.cer -keystore tunnel-server-truststore.jks
+
+参考：https://www.yisu.com/zixun/536421.html
+# --------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+第1步：生成客户端的私钥和证书仓库，用于将服务端的证书保存到客户端的授信证书仓库中 
+keytool -genkey -alias smcc -keysize 2048 -validity 36500  -keyalg RSA -dname "CN=localhost" -keypass 123456  -storepass 123456 -keystore tunnel-client.jks
+ 
+第2步: 生成客户端自签名证书
+keytool -export -alias smcc -keystore tunnel-client.jks -storepass 123456 -file tunnel-client.cer
+ 
+第3步：将Netty服务端证书导入到客户端的证书仓库中
+keytool -import -trustcacerts -alias securechat -file tunnel-server.cer -storepass 123456 -keystore tunnel-client.jks
+ 
+第4步:将客户端的自签名证书导入到服务端的信任证书仓库中：
+keytool -import -trustcacerts -alias smcc -file tunnel-client.cer -storepass 123456 -keystore tunnel-server.jks
 ```
 
 
@@ -1772,7 +1778,7 @@ http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
 ## 普通域名
 
 ```shell
-# ----------------- 开发环境 -----------------
+# ----------------- 开发环境隧道 -----------------
 地址：10.1.9.17
 端口：21331
 账号：dataeye
@@ -1788,7 +1794,7 @@ http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
 账号：dataeye
 密码：dataeye++123
 请求头: proxy-config: eyJjaXR5IjoiIiwiY291bnRyeSI6InRoIiwicHJvdmluY2UiOiIifQ== （如果不传，默认国家为美国）
-# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：US
+# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：us
 {
     "country":"us",
     "province":"",
@@ -1810,7 +1816,7 @@ http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
 账号：dataeye
 密码：dataeye++123
 请求头: proxy-config: eyJjaXR5IjoiIiwiY291bnRyeSI6InRoIiwicHJvdmluY2UiOiIifQ== （如果不传，默认国家为美国）
-# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：US
+# 上面的请求头是下面的json经过base64编码后的值，不写请求头的话，默认国家为：us
 {
     "country":"us",
     "province":"",
@@ -1868,3 +1874,34 @@ ip淘汰策略优化：
 文件描述符改到10w（查询一下多少合适，放开机器资源是否足够）
 1拆分成两个独享的机器（先验证这个）
 2.检查日志，禁用okhttp失败重连
+
+
+
+# rola静态机房ip优惠卷：XIRLA4
+
+
+
+# VPS隧道搭建
+
+VPS隧道编写:
+
+测试VPS可用性, 编写获取ip, 拨号, 添加白名单接口
+
+隧道编写安全移除, 安全重播逻辑
+
+请求监控: 接入ip, 请求方式,请求URI成功率统计分布,请求包大小,请求带宽, 已接收连接数,已处理连接数,未处理连接数,TCP4种状态连接数,文件描述符
+
+响应监控: 响应报文大小,响应带宽,响应耗时,响应错误原因统计
+
+ip监控: ip总数限制, ip在线数量, vps重播时间间隔, 每个vps的存活状态, ip归属地
+
+隧道分配情况统计: 哪个隧道, 哪个媒体使用, 负责人是谁
+
+多节点负载均衡 (可选)
+
+注:  netty+nginx+vps双网卡+动态路由表，自己搭建拨号服务，取代代理商，好处：带宽足够，价格划算，ip可控，拨号稳定。
+
+
+
+中间人服务编写:
+解析 http/https 数据包, 获取请求行, 请求头, 响应包数据, 并保存到数据库, 每日请求只有几千个

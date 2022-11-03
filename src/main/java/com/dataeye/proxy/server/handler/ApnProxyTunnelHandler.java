@@ -53,7 +53,9 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
                 }
                 logger.debug("转发 CONNECT 请求, proxy={}, srcIp={}, method={}, uri={}",
                         proxyIp.getRemote(), SocksServerUtils.getReqSrcIp(ctx), requestMonitor.getMethod(), requestMonitor.getUri());
-                requestDistributeService.sendConnectReqByNettyClient(requestMonitor, ctx, fullHttpRequest, proxyIp, apnHandlerParams.getTunnelInstance());
+
+                requestDistributeService.sendHttps(ctx, fullHttpRequest, apnHandlerParams, proxyIp);
+//                requestDistributeService.sendConnectReqByNettyClient(requestMonitor, ctx, fullHttpRequest, proxyIp, apnHandlerParams.getTunnelInstance());
             }
         } catch (Exception e) {
             logger.error("tunnel异常, 关闭通道, srcIp={}, method={}, uri={}, cause={}",

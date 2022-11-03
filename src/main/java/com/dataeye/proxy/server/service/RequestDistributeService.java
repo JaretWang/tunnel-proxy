@@ -4,8 +4,10 @@ import com.dataeye.proxy.bean.ApnHandlerParams;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.cons.Log;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.monitor.ReqMonitorUtils;
+import com.dataeye.proxy.server.forward.impl.NettyClientForwardServiceImpl;
 import com.dataeye.proxy.server.handler.*;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.initializer.TunnelRelayChannelInitializer;
@@ -45,7 +47,20 @@ public class RequestDistributeService {
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     @Autowired
+    NettyClientForwardServiceImpl nettyClientForwardService;
+    @Autowired
     OkHttpTool okHttpTool;
+
+    public void sendHttps(ChannelHandlerContext ctx,
+                          FullHttpRequest fullHttpRequest,
+                          ApnHandlerParams apnHandlerParams,
+                          ProxyIp proxyIp) {
+        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
+        TunnelInstance tunnelInstance = apnHandlerParams.getTunnelInstance();
+        nettyClientForwardService.sendHttpsByNettyClient(Log.SERVER, ctx, fullHttpRequest, requestMonitor, proxyIp, tunnelInstance);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     public HttpRequest constructReqForCommon(HttpRequest httpRequest,
                                              ProxyIp proxyIp) {
@@ -170,10 +185,10 @@ public class RequestDistributeService {
 
 
     public void handleProxyIpIsEmpty(ChannelHandlerContext ctx) {
-        String errMsg = "获取代理IP为空，请30s后重试";
+        String errMsg = "no proxy ip available";
         logger.error(errMsg);
         ByteBuf content = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
-        FullHttpMessage errorResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, content);
+        DefaultFullHttpResponse errorResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, content);
         ctx.channel().writeAndFlush(errorResponse);
         SocksServerUtils.closeOnFlush(ctx.channel());
     }
@@ -234,7 +249,7 @@ public class RequestDistributeService {
         String keyStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\tunnel-server.jks";
         String trustStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\tunnel-server.cer";
         String password = "123456";
-        SSLEngine engine = ApnProxySSLContextFactory.createSslEngine(keyStorePath, password, trustStorePath, password);
+        SSLEngine engine = ApnProxySSLContextFactory.createServerSslEngine(keyStorePath, password, trustStorePath, password);
         uaChannel.pipeline().addFirst("apnproxy.encrypt", new SslHandler(Objects.requireNonNull(engine)));
 
         // handshake

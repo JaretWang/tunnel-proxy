@@ -14,7 +14,6 @@ import lombok.SneakyThrows;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author jaret
@@ -47,37 +46,22 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    @SneakyThrows
-    public String convertByteBufToString(ByteBuf buf) {
-        String str;
-        // 处理堆缓冲区
-        if (buf.hasArray()) {
-            str = new String(buf.array(), buf.arrayOffset() + buf.readerIndex(), buf.readableBytes());
-        } else {
-            // 处理直接缓冲区以及复合缓冲区
-            byte[] bytes = new byte[buf.readableBytes()];
-            buf.getBytes(buf.readerIndex(), bytes);
-            str = new String(bytes, 0, buf.readableBytes(), StandardCharsets.UTF_8);
-        }
-        return str;
-    }
-
-    long calculateSize(Object msg) {
-        if (msg instanceof ByteBuf) {
-            return ((ByteBuf) msg).readableBytes();
-        }
-        if (msg instanceof ByteBufHolder) {
-            return ((ByteBufHolder) msg).content().readableBytes();
-        }
-        if (msg instanceof FileRegion) {
-            return ((FileRegion) msg).count();
-        }
-        return -1;
-    }
-
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
         logger.debug("TunnelRelayHandler channelRead, tag={}, msg={}", tag, msg);
+//        if (msg instanceof FullHttpRequest) {
+////        if (msg instanceof FullHttpRequest && tag.contains("UA -->")) {
+////        if (msg instanceof FullHttpRequest && tag.contains("--> UA")) {
+//            FullHttpRequest httpRequest = (FullHttpRequest) msg;
+//            System.out.println(httpRequest);
+//        }
+//        if (msg instanceof FullHttpResponse) {
+////        if (msg instanceof FullHttpRequest && tag.contains("UA -->")) {
+////        if (msg instanceof FullHttpRequest && tag.contains("--> UA")) {
+//            FullHttpResponse httpRequest = (FullHttpResponse) msg;
+//            System.out.println(httpRequest);
+//        }
+
 //        int bytebufsize = 0, size = 0;
 //        // 转为bytebuf，然后再求响应大小，最后再设置在 ReqMonitorUtils 里面
 //        long len = calculateSize(msg);
@@ -152,6 +136,35 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
         ReqMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         IpMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         ctx.close();
+    }
+
+
+    @SneakyThrows
+    public String convertByteBufToString(ByteBuf buf) {
+        String str;
+        // 处理堆缓冲区
+        if (buf.hasArray()) {
+            str = new String(buf.array(), buf.arrayOffset() + buf.readerIndex(), buf.readableBytes());
+        } else {
+            // 处理直接缓冲区以及复合缓冲区
+            byte[] bytes = new byte[buf.readableBytes()];
+            buf.getBytes(buf.readerIndex(), bytes);
+            str = new String(bytes, 0, buf.readableBytes(), StandardCharsets.UTF_8);
+        }
+        return str;
+    }
+
+    long calculateSize(Object msg) {
+        if (msg instanceof ByteBuf) {
+            return ((ByteBuf) msg).readableBytes();
+        }
+        if (msg instanceof ByteBufHolder) {
+            return ((ByteBufHolder) msg).content().readableBytes();
+        }
+        if (msg instanceof FileRegion) {
+            return ((FileRegion) msg).count();
+        }
+        return -1;
     }
 
 }

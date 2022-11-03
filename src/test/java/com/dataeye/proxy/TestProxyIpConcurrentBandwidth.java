@@ -66,8 +66,6 @@ public class TestProxyIpConcurrentBandwidth {
     ZhiMaFetchServiceImpl zhiMaFetchService;
     @Autowired
     ZhiMaExclusiveFetchServiceImpl zhiMaExclusiveFetchService;
-    @Autowired
-    YouJieFetchServiceImpl youJieFetchService;
 
     /**
      * 测试芝麻独享ip
@@ -132,23 +130,6 @@ public class TestProxyIpConcurrentBandwidth {
             System.out.println("----------------------- 并发数：" + i + " ------------------------");
             long begin = System.currentTimeMillis();
             ProxyIp proxyIp = dailiCloudFetchService.getOne(null);
-            singleConcurrent(i, proxyIp);
-            long cost = (System.currentTimeMillis() - begin) / 1000;
-            System.out.println("并发数：" + i + ", 耗时：" + cost + "s");
-        }
-    }
-
-    /**
-     * 测试游杰代理
-     *
-     * @throws InterruptedException
-     */
-    @Test
-    public void testYoujie() throws InterruptedException {
-        for (int i = 10; i <= maxThreadSize; i += threadSizeIncremental) {
-            System.out.println("----------------------- 并发数：" + i + " ------------------------");
-            long begin = System.currentTimeMillis();
-            ProxyIp proxyIp = youJieFetchService.getOne(null);
             singleConcurrent(i, proxyIp);
             long cost = (System.currentTimeMillis() - begin) / 1000;
             System.out.println("并发数：" + i + ", 耗时：" + cost + "s");

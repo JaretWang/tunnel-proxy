@@ -33,7 +33,7 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
     }
 
     @Override
-    public void initChannel(SocketChannel channel) {
+    public void initChannel(SocketChannel channel) throws Exception {
         ChannelPipeline pipeline = channel.pipeline();
 
 //        pipeline.addLast("idlestate", new ReadTimeoutHandler(readerIdleTime, TimeUnit.SECONDS));
@@ -45,6 +45,14 @@ public class ApnProxyServerChannelInitializer extends ChannelInitializer<SocketC
 //            SSLEngine engine = ApnProxySSLContextFactory.createServerSSLSSLEngine();
 //            pipeline.addLast("apnproxy.encrypt", new SslHandler(engine));
 //        }
+
+//        String keyStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\ssl\\tunnel-server-keystore.jks";
+//        String trustStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\ssl\\tunnel-server-truststore.jks";
+//        String keyStorePassword = "123456";
+//        String trustStorePassword = "123456";
+//        SSLEngine engine = ApnProxySSLContextFactory.createServerSslEngine(keyStorePath, keyStorePassword, trustStorePath, trustStorePassword);
+//        pipeline.addLast("apnproxy.encrypt", new SslHandler(engine));
+
 //        pipeline.addLast("server.log", new LoggingHandler("BYTE_LOGGER", LogLevel.INFO, ByteBufFormat.HEX_DUMP));
         pipeline.addLast(SERVER_CODEC_NAME, new HttpServerCodec());
         pipeline.addLast(SERVER_REQUEST_AGG_NAME, new HttpObjectAggregator(1024 * 1024));

@@ -16,7 +16,7 @@ public class ApnProxySSLContextFactory {
 
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
-    public static SSLEngine createSslEngine(String host, int port) {
+    public static SSLEngine createClientSslEngineForRemoteAddress(String host, int port) {
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
             TrustManager[] trustManagers = null;
@@ -39,7 +39,7 @@ public class ApnProxySSLContextFactory {
         return null;
     }
 
-    public static SSLEngine createSslEngine(String keyStorePath, String keyStorePassword, String trustStorePath, String trustStorePassword) {
+    public static SSLEngine createServerSslEngine(String keyStorePath, String keyStorePassword, String trustStorePath, String trustStorePassword) {
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
 

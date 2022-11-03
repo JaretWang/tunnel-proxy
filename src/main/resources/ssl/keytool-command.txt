@@ -1,0 +1,19 @@
+第1步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中
+keytool -genkey -alias securechat -keysize 2048 -validity 36500 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server-keystore.jks
+
+-alias securechat 指定别名
+-keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
+-validity 365 证书有效期365天
+-keyalg RSA 使用RSA非对称加密算法
+-dname "CN=localhost" 设置Common Name为localhost
+-keypass 123456 密钥的访问密码为123456
+-storepass 123456 密钥库的访问密码为123456（其实这两个密码也可以设置一样，通常都设置一样，方便记）
+-keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks
+
+第2步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
+keytool -export -alias securechat -keystore tunnel-server-keystore.jks -storepass 123456 -file tunnel-server.cer
+
+第3步: 导入证书到truststore文件中
+keytool -import -alias securechat -file tunnel-server.cer -keystore tunnel-server-truststore.jks
+
+参考：https://www.yisu.com/zixun/536421.html
