@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "service.yiniucloud")
+@ConfigurationProperties(prefix = "proxy.yiniucloud")
 public class YiNiuCloudConfig {
 
     /**

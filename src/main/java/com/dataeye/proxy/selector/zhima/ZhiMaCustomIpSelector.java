@@ -10,6 +10,7 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.config.ZhiMaDingZhiConfig;
+import com.dataeye.proxy.cons.HttpCons;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaExclusiveFetchServiceImpl;
@@ -42,8 +43,6 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
 
     public static final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> IP_POOL = new ConcurrentHashMap<>();
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaCustomIpSelector");
-    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("ZhiMaCustomIpSelector"), new ThreadPoolExecutor.AbortPolicy());
     private static List<Integer> netCardSeqList;
 
     @Value("${server.port}")
@@ -86,18 +85,6 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
     }
 
     @Override
-    public List<ProxyIp> getIpList(int count) throws InterruptedException {
-        LinkedList<ProxyIp> ips = new LinkedList<>();
-        for (int i = 0; i < count; i++) {
-            ProxyIp proxyIp = getOne();
-            if (proxyIp != null) {
-                ips.add(proxyIp);
-            }
-        }
-        return ips;
-    }
-
-    @Override
     public void addWhiteList() {
 
     }
@@ -132,18 +119,9 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
         return IP_POOL.get(tunnelInstance.getAlias());
     }
 
-    public boolean isStart() {
-        String innerIp = tunnelInitService.getEth0Inet4InnerIp();
-        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        assert defaultTunnel != null;
-        return defaultTunnel.getType() == TunnelType.ZHIMA_DINGZHI.getId()
-                && defaultTunnel.getLocation().equalsIgnoreCase(innerIp.trim())
-                && defaultTunnel.getEnable() == 1;
-    }
-
     @Override
     public void init() {
-        if (!proxyServerConfig.isEnable() || !isStart()) {
+        if (!isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA_DINGZHI)) {
             return;
         }
 
@@ -164,7 +142,9 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
         String alias = tunnelInitService.getDefaultTunnel().getAlias();
         ConcurrentLinkedQueue<ProxyIp> proxyIps = IP_POOL.get(alias);
         log.info("初始化ip池, processSeq={}, alias={}, ipPool={}", JSON.toJSONString(netCardSeqList), alias, JSON.toJSONString(proxyIps));
-        SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> {
+        ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1,
+                new ThreadPoolConfig.TunnelThreadFactory("ZhiMaCustomIpSelector"), new ThreadPoolExecutor.AbortPolicy());
+        executor.scheduleAtFixedRate(() -> {
             checkNetCard();
             handleInvalidIp(log, proxyIps);
             printIpPool(log, IP_POOL);
@@ -175,13 +155,12 @@ public class ZhiMaCustomIpSelector implements CommonIpSelector {
      * 拨号网卡心跳检查
      */
     void checkNetCard() {
-        String testUrl = "https://www.baidu.com";
         for (Integer seq : netCardSeqList) {
             ProxyIp proxyIp = getIpByNetCardSeq(seq);
             Response response = null;
             String resp = null;
             try {
-                response = OkHttpTool.sendGetByProxy2(testUrl, proxyIp.getHost(), proxyIp.getPort(), proxyIp.getUserName(), proxyIp.getPassword(), null, null);
+                response = OkHttpTool.sendGetByProxy2(HttpCons.DOMESTIC_IP_ALIVE_CHECK_URL, proxyIp.getHost(), proxyIp.getPort(), proxyIp.getUserName(), proxyIp.getPassword(), null, null);
                 if (response != null && response.code() == 200) {
                     resp = response.body().string();
                 }

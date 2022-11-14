@@ -126,7 +126,7 @@ public class IpMonitorUtils {
      * ps: 应该是移除优先级队列队尾的元素
      */
     public void removeHighErrorPercent(String ip, TunnelInstance tunnelInstance, ZhiMaOrdinaryIpSelector ipSelector) throws InterruptedException {
-        if (tunnelInstance.getType() != TunnelType.DOMESTIC.getId()) {
+        if (tunnelInstance.getType() != TunnelType.ZHIMA.getId()) {
             return;
         }
 

@@ -1,6 +1,7 @@
 package com.dataeye.proxy.selector.dailiyun;
 
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.selector.CommonIpSelector;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -33,8 +33,6 @@ import java.util.stream.Collectors;
 public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
 
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveIpSelector");
-    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("DaiLiYunExclusiveIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentLinkedQueue<ProxyIp> IP_POOL = new ConcurrentLinkedQueue<>();
     @Autowired
     DaiLiYunExclusiveFetchServiceImpl daiLiYunExclusiveFetchService;
@@ -61,18 +59,6 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
 
         // 添加用户名密码
         return poll;
-    }
-
-    @Override
-    public List<ProxyIp> getIpList(int count) {
-        LinkedList<ProxyIp> ips = new LinkedList<>();
-        for (int i = 0; i < count; i++) {
-            ProxyIp proxyIp = getOne();
-            if (proxyIp != null) {
-                ips.add(proxyIp);
-            }
-        }
-        return ips;
     }
 
     @Override
@@ -107,6 +93,11 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
 
     @Override
     public void init() {
+        if (!isStart(tunnelInitService, proxyServerConfig, TunnelType.DAILIYUN_EXCLUSIVE)) {
+            return;
+        }
+        ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+                new ThreadPoolConfig.TunnelThreadFactory("DaiLiYunExclusiveIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 5, TimeUnit.SECONDS);
     }
 
@@ -227,6 +218,7 @@ public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
      * @param queue ip池
      * @return
      */
+    @Override
     public int getValidIpSize(ConcurrentLinkedQueue<ProxyIp> queue) {
         if (queue == null) {
             return 0;

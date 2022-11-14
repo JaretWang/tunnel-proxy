@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "service.youjie")
+@ConfigurationProperties(prefix = "proxy.youjie")
 public class YouJieConfig {
 
     private String ipFectchUrl;

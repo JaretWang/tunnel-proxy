@@ -9,11 +9,11 @@ import java.util.Map;
 /**
  * @author jaret
  * @date 2022/8/3 16:28
- * @description
+ * @description 芝麻定制ip配置
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "proxy.zhima.dingzhi")
+@ConfigurationProperties(prefix = "proxy.zhima.custom")
 public class ZhiMaDingZhiConfig {
 
     /**

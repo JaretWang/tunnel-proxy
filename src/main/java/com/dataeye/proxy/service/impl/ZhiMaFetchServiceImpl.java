@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
@@ -18,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -63,7 +66,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     @Autowired
     SendMailService sendMailService;
     @Resource
+    ProxyServerConfig proxyServerConfig;
+    @Resource
     TunnelInitService tunnelInitService;
+    @Value("spring.profiles.active")
+    String profile;
 
     public int getFetchIp() {
         return FETCH_IP_NUM_NOW.get();
@@ -84,20 +91,26 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
     @Scheduled(cron = "0/10 * * * * ?")
     public void monitorIpWhite() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         // 每隔10s检查公网ip是否变化了，变了则需要删除原来的ip，添加新ip
         String innerIp = NetUtils.getEth0Inet4InnerIp();
         if (StringUtils.isBlank(innerIp)) {
             logger.error("innerIp is blank, quit");
             return;
         }
-        if (!innerIp.startsWith("10.1.9")) {
-            logger.error("内网ip不是 10.1.9 开头, quit");
-            return;
-        }
+//        // 为了适配开发环境部署的隧道
+//        if ("product".equalsIgnoreCase(profile)) {
+//            if (!innerIp.startsWith("10.1.9")) {
+//                logger.error("内网ip不是 10.1.9 开头, quit");
+//                return;
+//            }
+//        }
         if (StringUtils.isBlank(currentOuterIp)) {
             String addIpWhiteListUrl = zhiMaConfig.getAddIpWhiteListUrl();
             String initAdd = OkHttpTool.doGet(addIpWhiteListUrl + NetUtils.getOuterIp().trim());
-            logger.info("初始化添加ip白名单, 结果={}", initAdd);
+            logger.info("初始化添加ip白名单, currentOuterIp={}, 结果={}", currentOuterIp, initAdd);
             return;
         }
         String outerIp = NetUtils.getOuterIp();
@@ -217,6 +230,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     void sendAlarmEmail() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         if (!IS_SEND_ALARM_EMAIL.get()) {
             return;
         }
@@ -271,6 +287,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0 0 * * ?")
     public void reSetFetchIpNum() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         logger.info("芝麻代理 - 重置所有状态");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
@@ -287,6 +306,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     @Scheduled(cron = "0 0/30 * * * ?")
     void getIpFetchNumNow() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         logger.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
         logger.info("套餐每日剩余ip数量={}", SURPLUS_IP_SIZE.get());
     }
@@ -294,9 +316,11 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     /**
      * 更新套餐ip剩余数量和使用量
      */
-    @PostConstruct
     @Scheduled(cron = "0 0/5 * * * ? ")
-    void updateSurplusIpSize() {
+    public void updateSurplusIpSize() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         try {
             int surplusIpSize = getSurplusIpSize();
             // 避免因为网络不好，导致获取的剩余ip数为0，重试3次
@@ -323,6 +347,9 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
     @Scheduled(cron = "0/5 * * * * ?")
     void updateUsedIp() {
+        if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
         int surplusIpSize = SURPLUS_IP_SIZE.get();
         int usedIp = FETCH_IP_NUM_NOW.get();
         try {

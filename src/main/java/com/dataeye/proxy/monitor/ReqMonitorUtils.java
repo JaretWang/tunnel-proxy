@@ -177,7 +177,7 @@ public class ReqMonitorUtils {
      * @throws InterruptedException
      */
     public void dynamicAdjustIpPool(Logger logger, String realSuccessPercent, int checkInterval, TimeUnit unit, double costAvg) throws InterruptedException {
-        if (tunnelInitService.getDefaultTunnel().getType() != TunnelType.DOMESTIC.getId()) {
+        if (tunnelInitService.getDefaultTunnel().getType() != TunnelType.ZHIMA.getId()) {
             return;
         }
         if (StringUtils.isBlank(realSuccessPercent)) {

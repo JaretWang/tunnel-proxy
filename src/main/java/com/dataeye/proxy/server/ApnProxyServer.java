@@ -21,10 +21,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.NetUtil;
 import io.netty.util.ResourceLeakDetector;
 import lombok.Getter;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -41,7 +39,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @date 2022/4/7 10:30
  */
 @Component
-public class ApnProxyServer implements InitializingBean {
+public class ApnProxyServer {
 
     private static final java.lang.String LOCAL_ADDRESS = "0.0.0.0";
 
@@ -62,11 +60,6 @@ public class ApnProxyServer implements InitializingBean {
     @Getter
     ConcurrentLimitHandler concurrentLimitHandler;
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        initTunnel();
-    }
-
     /**
      * 初始化隧道实例
      */
@@ -76,8 +69,10 @@ public class ApnProxyServer implements InitializingBean {
         }
         // 获取初始化参数
         List<TunnelInstance> tunnelList = tunnelInitService.getTunnelList();
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        assert defaultTunnel != null;
         // 初始化ip池
-        CommonIpSelector commonIpSelector = TunnelType.getIpSelector(springTool, tunnelInitService.getDefaultTunnel().getType());
+        CommonIpSelector commonIpSelector = TunnelType.getIpSelector(springTool, defaultTunnel.getType());
         commonIpSelector.init();
         // ip监控
         ipMonitorUtils.schedule();

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dataeye.proxy.dao.VpsInstanceMapper">
+    <resultMap type="com.dataeye.proxy.bean.dto.VpsInstance" id="VpsInstanceMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="valid" column="valid" jdbcType="INTEGER"/>
+        <result property="type" column="type" jdbcType="INTEGER"/>
+        <result property="ip" column="ip" jdbcType="VARCHAR"/>
+        <result property="port" column="port" jdbcType="INTEGER"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="password" column="password" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 批量插入 -->
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into ip_tunnel.vps_instance(valid, type, ip, port, username, password, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.valid}, #{entity.type}, #{entity.ip}, #{entity.port}, #{entity.username}, #{entity.password},
+            #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <!-- 批量插入或按主键更新 -->
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into ip_tunnel.vps_instance(valid, type, ip, port, username, password, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.valid}, #{entity.type}, #{entity.ip}, #{entity.port}, #{entity.username}, #{entity.password},
+            #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+        on duplicate key update
+        valid = values(valid) , type = values(type) , ip = values(ip) , port = values(port) , username =
+        values(username) , password = values(password) , create_time = values(create_time) , update_time =
+        values(update_time)
+    </insert>
+
+</mapper>
+

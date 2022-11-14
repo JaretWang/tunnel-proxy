@@ -2,6 +2,7 @@ package com.dataeye.proxy.selector.zhima;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
@@ -41,10 +42,10 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
 
     private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaOrdinaryIpSelector");
-    private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
-            new ThreadPoolConfig.TunnelThreadFactory("ZhiMaOrdinaryIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> proxyIpPool = new ConcurrentHashMap<>();
     private final int minIpPoolSize = 5;
+    @Autowired
+    ZhiMaFetchServiceImpl zhiMaFetchService;
     @Autowired
     IpMonitorUtils ipMonitorUtils;
     @Autowired
@@ -80,18 +81,6 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
         // 取了需要再放进去
         proxyCfgsQueue.offer(poll);
         return poll;
-    }
-
-    @Override
-    public List<ProxyIp> getIpList(int count) {
-        LinkedList<ProxyIp> ips = new LinkedList<>();
-        for (int i = 0; i < count; i++) {
-            ProxyIp proxyIp = getOne();
-            if (proxyIp != null) {
-                ips.add(proxyIp);
-            }
-        }
-        return ips;
     }
 
     @Override
@@ -131,6 +120,12 @@ public class ZhiMaOrdinaryIpSelector implements CommonIpSelector {
 
     @Override
     public void init() {
+        if (!isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
+            return;
+        }
+        zhiMaFetchServiceImpl.updateSurplusIpSize();
+        ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+                new ThreadPoolConfig.TunnelThreadFactory("ZhiMaOrdinaryIpSelector-"), new ThreadPoolExecutor.AbortPolicy());
         SCHEDULE_EXECUTOR.scheduleAtFixedRate(this::checkAndUpdateIpPool, 0, 3, TimeUnit.SECONDS);
     }
 

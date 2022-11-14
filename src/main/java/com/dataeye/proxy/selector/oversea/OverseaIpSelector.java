@@ -21,11 +21,6 @@ public class OverseaIpSelector implements CommonIpSelector {
     }
 
     @Override
-    public List<ProxyIp> getIpList(int count) throws InterruptedException {
-        return null;
-    }
-
-    @Override
     public void addWhiteList() {
 
     }

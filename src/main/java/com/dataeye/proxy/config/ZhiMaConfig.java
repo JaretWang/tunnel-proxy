@@ -5,14 +5,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * @author hongjunhao
- * @date 2022/2/15 9:53
+ * @author jaret
+ * @date 2022/8/3 16:28
+ * @description
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "service.zhima")
+@ConfigurationProperties(prefix = "proxy.zhima")
 public class ZhiMaConfig {
 
+    /**
+     * 每日百万ip(待测试版本)
+     */
+    String millionIpUrl;
     /**
      * 直连ip
      */

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "service.dailicloud")
+@ConfigurationProperties(prefix = "proxy.dailicloud")
 public class DailiCloudConfig {
 
     private String ipFectchUrl;

@@ -1,5 +1,10 @@
 package com.dataeye.proxy.utils;
 
+import cn.hutool.core.util.CharsetUtil;
+import cn.hutool.extra.ssh.JschUtil;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
@@ -51,6 +56,23 @@ public class CommandUtils {
             }
         }
         return builder.toString();
+    }
+
+    public static String exec(String command, String sshHost, int sshPort, String sshUser, String sshPass) throws JSchException {
+        Session session = JschUtil.getSession(sshHost, sshPort, sshUser, sshPass);
+        session.setTimeout(10000);
+        String exec = JschUtil.exec(session, command, CharsetUtil.CHARSET_UTF_8);
+        JschUtil.close(session);
+        return exec;
+    }
+
+    public static void main(String[] args) throws Exception {
+        Session session = JschUtil.getSession("154.37.50.4", 20097, "root", "d5d4cc42d9");
+        session.setTimeout(10000);
+        //String s = JschUtil.exec(session, "cd /root/tinyproxy-1.11.0-rc1 && ls", CharsetUtil.CHARSET_UTF_8);
+        String s = JschUtil.exec(session, "ifconfig", CharsetUtil.CHARSET_UTF_8);
+        System.out.println(s);
+        JschUtil.closeAll();
     }
 
 }

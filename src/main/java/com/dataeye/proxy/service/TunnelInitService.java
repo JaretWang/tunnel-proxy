@@ -1,6 +1,7 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.proxy.bean.CustomIpAllocate;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
@@ -31,10 +32,6 @@ public class TunnelInitService {
      * 本机器使用的隧道
      */
     public static final ConcurrentHashMap<String, TunnelInstance> TUNNEL_INSTANCES_CACHE = new ConcurrentHashMap<>();
-    /**
-     * 正在使用中的所有隧道
-     */
-    public static final ConcurrentHashMap<String, TunnelInstance> ALL_USED_TUNNEL = new ConcurrentHashMap<>();
     private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelInitService");
     private static String DEFAULT_TUNNEL_NAME;
     @Resource
@@ -43,15 +40,24 @@ public class TunnelInitService {
     String profile;
     @Autowired
     ProxyServerConfig proxyServerConfig;
+    @Autowired
+    TunnelInitService tunnelInitService;
+
+    public boolean isStart(TunnelType tunnelType) {
+        String innerIp = tunnelInitService.getEth0Inet4InnerIp();
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        assert defaultTunnel != null;
+        return proxyServerConfig.isEnable()
+                && defaultTunnel.getType() == tunnelType.getId()
+                && defaultTunnel.getLocation().equalsIgnoreCase(innerIp.trim())
+                && defaultTunnel.getEnable() == 1;
+    }
 
     /**
      * 定时更新隧道列表缓存
      */
     @Scheduled(cron = "0/5 * * * * ?")
     public void schduleUpdateTunnelListCache() {
-        if (!proxyServerConfig.isEnable()) {
-            return;
-        }
         updateTunnelByEquals();
     }
 
@@ -79,28 +85,6 @@ public class TunnelInitService {
             ip = NetUtils.getEth0Inet4InnerIp();
         }
         return ip;
-    }
-
-    /**
-     * 获取所有正在使用中的隧道
-     *
-     * @return
-     */
-    public List<TunnelInstance> getAllUsedTunnel() {
-        if (!ALL_USED_TUNNEL.isEmpty()) {
-            return ALL_USED_TUNNEL.values().stream().distinct().collect(Collectors.toList());
-        }
-        List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
-        if (tunnelInstances == null || tunnelInstances.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<TunnelInstance> instanceList = tunnelInstances.stream()
-                // 只启动本机器需要的隧道 && 0关闭 1开启
-                .filter(element -> element.getEnable() == 1)
-                .distinct()
-                .collect(Collectors.toList());
-        instanceList.forEach(instance -> ALL_USED_TUNNEL.put(instance.getAlias(), instance));
-        return ALL_USED_TUNNEL.values().stream().distinct().collect(Collectors.toList());
     }
 
     /**

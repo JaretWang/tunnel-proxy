@@ -48,6 +48,32 @@ public class NetUtils {
         return null;
     }
 
+    public static String getEth0Inet4InnerIp(String netCard) {
+        Enumeration<NetworkInterface> networkInterfaces;
+        try {
+            networkInterfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            return null;
+        }
+
+        NetworkInterface netInterface;
+        while (networkInterfaces.hasMoreElements()) {
+            netInterface = networkInterfaces.nextElement();
+            if (null != netInterface && netCard.equals(netInterface.getName())) {
+                Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (address instanceof Inet4Address) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+
+
     /**
      * 获取公网ip
      *

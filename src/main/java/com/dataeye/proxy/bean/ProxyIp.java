@@ -1,5 +1,8 @@
 package com.dataeye.proxy.bean;
 
+import com.alibaba.fastjson.JSON;
+import com.dataeye.proxy.bean.dto.VpsInstance;
+import com.dataeye.proxy.cons.Log;
 import com.dataeye.proxy.utils.TimeUtils;
 import lombok.Builder;
 import lombok.Data;
@@ -35,6 +38,14 @@ public class ProxyIp {
      * rola代理 子账号序号
      */
     AtomicLong rolaAccountNum;
+    /**
+     * 正在处理中的连接数（参考netty对象引用计数）
+     */
+    AtomicLong connecting;
+    /**
+     * vps实例
+     */
+    VpsInstance vpsInstance;
 
     public String getIpAddr() {
         return this.host + ":" + this.port;
@@ -53,4 +64,34 @@ public class ProxyIp {
         return this.host + ":" + this.port + "(" + formatLocalDate + ")";
     }
 
+    /**
+     * 标记连接数
+     */
+    public void addConnectCount(){
+        AtomicLong connecting = this.getConnecting();
+        if (connecting == null) {
+            this.setConnecting(new AtomicLong(1));
+        } else {
+            this.getConnecting().incrementAndGet();
+        }
+    }
+
+    /**
+     * 移除连接数
+     */
+    public void removeConnectCount(){
+        AtomicLong connecting = this.getConnecting();
+        if (connecting == null) {
+            Log.SERVER.info("移除连接数失败, connecting is null, proxyIp={}", JSON.toJSONString(this));
+        } else {
+            long currentCount = this.getConnecting().decrementAndGet();
+            Log.SERVER.info("移除连接数成功, connect={}", currentCount);
+        }
+    }
+
+    public static void removeConnect(ProxyIp proxyIp){
+        if (proxyIp != null) {
+            removeConnect(proxyIp);
+        }
+    }
 }

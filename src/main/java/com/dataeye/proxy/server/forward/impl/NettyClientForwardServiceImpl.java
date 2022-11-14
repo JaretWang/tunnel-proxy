@@ -89,7 +89,7 @@ public class NettyClientForwardServiceImpl implements RequestForwardService {
                 // fixed failed to allocate 2048 byte(s) of direct memory
                 // .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
                 .handler(new TunnelRelayChannelInitializer(requestMonitor, proxyIp, uaChannel, tunnelInstance));
-        if (1==0) {
+        if (1==1) {
             bootstrap.connect(proxyIp.getHost(), proxyIp.getPort())
                     .addListener((ChannelFutureListener) future1 -> {
                         long took = System.currentTimeMillis() - begin;

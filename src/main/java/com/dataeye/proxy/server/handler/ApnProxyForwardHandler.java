@@ -50,7 +50,8 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
             if (msg instanceof FullHttpRequest) {
                 FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
                 logger.debug("forward 接收请求, 请求行和请求头: {}", fullHttpRequest.toString());
-                ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
+//                ProxyIp proxyIp = ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).get();
+                ProxyIp proxyIp = GlobalParams.getProxyIp(ctx);
                 if (Objects.isNull(proxyIp)) {
                     throw new RuntimeException("forward 获取缓存ip为空");
                 }
@@ -73,6 +74,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.debug("forward channelInactive");
         ctx.close();
+        GlobalParams.getProxyIp(ctx).removeConnectCount();
     }
 
     @Override
@@ -83,6 +85,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
+        GlobalParams.getProxyIp(ctx).removeConnectCount();
     }
 
 }

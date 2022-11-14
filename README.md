@@ -1614,7 +1614,7 @@ adx-replay观察统计请求量,做一个请求量的估算,以及查看代码�
 
 ```shell
 第1步: 生成Netty服务端私钥和证书仓库命令，用于将客户端的证书保存到服务端的授信证书仓库中 
-keytool -genkey -alias securechat -keysize 2048 -validity 36500 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server.jks
+keytool -genkey -alias securechat -keysize 2048 -validity 36500 -keyalg RSA -dname "CN=localhost" -keypass 123456 -storepass 123456 -keystore tunnel-server-keystore.jks
 
 -alias securechat 指定别名
 -keysize 2048 密钥长度2048位（这个长度的密钥目前可认为无法被暴力破解）
@@ -1626,7 +1626,7 @@ keytool -genkey -alias securechat -keysize 2048 -validity 36500 -keyalg RSA -dna
 -keystore tunnel-server.jks 指定生成的密钥库文件为tunnel-server.jks 
  
 第2步：生成Netty服务端自签名证书 用于颁给使用者 从 证书仓库中导出证书
-keytool -export -alias securechat -keystore tunnel-server.jks -storepass 123456 -file tunnel-server.cer
+keytool -export -alias securechat -keystore tunnel-server-keystore.jks -storepass 123456 -file tunnel-server.cer
 
 第3步: 导入证书到truststore文件中
 keytool -import -alias securechat -file tunnel-server.cer -keystore tunnel-server-truststore.jks
@@ -1883,7 +1883,11 @@ ip淘汰策略优化：
 
 # VPS隧道搭建
 
-VPS隧道编写:
+## 中间人服务编写
+
+解析 http/https 数据包, 获取请求行, 请求头, 响应包数据, 并保存到数据库, 每日请求只有几千个
+
+## 进度拆分
 
 测试VPS可用性, 编写获取ip, 拨号, 添加白名单接口
 
@@ -1903,5 +1907,31 @@ ip监控: ip总数限制, ip在线数量, vps重播时间间隔, 每个vps的存
 
 
 
-中间人服务编写:
-解析 http/https 数据包, 获取请求行, 请求头, 响应包数据, 并保存到数据库, 每日请求只有几千个
+## 详细设计
+
+每个vps是一个拨号器，提供一个ip，假如购买100台vps机器，就是100个ip同时在线，存放在ip池中，以供使用。每个代理ip对象中的属性包含：代理ip，端口，账号，密码，过期时间，被使用次数，单位时间内ip的成功次数，失败次数，是否有效标志位，正在处理中的连接数。
+
+1. ip标记为无效状态的条件
+
+  	1.1 成功率低于80%，标记为无效(注: 标记之前检查ip池总数是否低于阈值， 阈值=vps机器数 * 1/2, 如果达到最小阈值，则不能标记为无效，只能降低优先级，避免ip池全部标记为无效ip，没有可用ip，或者可用ip越来越少，导致所有的请求压力都来到了剩下的ip，然后剩下的ip又抗不住，然后接着雪崩)
+  	
+  	1.2 守护线程进行ip检活（注：三次尝试连接ip都连接不上），将失联的ip标记为无效
+
+2. 安全移除ip的条件：ip被标记无效时, 将ip从ip池中移除，放入待重拨队列
+
+3. 安全重播的条件：ip被标记无效时, 并且等待ip未处理完的连接数处理完成（但不能超过最大时间30s），只有正在处理的连接数变为0，才能从ip池中移除，并且重播vps
+4. 发送告警邮件的条件：有vps失联的时候，ip池数量低于阈值的时候，成功率长时间低于80%的时候
+
+### 衍生问题
+
+1.如何处理成功率低的ip？
+
+成功率低于80%后，需要标记为无效，然后执行安全移除，安全重播的逻辑
+
+2.如何对所有的vps机器进行存活检查？
+
+用一个守护线程池，每隔5分钟检查一次ip池中的所有ip，对于连接不上的，需要重试3次。
+
+3.如何处理vps失联，导致的ip连接超时？
+
+首先标记为无效，然后执行安全移除，安全重播的逻辑。

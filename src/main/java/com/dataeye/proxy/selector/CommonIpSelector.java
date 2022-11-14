@@ -2,9 +2,13 @@ package com.dataeye.proxy.selector;
 
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
+import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
+import com.dataeye.proxy.config.ProxyServerConfig;
+import com.dataeye.proxy.service.TunnelInitService;
 import org.slf4j.Logger;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -13,13 +17,18 @@ import java.util.stream.Collectors;
 
 /**
  * 一般的ip选择器包含以下几个功能：
- * 初始化ip池，添加ip白名单，分发ip，维护ip池，自动更换ip，自动剔除劣质ip，监控ip使用情况，监控请求使用情况
+ * 添加ip白名单，初始化ip池，分发ip，维护ip池，自动更换ip，自动剔除劣质ip，监控ip使用情况，监控请求使用情况
  *
  * @author jaret
  * @date 2022/8/17 23:01
  * @description
  */
 public interface CommonIpSelector {
+
+    /**
+     * 添加ip白名单
+     */
+    void addWhiteList();
 
     /**
      * 初始化ip池
@@ -29,21 +38,27 @@ public interface CommonIpSelector {
     /**
      * 获取一个ip
      *
-     * @return
+     * @return 代理ip
      */
     ProxyIp getOne();
 
     /**
      * 获取多个ip
      *
-     * @return
+     * @param count 需要数量
+     * @return 代理ip列表
+     * @throws Exception
      */
-    List<ProxyIp> getIpList(int count) throws InterruptedException;
-
-    /**
-     * 添加ip白名单
-     */
-    void addWhiteList();
+    default List<ProxyIp> getIpList(int count) throws Exception {
+        LinkedList<ProxyIp> ips = new LinkedList<>();
+        for (int i = 0; i < count; i++) {
+            ProxyIp proxyIp = getOne();
+            if (proxyIp != null) {
+                ips.add(proxyIp);
+            }
+        }
+        return ips;
+    }
 
     /**
      * ip池健康检查
@@ -71,6 +86,16 @@ public interface CommonIpSelector {
      * @return
      */
     ConcurrentLinkedQueue<ProxyIp> getIpPool();
+
+    default boolean isStart(TunnelInitService tunnelInitService, ProxyServerConfig proxyServerConfig, TunnelType tunnelType) {
+        String innerIp = tunnelInitService.getEth0Inet4InnerIp();
+        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
+        assert defaultTunnel != null;
+        return proxyServerConfig.isEnable()
+                && defaultTunnel.getType() == tunnelType.getId()
+                && defaultTunnel.getLocation().equalsIgnoreCase(innerIp.trim())
+                && defaultTunnel.getEnable() == 1;
+    }
 
     /**
      * 处理失效ip

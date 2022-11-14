@@ -83,16 +83,18 @@ public class ApnProxySchemaHandler extends ChannelInboundHandlerAdapter {
             GlobalParams.LOGGER.error("分配ip失败, proxyIp is null");
             apnHandlerParams.getRequestDistributeService().handleProxyIpIsEmpty(ctx);
         } else {
-            ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).set(proxyIp);
+//            ctx.channel().attr(GlobalParams.REQUST_IP_ATTRIBUTE_KEY).set(proxyIp);
+            GlobalParams.setProxyIp(ctx, proxyIp);
+            proxyIp.addConnectCount();
             // ip, 请求监控
-            RequestMonitor requestMonitor = new RequestMonitor();
-            requestMonitor.setTunnelName(tunnelInstance.getAlias());
-            requestMonitor.setProxyAddr(proxyIp.getIpAddr());
-            requestMonitor.setExpireTime(proxyIp.getExpireTime());
-            requestMonitor.setSuccess(true);
-            requestMonitor.setBegin(System.currentTimeMillis());
-            apnHandlerParams.setRequestMonitor(requestMonitor);
-            IpMonitorUtils.invoke(true, requestMonitor, true, HANDLER_NAME);
+            RequestMonitor rm = new RequestMonitor();
+            rm.setTunnelName(tunnelInstance.getAlias());
+            rm.setProxyAddr(proxyIp.getIpAddr());
+            rm.setExpireTime(proxyIp.getExpireTime());
+            rm.setSuccess(true);
+            rm.setBegin(System.currentTimeMillis());
+            apnHandlerParams.setRequestMonitor(rm);
+            IpMonitorUtils.invoke(true, rm, true, HANDLER_NAME);
         }
     }
 
