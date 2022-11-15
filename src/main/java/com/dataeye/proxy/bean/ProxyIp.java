@@ -1,6 +1,7 @@
 package com.dataeye.proxy.bean;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.dto.VpsInstance;
 import com.dataeye.proxy.cons.Log;
 import com.dataeye.proxy.utils.TimeUtils;
@@ -52,16 +53,22 @@ public class ProxyIp {
     }
 
     public String getIpAddrWithTime() {
-        return this.host + ":" + this.port + "(" + expireTime + ")";
+        return this.host + ":" + this.port + "(" + TimeUtils.formatLocalDate(expireTime) + ")";
     }
 
     public String getIpAddrWithTimeAndValid() {
-        return this.host + ":" + this.port + "(" + valid.get() + ", " + expireTime + ")";
+        return this.host + ":" + this.port + "(" + valid.get() + ", " + TimeUtils.formatLocalDate(expireTime) + ")";
     }
 
     public final String getRemote() {
-        String formatLocalDate = TimeUtils.formatLocalDate(expireTime);
-        return this.host + ":" + this.port + "(" + formatLocalDate + ")";
+        return this.host + ":" + this.port + "(" + TimeUtils.formatLocalDate(expireTime) + ")";
+    }
+
+    public String getIpWithVps(){
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("proxy", this.getIpAddrWithTimeAndValid());
+        jsonObject.put("vps", this.getVpsInstance().getInstanceInfo());
+        return jsonObject.toJSONString();
     }
 
     /**

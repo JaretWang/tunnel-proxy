@@ -1935,3 +1935,29 @@ ip监控: ip总数限制, ip在线数量, vps重播时间间隔, 每个vps的存
 3.如何处理vps失联，导致的ip连接超时？
 
 首先标记为无效，然后执行安全移除，安全重播的逻辑。
+
+
+
+# 海外jenkins部署
+
+```shell
+## sea-proxy-01
+ssh deuser@172.31.33.121 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+## sea-proxy-02
+ssh deuser@172.31.33.122 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+## sea-proxy-03
+ssh deuser@172.31.33.123 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+## sea-proxy-04
+ssh deuser@172.31.33.124 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+## sea-proxy-05
+ssh deuser@172.31.33.125 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+## sea-proxy-06
+ssh deuser@172.31.33.126 /usr/local/htdocs/oversea-tunnel/shell/deploy-jar.sh
+
+```
+

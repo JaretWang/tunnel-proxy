@@ -1,33 +1,32 @@
 package com.dataeye.proxy.service.impl;
 
+import cn.hutool.core.util.CharsetUtil;
+import cn.hutool.extra.ssh.JschUtil;
 import com.alibaba.fastjson.JSON;
 import com.dataeye.proxy.bean.ProxyIp;
-import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.bean.dto.VpsInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.VpsConfig;
 import com.dataeye.proxy.selector.vps.VpsIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
-import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.service.VpsInstanceService;
-import com.dataeye.proxy.utils.CommandUtils;
 import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.TimeUtils;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,7 +44,6 @@ import java.util.stream.Collectors;
 public class VpsFetchServiceImpl implements ProxyFetchService {
 
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("VpsFetchServiceImpl");
-    private final ConcurrentLinkedQueue<ProxyIp> latestProxyIpQueue = new ConcurrentLinkedQueue<>();
     @Autowired
     VpsConfig vpsConfig;
     @Resource
@@ -60,50 +58,37 @@ public class VpsFetchServiceImpl implements ProxyFetchService {
     /**
      * 定时获取所有vps的 ppp0 网卡的ip
      */
-    @Scheduled(cron = "0 0/1 * * * ?")
+//    @Scheduled(cron = "0 0/1 * * * ?")
     public void scheduleGetAllVpsIp() {
-        if (!vpsIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.VPS)) {
-            return;
-        }
         long begin = System.currentTimeMillis();
-        TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
-        if (defaultTunnel == null || defaultTunnel.getEnable() != 1 || defaultTunnel.getType() != TunnelType.VPS.getId()) {
-            return;
-        }
         List<VpsInstance> vpsInstances = vpsIpSelector.getVpsInstances();
+        List<ProxyIp> allLatestProxyIp = getAllLatestProxyIp(vpsInstances);
+        List<String> collect2 = allLatestProxyIp.stream().map(ProxyIp::getIpAddrWithTimeAndValid).collect(Collectors.toList());
+        log.info("获取所有vps的 ppp0 网卡的ip, cost={} ms, size={}, 代理ip列表={}", (System.currentTimeMillis() - begin), allLatestProxyIp.size(), collect2.toString());
+        // 加入ip池
+        allLatestProxyIp.forEach(vpsIpSelector::addIpPool);
+    }
+
+    /**
+     * 获取最新的所有vps的代理ip列表
+     * @return
+     */
+    public List<ProxyIp> getAllLatestProxyIp(List<VpsInstance> vpsInstances) {
         if (CollectionUtils.isEmpty(vpsInstances)) {
             log.error("vpsInstances is empty, quit");
-            return;
+            return Collections.emptyList();
         }
+        List<String> collect = vpsInstances.stream().map(VpsInstance::getInstanceInfo).collect(Collectors.toList());
+        log.info("vps实例列表: size={}, data={}", collect.size(), JSON.toJSONString(collect));
         CountDownLatch countDownLatch = new CountDownLatch(vpsInstances.size());
+        CopyOnWriteArrayList<ProxyIp> result = new CopyOnWriteArrayList<>();
         for (VpsInstance vi : vpsInstances) {
             getIpFromAllVpsThreadPool.submit(() -> {
                 try {
-                    String exec = CommandUtils.exec(VpsConfig.Operate.ifconfig.getCommand(), vi.getIp(), vi.getPort(), vi.getUsername(), vi.getPassword());
-                    if (StringUtils.isNotBlank(exec)) {
-                        //String lineSeparator = System.lineSeparator();
-                        String[] split = exec.split("\n");
-                        if (split.length > 0) {
-                            String host = split[0].trim();
-                            if (StringUtils.isNotBlank(host)) {
-                                ProxyIp build = ProxyIp.builder()
-                                        .host(host)
-                                        .port(vpsConfig.getDefaultPort())
-                                        .userName(vpsConfig.getUsername())
-                                        .password(vpsConfig.getPassword())
-                                        .expireTime(LocalDateTime.now().plusSeconds(vpsConfig.getIpValidSeconds()))
-                                        .valid(new AtomicBoolean(true))
-                                        .okTimes(new AtomicLong(0))
-                                        .errorTimes(new AtomicLong(0))
-                                        .useTimes(new AtomicLong(0))
-                                        .connecting(new AtomicLong(0))
-                                        .vpsInstance(vi)
-                                        .createTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
-                                        .updateTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
-                                        .build();
-                                latestProxyIpQueue.offer(build);
-                            }
-                        }
+                    ProxyIp proxyIp = getSingleVpsInstanceIp(vi);
+                    if (proxyIp != null) {
+                        result.add(proxyIp);
+                        log.info("添加代理ip成功, proxyIp={}", proxyIp.getIpAddrWithTimeAndValid());
                     }
                 } catch (Exception e) {
                     log.info("获取ip异常, cause={}", e.getMessage(), e);
@@ -117,8 +102,47 @@ public class VpsFetchServiceImpl implements ProxyFetchService {
         } catch (Exception e) {
             log.info("countDownLatch error, cause={}", e.getMessage(), e);
         }
-        Map<String, String> collect = latestProxyIpQueue.stream().collect(Collectors.toMap(e -> e.getVpsInstance().getIp(), ProxyIp::getHost, (e1, e2) -> e2));
-        log.info("定时获取所有vps的 ppp0 网卡的ip, cost={} ms, ip列表={}", (System.currentTimeMillis() - begin), JSON.toJSONString(collect));
+        if (result.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return result.stream().distinct().collect(Collectors.toList());
+    }
+
+    public ProxyIp getSingleVpsInstanceIp(VpsInstance vi) {
+        try {
+            //String exec = CommandUtils.exec(VpsConfig.Operate.ifconfig.getCommand(), vi.getIp(), vi.getPort(), vi.getUsername(), vi.getPassword());
+            Session session = JschUtil.getSession(vi.getIp(), vi.getPort(), vi.getUsername(), vi.getPassword());
+            String exec = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
+            if (StringUtils.isBlank(exec)) {
+                log.error("获取代理ip失败, exec={}, vps={}", exec, vi.getInstanceInfo());
+                return null;
+            }
+            //String lineSeparator = System.lineSeparator();
+            String[] split = exec.split("\n");
+            if (split.length > 0) {
+                String host = split[0].trim();
+                if (StringUtils.isNotBlank(host)) {
+                    return ProxyIp.builder()
+                            .host(host)
+                            .port(vpsConfig.getDefaultPort())
+                            .userName(vpsConfig.getUsername())
+                            .password(vpsConfig.getPassword())
+                            .expireTime(LocalDateTime.now().plusSeconds(vpsConfig.getIpValidSeconds()))
+                            .valid(new AtomicBoolean(true))
+                            .okTimes(new AtomicLong(0))
+                            .errorTimes(new AtomicLong(0))
+                            .useTimes(new AtomicLong(0))
+                            .connecting(new AtomicLong(0))
+                            .vpsInstance(vi)
+                            .createTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
+                            .updateTime(TimeUtils.formatLocalDate(LocalDateTime.now()))
+                            .build();
+                }
+            }
+        } catch (Exception e) {
+            log.error("获取单个vps实例的代理ip失败, vps={}", vi.getInstanceInfo());
+        }
+        return null;
     }
 
     @Override
@@ -134,12 +158,7 @@ public class VpsFetchServiceImpl implements ProxyFetchService {
      * 获取ip
      */
     public List<ProxyIp> getIpList() {
-        if (latestProxyIpQueue.isEmpty()) {
-            log.error("latestProxyIpQueue is empty");
-            return Collections.emptyList();
-        }
-        List<ProxyIp> collect = latestProxyIpQueue.stream().distinct().collect(Collectors.toList());
-        return Optional.ofNullable(collect).orElse(new LinkedList<>());
+        return Collections.emptyList();
     }
 
 }

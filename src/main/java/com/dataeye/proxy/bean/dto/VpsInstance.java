@@ -2,6 +2,7 @@ package com.dataeye.proxy.bean.dto;
 
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -16,6 +17,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class VpsInstance extends Model<VpsInstance> implements Serializable {
     private static final long serialVersionUID = -29307840965887930L;
     /**
@@ -54,6 +56,7 @@ public class VpsInstance extends Model<VpsInstance> implements Serializable {
      * 更新时间
      */
     private Date updateTime;
+
     /**
      * 获取主键值
      *
@@ -64,6 +67,18 @@ public class VpsInstance extends Model<VpsInstance> implements Serializable {
         return this.id;
     }
 
+    public String getInstanceInfo() {
+        String valid = this.valid == 1 ? "有效" : "无效";
+        String type = this.type == 1 ? "国内" : "海外";
+        return this.ip + ":" + this.port + "(" + type + ", " + valid + ", " + username + ":" + password + ")";
+    }
 
+    public String getIpAddr() {
+        return this.ip + ":" + this.port;
+    }
+
+    public String getIpAddrUsernamePwd() {
+        return this.username + ":" + this.password + "@" + this.ip + ":" + this.port;
+    }
 
 }

@@ -2,6 +2,7 @@ package com.dataeye.proxy.bean;
 
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.selector.vps.VpsIpSelector;
+import com.dataeye.proxy.selector.vps.VpsStaticIpSelector;
 import com.dataeye.proxy.selector.zhima.ZhiMaCustomIpSelector;
 import com.dataeye.proxy.selector.dailiyun.DaiLiYunExclusiveIpSelector;
 import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
@@ -39,9 +40,17 @@ public enum TunnelType {
      */
     DAILIYUN_EXCLUSIVE(4, "代理云独享ip", DaiLiYunExclusiveIpSelector.class),
     /**
-     * vps隧道ip选择器
+     * vps海外隧道
      */
-    VPS(5, "vps隧道", VpsIpSelector.class);
+    VPS_OVERSEA(5, "vps海外隧道", VpsIpSelector.class),
+    /**
+     * vps国内隧道
+     */
+    VPS_DOMESTIC(6, "vps国内隧道", VpsIpSelector.class),
+    /**
+     * vps国内静态ip隧道 (给向俊用，ip一直不变)
+     */
+    VPS_DOMESTIC_STATIC(7, "vps国内静态ip隧道", VpsStaticIpSelector.class);
 
     @Getter
     int id;
