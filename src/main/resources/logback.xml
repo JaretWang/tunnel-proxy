@@ -1,6 +1,6 @@
 <configuration>
-<!--    <springProperty scope="context" name="HOME_PATH" source="logPath"/>-->
-    <property name="HOME_PATH" value="/data0/logs/tunnel-proxy" scope="CONTEXT"/>
+    <springProperty scope="context" name="HOME_PATH" source="logPath"/>
+<!--    <property name="HOME_PATH" value="/data0/logs/tunnel-proxy" scope="CONTEXT"/>-->
 <!--    <property name="HOME_PATH" value="C:\\Users\\caiguanghui\\Desktop\\DataEye\\gitlab\\tunnel-proxy\\logs" scope="CONTEXT"/>-->
     <property name="MAX_HISTORY" value="2" scope="CONTEXT"/>
 
