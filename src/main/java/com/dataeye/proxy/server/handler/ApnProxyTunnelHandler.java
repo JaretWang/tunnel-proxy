@@ -73,7 +73,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         logger.debug("tunnel channelInactive");
         super.channelInactive(ctx);
         ctx.close();
-        GlobalParams.getProxyIp(ctx).removeConnectCount();
+        ProxyIp.removeConnect(GlobalParams.getProxyIp(ctx));
     }
 
     @Override
@@ -84,7 +84,7 @@ public class ApnProxyTunnelHandler extends ChannelInboundHandlerAdapter {
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
-        GlobalParams.getProxyIp(ctx).removeConnectCount();
+        ProxyIp.removeConnect(GlobalParams.getProxyIp(ctx));
     }
 
 }

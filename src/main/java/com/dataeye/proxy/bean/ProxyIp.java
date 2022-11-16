@@ -97,8 +97,10 @@ public class ProxyIp {
     }
 
     public static void removeConnect(ProxyIp proxyIp){
-        if (proxyIp != null) {
-            removeConnect(proxyIp);
+        if (proxyIp == null) {
+            Log.SERVER.error("移除连接数失败, proxyIp is null");
+            return;
         }
+        proxyIp.removeConnectCount();
     }
 }

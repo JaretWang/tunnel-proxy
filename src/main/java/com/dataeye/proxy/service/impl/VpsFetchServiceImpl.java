@@ -18,6 +18,7 @@ import com.jcraft.jsch.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -58,7 +59,7 @@ public class VpsFetchServiceImpl implements ProxyFetchService {
     /**
      * 定时获取所有vps的 ppp0 网卡的ip
      */
-//    @Scheduled(cron = "0 0/1 * * * ?")
+    @Scheduled(cron = "0 0/1 * * * ?")
     public void scheduleGetAllVpsIp() {
         long begin = System.currentTimeMillis();
         List<VpsInstance> vpsInstances = vpsIpSelector.getVpsInstances();

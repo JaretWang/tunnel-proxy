@@ -1775,6 +1775,17 @@ http://47.103.37.73:8001/v1/control?username=seonzhang&ipid=lt420201_7__zm_1
 
 # 隧道地址分配
 
+## nginx+lua+redis+vps
+
+```
+地址：tunnel-proxy-2.de123.net
+端口：8088
+账号：dataeye
+密码：dataeye123
+```
+
+
+
 ## 普通域名
 
 ```shell
