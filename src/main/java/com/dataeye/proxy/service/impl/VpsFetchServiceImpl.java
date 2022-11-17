@@ -47,28 +47,12 @@ public class VpsFetchServiceImpl implements ProxyFetchService {
     private static final Logger log = MyLogbackRollingFileUtil.getLogger("VpsFetchServiceImpl");
     @Autowired
     VpsConfig vpsConfig;
-    @Resource
-    TunnelInitService tunnelInitService;
     @Resource(name = "getIpFromAllVps")
     ThreadPoolTaskExecutor getIpFromAllVpsThreadPool;
     @Autowired
     ProxyServerConfig proxyServerConfig;
     @Autowired
     VpsIpSelector vpsIpSelector;
-
-    /**
-     * 定时获取所有vps的 ppp0 网卡的ip
-     */
-    @Scheduled(cron = "0 0/1 * * * ?")
-    public void scheduleGetAllVpsIp() {
-        long begin = System.currentTimeMillis();
-        List<VpsInstance> vpsInstances = vpsIpSelector.getVpsInstances();
-        List<ProxyIp> allLatestProxyIp = getAllLatestProxyIp(vpsInstances);
-        List<String> collect2 = allLatestProxyIp.stream().map(ProxyIp::getIpAddrWithTimeAndValid).collect(Collectors.toList());
-        log.info("获取所有vps的 ppp0 网卡的ip, cost={} ms, size={}, 代理ip列表={}", (System.currentTimeMillis() - begin), allLatestProxyIp.size(), collect2.toString());
-        // 加入ip池
-        allLatestProxyIp.forEach(vpsIpSelector::addIpPool);
-    }
 
     /**
      * 获取最新的所有vps的代理ip列表
