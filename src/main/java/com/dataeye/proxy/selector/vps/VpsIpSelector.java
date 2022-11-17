@@ -583,7 +583,7 @@ public class VpsIpSelector implements CommonIpSelector, DisposableBean {
                 // 检查存活
                 String ip2 = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
                 if (StringUtils.isNotBlank(ip2)) {
-                    log.info("强制重启成功, vps={}, ip={}", vi.getIpAddr(), ip2);
+                    log.info("强制重启成功, vps={}, ip={}", vi.getIpAddr(), ip2.replaceAll("\n", ""));
                     return ip2;
                 } else {
                     log.error("强制重启失败, vps={}", vi.getIpAddr());

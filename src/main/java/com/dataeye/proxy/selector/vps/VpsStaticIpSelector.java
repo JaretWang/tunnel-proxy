@@ -90,7 +90,8 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
 
     void updateIpPool() {
         // 获取所有vps实例
-        getVpsInstancesFromDb();
+        List<VpsInstance> vpsInstancesFromDb = getVpsInstancesFromDb();
+        vpsInstances = Optional.ofNullable(vpsInstancesFromDb).orElse(new LinkedList<>());
         if (CollectionUtils.isEmpty(vpsInstances)) {
             log.info("vps实例为空, quit");
             return;
@@ -279,13 +280,19 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
 
     String getOldIp(Session session, VpsInstance vi) {
         try {
-            String oldIp = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
-            if (StringUtils.isNotBlank(oldIp)) {
-                log.info("vps={}, oldIp: {}", vi.getIpAddr(), oldIp.replaceAll("\n", ""));
-                return oldIp;
-            }
-            // 不能获取代理ip
-            log.info("oldIp获取失败, vps={}", vi.getIpAddr());
+//            // 检查tinyproxy存活
+//            String tinyproxyAlive = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
+//            if (StringUtils.isBlank(tinyproxyAlive)) {
+//                log.info("tinyproxy不存在, quit");
+//                return null;
+//            }
+//            String oldIp = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
+//            if (StringUtils.isNotBlank(oldIp)) {
+//                log.info("vps={}, oldIp: {}", vi.getIpAddr(), oldIp.replaceAll("\n", ""));
+//                return oldIp;
+//            }
+//            // 不能获取代理ip
+//            log.info("oldIp获取失败, vps={}", vi.getIpAddr());
             // 旧ip不存在了，有两种情况：1.机器宕机了或者没有重拨网卡 2.tinyproxy进程下线了
             String tinyproxyPid = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
             if (StringUtils.isBlank(tinyproxyPid)) {
@@ -295,17 +302,24 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
                 // 不能在这递归获取ip, 防止一直不成功导致死循环
                 return null;
             } else {
-                log.error("tinyproxy存活, Pid={}, 但获取oldIp失败, 尝试强制重启, vps={}", tinyproxyPid, vi.getIpAddr());
-                // 重播网卡: 重启命令都是返回空，所以不能判断字符串
-                execRestart(session);
-                // 检查存活
-                String ip2 = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
-                if (StringUtils.isNotBlank(ip2)) {
-                    log.info("强制重启成功, vps={}, ip={}", vi.getIpAddr(), ip2);
-                    return ip2;
+                log.error("tinyproxy存活, Pid={}, vps={}", tinyproxyPid.replaceAll("\n", ""), vi.getIpAddr());
+                String oldIp = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
+                if (StringUtils.isNotBlank(oldIp)) {
+                    log.info("vps={}, oldIp: {}", vi.getIpAddr(), oldIp.replaceAll("\n", ""));
+                    return oldIp;
                 } else {
-                    log.error("强制重启失败, vps={}", vi.getIpAddr());
-                    return null;
+                    log.info("tinyproxy存活, 但是 oldIp 为空, 强制重播");
+                    // 重播网卡: 重启命令都是返回空，所以不能判断字符串
+                    execRestart(session);
+                    // 检查存活
+                    String ip2 = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8);
+                    if (StringUtils.isNotBlank(ip2)) {
+                        log.info("强制重启成功, vps={}, ip={}", vi.getIpAddr(), ip2.replaceAll("\n", ""));
+                        return ip2;
+                    } else {
+                        log.error("强制重启失败, vps={}", vi.getIpAddr());
+                        return null;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -319,7 +333,7 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
             JschUtil.exec(session, VpsConfig.Operate.stop.getCommand(), CharsetUtil.CHARSET_UTF_8);
             JschUtil.exec(session, VpsConfig.Operate.start.getCommand(), CharsetUtil.CHARSET_UTF_8);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.info("execRestart error, cause={}", e.getMessage(), e);
         }
     }
 
@@ -327,20 +341,21 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
      * 每2分钟检查一次所有的vps机器，失联的发送告警邮件
      */
     void checkAllVps() {
-        if (CollectionUtils.isEmpty(vpsInstances)) {
-            log.warn("vpsInstances is empty, quit");
+        List<VpsInstance> vpsInstancesFromDb = getVpsInstancesFromDb();
+        if (CollectionUtils.isEmpty(vpsInstancesFromDb)) {
+            log.info("vpsInstancesFromDb is empty, quit");
             return;
         }
-        List<String> detail = vpsInstances.stream().map(VpsInstance::getInstanceInfo).collect(Collectors.toList());
-        log.info("VPS机器数={}, detail={}", vpsInstances.size(), JSON.toJSONString(detail));
-        CountDownLatch countDownLatch = new CountDownLatch(vpsInstances.size());
+        List<String> detail = vpsInstancesFromDb.stream().map(VpsInstance::getInstanceInfo).collect(Collectors.toList());
+        log.info("VPS机器数={}, detail={}", vpsInstancesFromDb.size(), JSON.toJSONString(detail));
+        CountDownLatch countDownLatch = new CountDownLatch(vpsInstancesFromDb.size());
         int maxRetryForCheckVpsAlive = vpsConfig.getMaxRetryForCheckVpsAlive();
         CopyOnWriteArrayList<VpsInstance> errorVps = new CopyOnWriteArrayList<>();
         try {
             TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
             assert defaultTunnel != null;
             String checkUrl = defaultTunnel.getType() == TunnelType.VPS_OVERSEA.getId() ? HttpCons.OVERSEA_IP_ALIVE_CHECK_URL : HttpCons.DOMESTIC_IP_ALIVE_CHECK_URL;
-            vpsInstances.forEach(vi -> ipAliveCheckThreadPool.submit(() -> {
+            vpsInstancesFromDb.forEach(vi -> ipAliveCheckThreadPool.submit(() -> {
                 try {
                     if (!isVpsInstanceAlive(vi, maxRetryForCheckVpsAlive, checkUrl)) {
                         errorVps.add(vi);
@@ -388,22 +403,32 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
         }
         int retry = 0;
         Session session = JschUtil.getSession(vi.getIp(), vi.getPort(), vi.getUsername(), vi.getPassword());
+        if (session == null) {
+            log.error("session is null, quit, vps={}", vi.getIpAddrUsernamePwd());
+            return false;
+        }
         while (retry <= maxRetry) {
             retry++;
             Response response = null;
             try {
-//                // tinyproxy 存活 后续改为nginx可用
-//                String tinyproxyAlive = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
-//                if (StringUtils.isBlank(tinyproxyAlive)) {
-//                    log.error("检活vps失败, tinyproxy不存在, vps={}, retry={}", vi.getInstanceInfo(), retry);
-//                    continue;
-//                }
-                // ppp0 网卡的代理ip存在
+                // tinyproxy 是否存活 后续改为nginx可用
+                String tinyproxyAlive = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
+                if (StringUtils.isBlank(tinyproxyAlive)) {
+                    log.error("检活vps失败, tinyproxy不存在, vps={}, retry={}", vi.getInstanceInfo(), retry);
+                    // 重启tinyproxy
+                    JschUtil.exec(session, VpsConfig.Operate.restart_tinyproxy.getCommand(), CharsetUtil.CHARSET_UTF_8);
+                    // 再次检测
+                    String tinyproxyAlive2 = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
+                    log.info("tinyproxy是否存活: {}, vps={}", StringUtils.isNoneBlank(tinyproxyAlive2), tinyproxyAlive2);
+                    continue;
+                }
+                // ppp0 网卡的代理ip是否存在
                 String proxyIp = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8).replaceAll("\n", "");
                 if (StringUtils.isBlank(proxyIp)) {
                     log.error("检活vps失败, 代理ip不存在, vps={}, retry={}", vi.getInstanceInfo(), retry);
                     continue;
                 }
+                // 代理ip是否可用
                 response = OkHttpTool.doGetByProxyIp(checkUrl, proxyIp, vpsConfig.getDefaultPort(), vpsConfig.getUsername(), vpsConfig.getPassword(),
                         30, 30, 30);
                 if (response.code() != 200) {
@@ -474,9 +499,9 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
 //     */
 //    @Scheduled(cron = "0/10 * * * * ?")
 
-    void getVpsInstancesFromDb() {
+    List<VpsInstance> getVpsInstancesFromDb() {
         if (!isStart(tunnelInitService, proxyServerConfig, TunnelType.VPS_DOMESTIC_STATIC)) {
-            return;
+            return Collections.emptyList();
         }
         List<VpsInstance> collect = vpsInstanceService.list().stream()
                 .filter(e -> Objects.nonNull(e) && e.getValid() == 1 && e.getType() == TunnelType.VPS_DOMESTIC_STATIC.getId())
@@ -484,7 +509,7 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
                 .collect(Collectors.toList());
         List<String> info = collect.stream().map(VpsInstance::getInstanceInfo).collect(Collectors.toList());
         log.info("从数据库同步vps实例列表: {}", JSON.toJSONString(info));
-        vpsInstances = Optional.ofNullable(collect).orElse(new LinkedList<>());
+        return collect;
     }
 
     @Override
