@@ -411,17 +411,17 @@ public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
             retry++;
             Response response = null;
             try {
-                // tinyproxy 是否存活 后续改为nginx可用
-                String tinyproxyAlive = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
-                if (StringUtils.isBlank(tinyproxyAlive)) {
-                    log.error("检活vps失败, tinyproxy不存在, vps={}, retry={}", vi.getInstanceInfo(), retry);
-                    // 重启tinyproxy
-                    JschUtil.exec(session, VpsConfig.Operate.restart_tinyproxy.getCommand(), CharsetUtil.CHARSET_UTF_8);
-                    // 再次检测
-                    String tinyproxyAlive2 = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
-                    log.info("tinyproxy是否存活: {}, vps={}", StringUtils.isNoneBlank(tinyproxyAlive2), tinyproxyAlive2);
-                    continue;
-                }
+//                // tinyproxy 是否存活 后续改为nginx可用
+//                String tinyproxyAlive = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
+//                if (StringUtils.isBlank(tinyproxyAlive)) {
+//                    log.error("检活vps失败, tinyproxy不存在, vps={}, retry={}", vi.getInstanceInfo(), retry);
+//                    // 重启tinyproxy
+//                    JschUtil.exec(session, VpsConfig.Operate.restart_tinyproxy.getCommand(), CharsetUtil.CHARSET_UTF_8);
+//                    // 再次检测
+//                    String tinyproxyAlive2 = JschUtil.exec(session, VpsConfig.Operate.tinyproxy_alive.getCommand(), CharsetUtil.CHARSET_UTF_8);
+//                    log.info("tinyproxy是否存活: {}, vps={}", StringUtils.isNoneBlank(tinyproxyAlive2), tinyproxyAlive2);
+//                    continue;
+//                }
                 // ppp0 网卡的代理ip是否存在
                 String proxyIp = JschUtil.exec(session, VpsConfig.Operate.ifconfig.getCommand(), CharsetUtil.CHARSET_UTF_8).replaceAll("\n", "");
                 if (StringUtils.isBlank(proxyIp)) {
