@@ -38,9 +38,10 @@ public class VpsConfig {
      * 代理ip在待重播队列中等待的最大存活时间
      */
     int maxAliveTimeInWaitingReplayQueue;
-    String startCommand;
-    String stopCommand;
-    String restartCommand;
+    /**
+     * 企业微信告警机器人地址 (注：使用post)
+     */
+    String wechatAlarmRobotUrl;
 
     @AllArgsConstructor
     public enum Operate {
@@ -59,7 +60,15 @@ public class VpsConfig {
         /**
          * 获取ip
          */
-        ifconfig("获取ip(ppp0网卡)", "ifconfig | grep -A 1 'ppp0' | grep 'inet' | awk -F ' ' '{print$2}'");
+        ifconfig("获取ip(ppp0网卡)", "ifconfig | grep -A 1 'ppp0' | grep 'inet' | awk -F ' ' '{print$2}'"),
+        /**
+         * 检查tinyproxy存活
+         */
+        tinyproxy_alive("检查tinyproxy存活", "ps -ef | grep 'tinyproxy' | grep -v 'color' | awk -F ' ' '{print$2}'"),
+        /**
+         * 重启tinyproxy
+         */
+        restart_tinyproxy("重启tinyproxy", "tinyproxy");
         @Getter
         private final String type;
         @Getter

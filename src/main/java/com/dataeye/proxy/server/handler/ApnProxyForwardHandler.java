@@ -74,7 +74,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.debug("forward channelInactive");
         ctx.close();
-        GlobalParams.getProxyIp(ctx).removeConnectCount();
+        ProxyIp.removeConnect(GlobalParams.getProxyIp(ctx));
     }
 
     @Override
@@ -85,7 +85,7 @@ public class ApnProxyForwardHandler extends ChannelInboundHandlerAdapter {
         ReqMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         IpMonitorUtils.error(requestMonitor, HANDLER_NAME, cause.getMessage());
         ctx.close();
-        GlobalParams.getProxyIp(ctx).removeConnectCount();
+        ProxyIp.removeConnect(GlobalParams.getProxyIp(ctx));
     }
 
 }
