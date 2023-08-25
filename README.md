@@ -109,7 +109,7 @@ IP隧道服务，用于爬虫服务的代理IP的管理分配，优质ip筛选�
 
 # 架构设计
 
-![隧道代理架构图](src\main\resources\static\tunnel-architecture.jpg)
+![隧道代理架构图](img/tunnel-architecture.jpg)
 
 
 
