@@ -4,8 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.dto.VpsInstance;
 import com.dataeye.proxy.config.VpsConfig;
 import com.dataeye.proxy.selector.vps.VpsIpSelector;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,10 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2022/11/15 17:45
  * @description
  */
+@Slf4j
 @Service
 public class EnterpriseWeChatRobotSerice {
-
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("EnterpriseWeChatRobotSerice");
 
     @Autowired
     VpsIpSelector vpsIpSelector;

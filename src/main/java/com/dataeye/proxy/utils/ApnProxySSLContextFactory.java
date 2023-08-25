@@ -2,6 +2,7 @@ package com.dataeye.proxy.utils;
 
 
 import com.dataeye.proxy.config.ApnProxyConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import javax.net.ssl.*;
@@ -12,9 +13,8 @@ import java.security.KeyStore;
  * @author jaret
  * @date 2022/4/14 10:40
  */
+@Slf4j
 public class ApnProxySSLContextFactory {
-
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     public static SSLEngine createClientSslEngineForRemoteAddress(String host, int port) {
         try {
@@ -34,7 +34,7 @@ public class ApnProxySSLContextFactory {
             return sslcontext.createSSLEngine(host, port);
 
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            log.error(e.getMessage(), e);
         }
         return null;
     }
@@ -62,7 +62,7 @@ public class ApnProxySSLContextFactory {
             sslEngine.setNeedClientAuth(false);
             return sslEngine;
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            log.error(e.getMessage(), e);
         }
         return null;
     }

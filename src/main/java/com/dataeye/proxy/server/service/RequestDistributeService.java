@@ -12,7 +12,6 @@ import com.dataeye.proxy.server.handler.*;
 import com.dataeye.proxy.server.initializer.ApnProxyServerChannelInitializer;
 import com.dataeye.proxy.server.initializer.TunnelRelayChannelInitializer;
 import com.dataeye.proxy.utils.ApnProxySSLContextFactory;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
 import com.dataeye.proxy.utils.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
@@ -23,6 +22,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
 import okhttp3.Headers;
 import okhttp3.Response;
@@ -41,10 +41,10 @@ import java.util.*;
  * @date 2022/4/7 12:19
  * @description 请求分发
  */
+@Slf4j
 @Service
 public class RequestDistributeService {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
 
     @Autowired
     NettyClientForwardServiceImpl nettyClientForwardService;
@@ -186,7 +186,7 @@ public class RequestDistributeService {
 
     public void handleProxyIpIsEmpty(ChannelHandlerContext ctx) {
         String errMsg = "no proxy ip available";
-        logger.error(errMsg);
+        log.error(errMsg);
         ByteBuf content = Unpooled.copiedBuffer(errMsg, CharsetUtil.UTF_8);
         DefaultFullHttpResponse errorResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, content);
         ctx.channel().writeAndFlush(errorResponse);
@@ -244,7 +244,7 @@ public class RequestDistributeService {
         String proxyUserName = proxyIp.getUserName();
         String proxyPassword = proxyIp.getPassword();
 
-        logger.error("okhttp 遇到了 connect 请求");
+        log.error("okhttp 遇到了 connect 请求");
         // add ssl
         String keyStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\tunnel-server.jks";
         String trustStorePath = System.getProperty("user.dir") + "\\src\\main\\resources\\tunnel-server.cer";
@@ -272,7 +272,7 @@ public class RequestDistributeService {
                                 .addLast(new SimpleChannelInboundHandler<Object>() {
                                     @Override
                                     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                        logger.debug("okhttp channelRead0");
+                                        log.debug("okhttp channelRead0");
                                         // get uri params
                                         if (msg instanceof DefaultFullHttpRequest) {
                                             DefaultFullHttpRequest request = (DefaultFullHttpRequest) msg;
@@ -336,7 +336,7 @@ public class RequestDistributeService {
         Response response;
         if ("get".equalsIgnoreCase(method)) {
             if (uri.startsWith("https")) {
-                logger.warn("okhttp 出现 https, method=get");
+                log.warn("okhttp 出现 https, method=get");
                 response = okHttpTool.sendGetByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, null);
             } else {
                 response = okHttpTool.sendGetByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, null);
@@ -345,7 +345,7 @@ public class RequestDistributeService {
             // parse body
             byte[] body = getContent(handler, fullHttpRequest);
             if (uri.startsWith("https")) {
-                logger.warn("okhttp 出现 https, method=post");
+                log.warn("okhttp 出现 https, method=post");
                 response = okHttpTool.sendPostByProxyWithSsl(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, body);
             } else {
                 response = okHttpTool.sendPostByProxy(uri, remoteHost, remotePort, proxyUserName, proxyPassword, reqHeaders, body);
@@ -374,7 +374,7 @@ public class RequestDistributeService {
             byte[] content = new byte[len];
             fullHttpRequest.content().readBytes(content);
             String contentStr = new String(content, StandardCharsets.UTF_8);
-            logger.debug("{} 接收请求, 请求体: {}", handler, contentStr);
+            log.debug("{} 接收请求, 请求体: {}", handler, contentStr);
             return content;
         }
         return null;
@@ -401,7 +401,7 @@ public class RequestDistributeService {
         // 响应体大小
         if (contentLength == 0) {
             contentLength = bytes.length;
-            logger.debug("contentLength等于0, 使用字节数组的方式");
+            log.debug("contentLength等于0, 使用字节数组的方式");
         }
 
         // 响应头大小
@@ -412,7 +412,7 @@ public class RequestDistributeService {
         // 响应报文大小
         int respSize = headerSize + contentLength;
         requestMonitor.getReponseSize().addAndGet(respSize);
-        logger.debug("okhttp响应报文大小={}, header={}, body={}",
+        log.debug("okhttp响应报文大小={}, header={}, body={}",
                 SocksServerUtils.formatByte(respSize), SocksServerUtils.formatByte(headerSize), SocksServerUtils.formatByte(contentLength));
 
         // 处理响应
@@ -433,7 +433,7 @@ public class RequestDistributeService {
                     .append(", method=").append(method)
                     .append(", code=").append(code)
                     .append(", reason=").append(Arrays.toString(bytes)).toString();
-            logger.error(msg);
+            log.error(msg);
 
             // 监控
             ReqMonitorUtils.error(requestMonitor, "OK_HTTP_TOOL", msg);
@@ -472,7 +472,7 @@ public class RequestDistributeService {
 //        String remoteAddr = proxyIp.getRemote();
 //        RequestMonitor requestMonitor = apnHandlerParams.getRequestMonitor();
 //        DirectRelayHandler.RemoteChannelInactiveCallback cb = (remoteChannelCtx, inactiveRemoteAddr) -> {
-//            logger.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
+//            log.debug("Remote channel: " + inactiveRemoteAddr + " inactive, and flush end");
 //            uaChannel.close();
 //        };
 //
@@ -504,14 +504,14 @@ public class RequestDistributeService {
 //                    long took = System.currentTimeMillis() - begin;
 //                    // 执行连接后操作，可能连接成功，也可能失败
 //                    if (future.isSuccess()) {
-//                        logger.debug("forward_handler 连接代理IP成功, ip={}, 耗时={} ms", proxyIp.getRemote(), took);
+//                        log.debug("forward_handler 连接代理IP成功, ip={}, 耗时={} ms", proxyIp.getRemote(), took);
 //                        HttpRequest oldRequest = (HttpRequest) msg;
-//                        logger.debug("forward_handler 构造请求之前：{}", oldRequest);
+//                        log.debug("forward_handler 构造请求之前：{}", oldRequest);
 //                        HttpRequest newRequest = constructReqForCommon(oldRequest, proxyIp);
-//                        logger.debug("forward_handler 构造请求之后：{}", newRequest);
+//                        log.debug("forward_handler 构造请求之后：{}", newRequest);
 //                        future.channel().write(newRequest);
 //
-//                        logger.debug("httpContentBuffer size={}", httpContentBuffer.size());
+//                        log.debug("httpContentBuffer size={}", httpContentBuffer.size());
 //                        for (HttpContent hc : httpContentBuffer) {
 //                            future.channel().writeAndFlush(hc);
 //                        }
@@ -539,7 +539,7 @@ public class RequestDistributeService {
 //                        }
 //
 //                        // send error response
-//                        logger.error(errorMsg);
+//                        log.error(errorMsg);
 //                        HttpMessage errorResponseMsg = HttpErrorUtils.buildHttpErrorMessage(HttpResponseStatus.INTERNAL_SERVER_ERROR, errorMsg);
 //                        uaChannel.writeAndFlush(errorResponseMsg);
 //
@@ -596,7 +596,7 @@ public class RequestDistributeService {
                 .addListener((ChannelFutureListener) future1 -> {
                     long took = System.currentTimeMillis() - begin;
                     if (future1.isSuccess()) {
-                        logger.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", proxyIp.getRemote(), took);
+                        log.debug("tunnel_handler 连接代理IP [{}] 成功，耗时: {} ms", proxyIp.getRemote(), took);
                         // remove之前
                         //System.out.println("tunnel_handler remove之前=" + ctx.pipeline().toMap().size());
                         //ctx.pipeline().toMap().keySet().forEach(System.out::println);
@@ -625,11 +625,11 @@ public class RequestDistributeService {
 //                        ctx.pipeline().addLast(new HttpClientCodec());
                         ctx.pipeline().addLast(new TunnelRelayHandler(requestMonitor, "UA --> " + proxyIp.getIpAddr(), future1.channel()));
 
-                        logger.debug("tunnel_handler 重新构造请求之前：{}{}", System.lineSeparator(), httpRequest);
+                        log.debug("tunnel_handler 重新构造请求之前：{}{}", System.lineSeparator(), httpRequest);
                         String newConnectRequest = constructReqForConnect(httpRequest, proxyIp);
                         //String newConnectRequest = buildReqForConnect(httpRequest, apnProxyRemote);
-                        logger.debug("tunnel_handler 重新构造请求之后：{}{}", System.lineSeparator(), newConnectRequest);
-                        logger.debug("tunnel_handler 重新构造请求之后：size={}", newConnectRequest.getBytes().length);
+                        log.debug("tunnel_handler 重新构造请求之后：{}{}", System.lineSeparator(), newConnectRequest);
+                        log.debug("tunnel_handler 重新构造请求之后：size={}", newConnectRequest.getBytes().length);
 
                         ByteBuf reqContent = Unpooled.copiedBuffer(newConnectRequest, CharsetUtil.UTF_8);
                         // ReferenceCountUtil.releaseLater() will keep the reference of buf,
@@ -644,7 +644,7 @@ public class RequestDistributeService {
                                 });
                     } else {
                         String errorMessage = future1.cause().getMessage();
-                        logger.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
+                        log.error("tunnel_handler 连接代理IP失败，耗时: {} ms, reason={}", took, errorMessage);
 
                         // 监控统计
                         ReqMonitorUtils.error(requestMonitor, "sendTunnelReq", errorMessage);

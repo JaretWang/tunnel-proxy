@@ -5,10 +5,10 @@ import com.dataeye.proxy.utils.HttpErrorUtils;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.monitor.TunnelMonitor;
 import com.dataeye.proxy.config.ThreadPoolConfig;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,11 +23,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/4/14 13:15
  * @description 每秒并发连接数控制
  */
+@Slf4j
 @ChannelHandler.Sharable
 public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.concurrent.limit";
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ConcurrentLimitHandler");
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("concurrent-limit-"), new ThreadPoolExecutor.AbortPolicy());
     /**
@@ -56,7 +56,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
         this.frequnce = maxConcurrency * cycle;
         Runnable runnable = () -> {
             long conn = connections.get();
-            logger.info("{}s 以内, connections={}", cycle, conn);
+            log.info("{}s 以内, connections={}", cycle, conn);
             TunnelMonitor.MONITOR_LOG.setConcurrency((int) conn);
             USED.set(conn != 0);
             connections.set(0);
@@ -71,7 +71,7 @@ public class ConcurrentLimitHandler extends ChannelInboundHandlerAdapter {
         if (!control) {
             super.channelActive(ctx);
         } else {
-            logger.warn("触发限流，当前连接数={}, 每秒最大并发数={}", connections.get(), maxConcurrency);
+            log.warn("触发限流，当前连接数={}, 每秒最大并发数={}", connections.get(), maxConcurrency);
             // 设置 linger 选项为 0，是为了 server 不会获取到太多的 TIME_WAIT 状态
             channel.config().setOption(ChannelOption.SO_LINGER, 0);
 

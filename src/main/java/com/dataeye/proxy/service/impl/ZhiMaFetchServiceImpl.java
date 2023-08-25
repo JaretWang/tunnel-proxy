@@ -13,9 +13,9 @@ import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2022/4/1 19:30
  * @description 芝麻ip获取
  */
+@Slf4j
 @Service
 public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
@@ -53,7 +54,6 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
     private static final AtomicBoolean IS_SEND_ALARM_EMAIL = new AtomicBoolean(false);
     private static final AtomicBoolean FIRST_SEND = new AtomicBoolean(true);
     private static final AtomicBoolean RESET_GET_USED_IP_STATUS = new AtomicBoolean(false);
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaFetchServiceImpl");
     /**
      * 是否开启降低请求成功率
      */
@@ -97,29 +97,29 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         // 每隔10s检查公网ip是否变化了，变了则需要删除原来的ip，添加新ip
         String innerIp = NetUtils.getEth0Inet4InnerIp();
         if (StringUtils.isBlank(innerIp)) {
-            logger.error("innerIp is blank, quit");
+            log.error("innerIp is blank, quit");
             return;
         }
 //        // 为了适配开发环境部署的隧道
 //        if ("product".equalsIgnoreCase(profile)) {
 //            if (!innerIp.startsWith("10.1.9")) {
-//                logger.error("内网ip不是 10.1.9 开头, quit");
+//                log.error("内网ip不是 10.1.9 开头, quit");
 //                return;
 //            }
 //        }
         if (StringUtils.isBlank(currentOuterIp)) {
             String addIpWhiteListUrl = zhiMaConfig.getAddIpWhiteListUrl();
             String initAdd = OkHttpTool.doGet(addIpWhiteListUrl + NetUtils.getOuterIp().trim());
-            logger.info("初始化添加ip白名单, currentOuterIp={}, 结果={}", currentOuterIp, initAdd);
+            log.info("初始化添加ip白名单, currentOuterIp={}, 结果={}", currentOuterIp, initAdd);
             return;
         }
         String outerIp = NetUtils.getOuterIp();
         if (StringUtils.isBlank(outerIp)) {
-            logger.error("公网ip获取失败, 退出");
+            log.error("公网ip获取失败, 退出");
             return;
         }
         if (outerIp.equals(currentOuterIp.trim())) {
-            logger.warn("公网ip没有变化, 退出");
+            log.warn("公网ip没有变化, 退出");
             return;
         }
         String addIpWhiteListUrl = zhiMaConfig.getAddIpWhiteListUrl();
@@ -128,7 +128,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         try {
             addResp = OkHttpTool.doGet(addIpWhiteListUrl + outerIp);
         } catch (Exception e) {
-            logger.error("添加ip白名单错误, cause={}", e.getMessage(), e);
+            log.error("添加ip白名单错误, cause={}", e.getMessage(), e);
             return;
         }
         if (StringUtils.isNotBlank(addResp) && JSON.isValid(addResp) && JSONObject.parseObject(addResp).getIntValue("code") == 0) {
@@ -136,37 +136,37 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             try {
                 deleteResp = OkHttpTool.doGet(deleteIpWhiteListUrl + outerIp);
             } catch (Exception e) {
-                logger.error("删除ip白名单错误, cause={}", e.getMessage(), e);
+                log.error("删除ip白名单错误, cause={}", e.getMessage(), e);
             } finally {
                 currentOuterIp = outerIp;
             }
-            logger.info("ip白名单更新: addResp={}, deleteResp={}", addResp, deleteResp);
+            log.info("ip白名单更新: addResp={}, deleteResp={}", addResp, deleteResp);
             return;
         }
-        logger.error("添加ip白名单返回错误, addResp={}", addResp);
+        log.error("添加ip白名单返回错误, addResp={}", addResp);
     }
 
     public List<ProxyIp> getIpList(int num, TunnelInstance tunnelInstance, boolean init) throws InterruptedException {
         if (isOverFetchIpNumLimit(tunnelInstance, init)) {
-            logger.error("已达到每日最大拉取ip数量 {} !!!", tunnelInstance.getMaxFetchIpNumEveryDay());
+            log.error("已达到每日最大拉取ip数量 {} !!!", tunnelInstance.getMaxFetchIpNumEveryDay());
             return Collections.emptyList();
         }
 
         String url = zhiMaConfig.getDirectGetUrl() + "&num=" + num;
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
         if (StringUtils.isBlank(json)) {
-            logger.error("芝麻代理拉取ip为空");
+            log.error("芝麻代理拉取ip为空");
             return Collections.emptyList();
         }
 
         JSONObject jsonObject = JSONObject.parseObject(json);
         boolean success = jsonObject.getBooleanValue("success");
         if (!success) {
-            logger.error("从芝麻代理拉取ip失败，原因：{}", json);
+            log.error("从芝麻代理拉取ip失败，原因：{}", json);
             // 处理限流
             int code = jsonObject.getIntValue("code");
             if (code == 111) {
-                logger.error("被芝麻限流, 重试");
+                log.error("被芝麻限流, 重试");
                 Thread.sleep(2000L);
                 return getIpList(num, tunnelInstance, init);
             }
@@ -175,12 +175,12 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 
         JSONArray data = jsonObject.getJSONArray("data");
         if (Objects.isNull(data) || data.size() <= 0) {
-            logger.error("拉取代理ip列表为空，原因：{}", json);
+            log.error("拉取代理ip列表为空，原因：{}", json);
             return Collections.emptyList();
         }
 
         List<ProxyIp> result = new LinkedList<>();
-        logger.info("本次拉取ip, 需要数量={}, 实际拉取数量={}", num, data.size());
+        log.info("本次拉取ip, 需要数量={}, 实际拉取数量={}", num, data.size());
         for (Object datum : data) {
             JSONObject ipElement = JSONObject.parseObject(datum.toString());
             String ip = ipElement.getString("ip");
@@ -220,7 +220,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                 sendAlarmEmail();
                 FIRST_SEND.set(false);
             }
-            logger.info("告警等级大于0: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
+            log.info("告警等级大于0: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
         }
         return tunnelInstance.getAvailableIp() <= 0;
     }
@@ -244,7 +244,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             TunnelInstance tunnelInstance = tunnelList.get(0);
             String subject = "隧道 " + tunnelInstance.getAlias() + " IP拉取数量告警";
             String alarmContent = getAlarmContent(tunnelInstance);
-            logger.warn("告警邮件: subject={}, content={}", subject, alarmContent);
+            log.warn("告警邮件: subject={}, content={}", subject, alarmContent);
             if (tunnelInstance.getSendAlarmEmail() == 0) {
                 return;
             }
@@ -255,7 +255,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
             // 重置
             IS_SEND_ALARM_EMAIL.compareAndSet(true, false);
             ALARM_LEVEL.set(0);
-            logger.info("重置发送状态: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
+            log.info("重置发送状态: IS_SEND_ALARM_EMAIL={}, ALARM_LEVEL={}", IS_SEND_ALARM_EMAIL.get(), ALARM_LEVEL.get());
         }
     }
 
@@ -290,7 +290,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
             return;
         }
-        logger.info("芝麻代理 - 重置所有状态");
+        log.info("芝麻代理 - 重置所有状态");
         FETCH_IP_NUM_NOW.set(0);
         IS_SEND_ALARM_EMAIL.set(false);
         ALARM_LEVEL.set(0);
@@ -309,8 +309,8 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         if (!zhiMaOrdinaryIpSelector.isStart(tunnelInitService, proxyServerConfig, TunnelType.ZHIMA)) {
             return;
         }
-        logger.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
-        logger.info("套餐每日剩余ip数量={}", SURPLUS_IP_SIZE.get());
+        log.info("芝麻代理 - 今日累计拉取IP数量={}", FETCH_IP_NUM_NOW.get());
+        log.info("套餐每日剩余ip数量={}", SURPLUS_IP_SIZE.get());
     }
 
     /**
@@ -339,7 +339,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                     }
                 }
             }
-            logger.info("套餐剩余ip: {}", surplusIpSize);
+            log.info("套餐剩余ip: {}", surplusIpSize);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -355,7 +355,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
             if (tunnel == null) {
-                logger.error("tunnel is null");
+                log.error("tunnel is null");
                 return;
             }
 //            //更新数据库ip已经拉取的数量(ps: 不然重启后已经使用的ip会重置为0)
@@ -369,7 +369,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
 //            }
 //            tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
             tunnelInitService.updateUsedIp(tunnel.getAlias(), usedIp);
-            logger.info("套餐剩余ip数={}, 隧道每日限制={}, 已拉取(自启动程序时)={}, 今日累计拉取={}",
+            log.info("套餐剩余ip数={}, 隧道每日限制={}, 已拉取(自启动程序时)={}, 今日累计拉取={}",
                     SURPLUS_IP_SIZE.get(), tunnel.getMaxFetchIpNumEveryDay(), FETCH_IP_NUM_NOW.get(), usedIp);
 
             if (surplusIpSize < 20000) {
@@ -379,14 +379,14 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
                         .add("套餐余额=" + surplusIpSize)
                         .add("已拉取=" + usedIp)
                         .add("每日限额=" + tunnel.getMaxFetchIpNumEveryDay()).toString();
-                logger.info(subject + ": " + content);
+                log.info(subject + ": " + content);
                 if (tunnel.getSendAlarmEmail() <= 0) {
                     return;
                 }
                 sendMailService.sendMail(subject, content);
             }
         } catch (Exception e) {
-            logger.error("更新已经拉取的ip数异常", e);
+            log.error("更新已经拉取的ip数异常", e);
         }
     }
 
@@ -409,7 +409,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     int getAlarmLevel(boolean enableReduceIpQualityCheck, TunnelInstance tunnelInstance) {
         int currentFetchIpSize = tunnelInstance.getUsedIp();
-        int coreIpSize = zhiMaOrdinaryIpSelector.getCoreIpSize(logger, tunnelInstance);
+        int coreIpSize = zhiMaOrdinaryIpSelector.getCoreIpSize(log, tunnelInstance);
         // 告警等级应该是在总的限制之上做比对,所以不用剩余可用ip数: getAvailableIp()
         int maxIpLimit = tunnelInstance.getMaxFetchIpNumEveryDay();
         if (currentFetchIpSize <= 0 || coreIpSize <= 0 || maxIpLimit <= 0) {
@@ -424,28 +424,28 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         int minNeedIpSize = getMinNeedIpSize(coreIpSize);
         // 套餐剩余数量小于该隧道当日最少需要的ip数 -> 3级告警
         if (surplusIpSize < minNeedIpSize) {
-            logger.warn("套餐剩余ip数小于该隧道当日最少需要的ip数 -> 3级告警, surplusIpSize={}, minNeedIpSize={}", surplusIpSize, minNeedIpSize);
+            log.warn("套餐剩余ip数小于该隧道当日最少需要的ip数 -> 3级告警, surplusIpSize={}, minNeedIpSize={}", surplusIpSize, minNeedIpSize);
             reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 3, tunnelInstance);
             return 3;
         }
         //        // 已经拉取的ip数量达到最大容错数 -> 3级告警
         //        int thirdLevel = maxIpLimit - minNeedIpSize;
         //        if (currentFetchIpSize >= thirdLevel) {
-        //            logger.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
+        //            log.warn("已经拉取的ip数量达到最大容错数 -> 3级告警, currentFetchIpSize={}, thirdLevel={}", currentFetchIpSize, thirdLevel);
         //            reduceIpQualityCheckCriteria(3, tunnelInstance);
         //            return 3;
         //        }
         // ip使用数达到总限制数 80%
         double secondLevel = maxIpLimit * 0.8;
         if (currentFetchIpSize >= secondLevel) {
-            logger.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
+            log.warn("ip使用数达到总限制数 80% -> 2级告警, currentFetchIpSize={}, secondLevel={}", currentFetchIpSize, secondLevel);
             reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 2, tunnelInstance);
             return 2;
         }
         // ip使用数达到总限制数 70%
         double firstLevel = maxIpLimit * 0.7;
         if (currentFetchIpSize >= firstLevel) {
-            logger.warn("ip使用数达到总限制数 70% -> 1级告警, currentFetchIpSize={}, firstLevel={}", currentFetchIpSize, firstLevel);
+            log.warn("ip使用数达到总限制数 70% -> 1级告警, currentFetchIpSize={}, firstLevel={}", currentFetchIpSize, firstLevel);
             reduceIpQualityCheckCriteria(enableReduceIpQualityCheck, 1, tunnelInstance);
             return 1;
         }
@@ -475,13 +475,13 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
      */
     void reduceIpQualityCheckCriteria(boolean enable, int alarmLevel, TunnelInstance tunnelInstance) {
         if (!enable) {
-            logger.info("关闭降低ip质量判定标准策略");
+            log.info("关闭降低ip质量判定标准策略");
             return;
         }
         int minSuccessPercent = tunnelInstance.getMinSuccessPercentForRemoveIp();
         int minUseTimes = tunnelInstance.getMinUseTimesForRemoveIp();
         if (alarmLevel < 1 || alarmLevel > 3) {
-            logger.error("未知告警等级, 更新隧道配置失败");
+            log.error("未知告警等级, 更新隧道配置失败");
             return;
         }
         // 判定为劣质ip的最低成功率
@@ -501,7 +501,7 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         }
         int count = tunnelInitService.updateSuccessRate(tunnelInstance.getAlias(), rate, useTimes);
         if (count == 0) {
-            logger.error("更新隧道配置失败");
+            log.error("更新隧道配置失败");
         }
     }
 
@@ -523,18 +523,18 @@ public class ZhiMaFetchServiceImpl implements ProxyFetchService {
         String url = zhiMaConfig.getGetRemainIpNumUrl();
         String json = OkHttpTool.doGet(url, Collections.emptyMap(), false);
         if (StringUtils.isBlank(json)) {
-            logger.error("获取套餐每日剩余ip数量失败, http response is empty");
+            log.error("获取套餐每日剩余ip数量失败, http response is empty");
             return 0;
         }
         JSONObject jsonObject = JSONObject.parseObject(json);
         boolean success = jsonObject.getBooleanValue("success");
         if (!success) {
-            logger.error("获取套餐每日剩余ip数量失败, 原因: {}", json);
+            log.error("获取套餐每日剩余ip数量失败, 原因: {}", json);
             return 0;
         }
         JSONObject data = jsonObject.getJSONObject("data");
         if (data.isEmpty()) {
-            logger.error("获取套餐每日剩余ip数量失败, data is null");
+            log.error("获取套餐每日剩余ip数量失败, data is null");
             return 0;
         }
         return data.getIntValue("package_balance");

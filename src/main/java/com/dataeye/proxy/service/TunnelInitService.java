@@ -5,8 +5,8 @@ import com.dataeye.proxy.bean.TunnelType;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
  * @date 2022/4/24 18:06
  * @description
  */
+@Slf4j
 @Service
 public class TunnelInitService {
 
@@ -32,7 +33,6 @@ public class TunnelInitService {
      * 本机器使用的隧道
      */
     public static final ConcurrentHashMap<String, TunnelInstance> TUNNEL_INSTANCES_CACHE = new ConcurrentHashMap<>();
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelInitService");
     private static String DEFAULT_TUNNEL_NAME;
     @Resource
     TunnelInitMapper tunnelInitMapper;
@@ -99,10 +99,10 @@ public class TunnelInitService {
         }
         String eth0Inet4InnerIp = getEth0Inet4InnerIp();
         if (StringUtils.isBlank(eth0Inet4InnerIp)) {
-            logger.error("获取本机eth0网卡ip地址失败");
+            log.error("获取本机eth0网卡ip地址失败");
             return Collections.emptyList();
         }
-        logger.info("本机eth0网卡的ip地址={}", eth0Inet4InnerIp);
+        log.info("本机eth0网卡的ip地址={}", eth0Inet4InnerIp);
         List<TunnelInstance> tunnelInstances = tunnelInitMapper.queryAll();
         List<TunnelInstance> enableList = tunnelInstances.stream()
                 // 只启动本机器需要的隧道 && 0关闭 1开启
@@ -114,7 +114,7 @@ public class TunnelInitService {
                 .collect(Collectors.toList());
         // 理论上一个机器只有一个隧道，所以只用取第一个
         DEFAULT_TUNNEL_NAME = nameList.get(0);
-        logger.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
+        log.info("启用了 {} 条隧道, 分别是={}", nameList.size(), nameList);
 
         // add cache
         enableList.forEach(instance -> TUNNEL_INSTANCES_CACHE.put(instance.getAlias(), instance));
@@ -128,7 +128,7 @@ public class TunnelInitService {
         if (!TUNNEL_INSTANCES_CACHE.isEmpty() && TUNNEL_INSTANCES_CACHE.containsKey(tunnelName)) {
             return TUNNEL_INSTANCES_CACHE.get(tunnelName);
         }
-        logger.error("get tunnel instance is null for [{}]", tunnelName);
+        log.error("get tunnel instance is null for [{}]", tunnelName);
         return null;
     }
 
@@ -153,12 +153,12 @@ public class TunnelInitService {
 //                    String oldConfig = tunnel.toString();
 //                    String newConfig = tunnelInstance.toString();
 //                    if (!oldConfig.equals(newConfig)) {
-//                        logger.info("更新隧道参数: {}", tunnelInstance);
+//                        log.info("更新隧道参数: {}", tunnelInstance);
 //                        // fixed bug: just update tunnel params on the machine
 //                        TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
 //                    }
 
-                    logger.info("更新隧道参数: {}", tunnelInstance);
+                    log.info("更新隧道参数: {}", tunnelInstance);
                     // fixed bug: just update tunnel params on the machine
                     TUNNEL_INSTANCES_CACHE.put(alias, tunnelInstance);
                 }

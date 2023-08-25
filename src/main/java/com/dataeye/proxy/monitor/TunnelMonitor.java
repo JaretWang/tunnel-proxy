@@ -11,6 +11,7 @@ import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.*;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +26,12 @@ import java.time.LocalDateTime;
  * @date 2022/7/27 17:02
  * @description
  */
+@Slf4j
 @Data
 @Component
 public class TunnelMonitor {
 
     public static final TunnelMonitorLog MONITOR_LOG = new TunnelMonitorLog();
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TunnelMonitor");
     private static final String TCP_CONNECT_NUM = "netstat -ant | grep 'tcp' | wc -l";
 
     static {
@@ -70,7 +71,7 @@ public class TunnelMonitor {
         try {
             TunnelInstance tunnel = tunnelInitService.getDefaultTunnel();
             if (tunnel == null) {
-                logger.error("tunnelInstance is null");
+                log.error("tunnelInstance is null");
                 return;
             }
             MONITOR_LOG.setTcpConn(getTcpConn());
@@ -87,13 +88,13 @@ public class TunnelMonitor {
             MONITOR_LOG.setUsedIp(zhiMaFetchService.getFetchIp());
             MONITOR_LOG.setIpPoolSize(zhiMaOrdinaryIpSelector.getValidIpSize(zhiMaOrdinaryIpSelector.getProxyIpPool().get(tunnel.getAlias())));
             MONITOR_LOG.setUpdateTime(TimeUtils.formatLocalDate(LocalDateTime.now()));
-            logger.info("监控记录入库: {}", JSON.toJSONString(MONITOR_LOG));
+            log.info("监控记录入库: {}", JSON.toJSONString(MONITOR_LOG));
             int count = tunnelInitMapper.addMonitorLog(MONITOR_LOG);
             if (count > 0) {
-                logger.info("监控记录入库成功: {}", JSON.toJSONString(MONITOR_LOG));
+                log.info("监控记录入库成功: {}", JSON.toJSONString(MONITOR_LOG));
             }
         } catch (Exception e) {
-            logger.info("监控记录入库异常", e);
+            log.info("监控记录入库异常", e);
         } finally {
             MONITOR_LOG.setName("");
             MONITOR_LOG.setConcurrency(0);

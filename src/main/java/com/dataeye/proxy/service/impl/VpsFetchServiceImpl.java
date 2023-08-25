@@ -11,10 +11,10 @@ import com.dataeye.proxy.config.VpsConfig;
 import com.dataeye.proxy.selector.vps.VpsIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.TimeUtils;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,10 +41,10 @@ import java.util.stream.Collectors;
  * @date 2022/4/1 19:30
  * @description
  */
+@Slf4j
 @Service
 public class VpsFetchServiceImpl implements ProxyFetchService {
 
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("VpsFetchServiceImpl");
     @Autowired
     VpsConfig vpsConfig;
     @Resource(name = "getIpFromAllVps")

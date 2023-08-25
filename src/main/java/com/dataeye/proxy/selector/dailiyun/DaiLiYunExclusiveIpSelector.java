@@ -7,8 +7,8 @@ import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.DaiLiYunExclusiveFetchServiceImpl;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
  * @date 2022/8/17 23:01
  * @description
  */
+@Slf4j
 @Data
 @Component
 public class DaiLiYunExclusiveIpSelector implements CommonIpSelector {
 
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveIpSelector");
     private final ConcurrentLinkedQueue<ProxyIp> IP_POOL = new ConcurrentLinkedQueue<>();
     @Autowired
     DaiLiYunExclusiveFetchServiceImpl daiLiYunExclusiveFetchService;

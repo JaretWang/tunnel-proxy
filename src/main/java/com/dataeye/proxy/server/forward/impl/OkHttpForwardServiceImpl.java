@@ -213,7 +213,7 @@ public class OkHttpForwardServiceImpl implements RequestForwardService {
         for (String key : headers.names()) {
             String value = headers.get(key);
             headerCollect.put(key, value);
-            if (StringUtils.isNotBlank(value) && org.apache.http.HttpHeaders.CONTENT_LENGTH.equalsIgnoreCase(key)) {
+            if (StringUtils.isNotBlank(value) && org.springframework.http.HttpHeaders.CONTENT_LENGTH.equalsIgnoreCase(key)) {
                 contentLength = Integer.parseInt(value);
             }
         }

@@ -141,18 +141,17 @@
         </dependency>
 
         <!-- 分割线 -->
-
-        <dependency>
-            <groupId>com.dataeye.starter</groupId>
-            <artifactId>httpclient-spring-boot-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+<!--        <dependency>-->
+<!--            <groupId>com.dataeye.starter</groupId>-->
+<!--            <artifactId>httpclient-spring-boot-starter</artifactId>-->
+<!--            <version>0.0.1-SNAPSHOT</version>-->
 <!--            <exclusions>-->
 <!--                <exclusion>-->
 <!--                    <artifactId>x-common-logback</artifactId>-->
 <!--                    <groupId>com.dataeye</groupId>-->
 <!--                </exclusion>-->
 <!--            </exclusions>-->
-        </dependency>
+<!--        </dependency>-->
 
         <!--mysql数据库驱动-->
         <dependency>
@@ -203,21 +202,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.alibaba</groupId>-->
-<!--            <artifactId>fastjson</artifactId>-->
-<!--            <version>1.2.72</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.72</version>
+        </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.apache.commons</groupId>-->
-<!--            <artifactId>commons-lang3</artifactId>-->
-<!--            <version>3.1</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.1</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>

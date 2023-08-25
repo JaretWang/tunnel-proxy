@@ -11,8 +11,8 @@ import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import com.dataeye.proxy.utils.MapUtils;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/4/18 10:07
  * @description 请求监控工具
  */
+@Slf4j
 @Data
 @Component
 public class ReqMonitorUtils {
@@ -37,8 +38,6 @@ public class ReqMonitorUtils {
     public static final int CHECK_INTERVAL = 1;
     public static final TimeUnit CHECK_TIME_UNIT = TimeUnit.MINUTES;
     public static final AtomicInteger FETCH_IP_NUM_PER_UNIT = new AtomicInteger(0);
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
-    private static final Logger dynamicIpLogger = MyLogbackRollingFileUtil.getLogger("dynamic-adjust-ip");
     private static final AtomicLong OK_TIMES = new AtomicLong(0);
     private static final AtomicLong ERROR_TIMES = new AtomicLong(0);
     private static final AtomicLong COST_TOTAL = new AtomicLong(0);
@@ -71,18 +70,18 @@ public class ReqMonitorUtils {
 
     public static void cost(RequestMonitor requestMonitor, String handler) {
         if (requestMonitor == null) {
-            logger.error("requestMonitor is null");
+            log.error("requestMonitor is null");
             return;
         }
         requestMonitor.setCost(System.currentTimeMillis() - requestMonitor.getBegin());
-        logger.info("{} ms, {}, {}, {}, {}, {}, {}, {}",
+        log.info("{} ms, {}, {}, {}, {}, {}, {}, {}",
                 requestMonitor.getCost(), requestMonitor.isSuccess(), requestMonitor.getTunnelName(), handler,
                 requestMonitor.getProxyAddr(), requestMonitor.getFailReason(), requestMonitor.getMethod(), requestMonitor.getUri());
         String failReason = requestMonitor.getFailReason();
         if (StringUtils.isNotBlank(failReason)) {
             // 释放内存,防止错误日志撑爆内存
             if (ERROR_LIST.size() >= ERROR_LIST_THRESHOLD) {
-                logger.info("错误原因列表(提前打印), size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
+                log.info("错误原因列表(提前打印), size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
                 ERROR_LIST.clear();
             }
             AtomicInteger errorCount = ERROR_LIST.putIfAbsent(failReason, new AtomicInteger(1));
@@ -120,7 +119,7 @@ public class ReqMonitorUtils {
                 reqBandwidth = 0;
                 respBandwidth = 0;
                 percent = "0";
-                logger.error("数值统计异常, OK_TIMES={}, ERROR_TIMES={}, total={}", okVal, errorVal, total);
+                log.error("数值统计异常, OK_TIMES={}, ERROR_TIMES={}, total={}", okVal, errorVal, total);
             } else {
                 percent = IpMonitorUtils.getPercent(okVal, total);
 
@@ -144,14 +143,14 @@ public class ReqMonitorUtils {
                 respBandwidth = respBytes.divide(unit2, 0, BigDecimal.ROUND_HALF_UP).doubleValue();
             }
 
-            logger.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
+            log.info("{} min, total={}, ok={}, error={}, ok_percent={}%，cost={} ms, req_size={} kb, resp_size={} kb, req_bandwidth={} kb/s, resp_bandwidth={} kb/s",
                     CHECK_INTERVAL, total, okVal, errorVal, percent, costAvg, reqSize, respSize, reqBandwidth, respBandwidth);
-            logger.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
+            log.info("错误原因列表, size={}, value={}", ERROR_LIST.size(), JSON.toJSONString(MapUtils.sort(ERROR_LIST, true)));
 
             // 动态调整ip数,保证成功率
-            dynamicAdjustIpPool(dynamicIpLogger, percent, CHECK_INTERVAL, CHECK_TIME_UNIT, costAvg);
+            dynamicAdjustIpPool(log, percent, CHECK_INTERVAL, CHECK_TIME_UNIT, costAvg);
         } catch (Throwable e) {
-            logger.error("ReqMonitorUtils error={}", e.getMessage());
+            log.error("ReqMonitorUtils error={}", e.getMessage());
         } finally {
             // 重置
             OK_TIMES.set(0);
@@ -181,12 +180,12 @@ public class ReqMonitorUtils {
             return;
         }
         if (StringUtils.isBlank(realSuccessPercent)) {
-            logger.error("realSuccessPercent is empty, quit");
+            log.error("realSuccessPercent is empty, quit");
             return;
         }
         TunnelInstance defaultTunnel = tunnelInitService.getDefaultTunnel();
         if (defaultTunnel == null) {
-            logger.error("放弃动态调整: 隧道为空");
+            log.error("放弃动态调整: 隧道为空");
             return;
         }
 
@@ -194,33 +193,33 @@ public class ReqMonitorUtils {
         // 单位时间内最多能使用的ip数
         int availableIpPerUnitTime = ipSelector.getAvailableIpPerUnitTime(logger, checkInterval, unit, defaultTunnel);
         if (availableIpPerUnitTime <= 0) {
-            logger.error("放弃动态调整: 没有可用ip");
+            log.error("放弃动态调整: 没有可用ip");
             return;
         }
         int coreIpSize = ipSelector.getCoreIpSize(defaultTunnel, availableIpPerUnitTime);
         if (coreIpSize <= 0) {
-            logger.error("放弃动态调整: 核心ip数小于等于0");
+            log.error("放弃动态调整: 核心ip数小于等于0");
             return;
         }
         if (FETCH_IP_NUM_PER_UNIT.get() >= availableIpPerUnitTime) {
-            logger.warn("放弃动态调整: 单位时间内拉取的ip数={}, 阈值={}, 大于等于阈值", FETCH_IP_NUM_PER_UNIT.get(), availableIpPerUnitTime);
+            log.warn("放弃动态调整: 单位时间内拉取的ip数={}, 阈值={}, 大于等于阈值", FETCH_IP_NUM_PER_UNIT.get(), availableIpPerUnitTime);
             return;
         }
         // 保证该隧道真实有被使用
         int minSuccessPercentForRemoveIp = defaultTunnel.getMinSuccessPercentForRemoveIp();
         if (minSuccessPercentForRemoveIp <= 0) {
-            logger.error("放弃动态调整: 参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}%, realSuccessPercent={}%",
+            log.error("放弃动态调整: 参数检查异常, coreIpSize={}, availableIp={}, minSuccessPercent={}%, realSuccessPercent={}%",
                     coreIpSize, availableIpPerUnitTime, minSuccessPercentForRemoveIp, realSuccessPercent);
             return;
         }
         double realPercent = Double.parseDouble(realSuccessPercent);
         if (realPercent <= 0) {
-            logger.error("放弃动态调整: 真实请求成功率小于等于0");
+            log.error("放弃动态调整: 真实请求成功率小于等于0");
             return;
         }
         ConcurrentLinkedQueue<ProxyIp> proxyIpPool = ipSelector.getProxyIpPool().get(alias);
         if (proxyIpPool == null || proxyIpPool.isEmpty()) {
-            logger.error("放弃动态调整: tunnel={}, ip池为空", alias);
+            log.error("放弃动态调整: tunnel={}, ip池为空", alias);
             return;
         }
         // 真实成功率 < 规定成功率,追加ip,保证成功率
@@ -229,10 +228,10 @@ public class ReqMonitorUtils {
 //            if (proxyIpPool.size() < availableIpPerUnitTime) {
             if (FETCH_IP_NUM_PER_UNIT.get() < availableIpPerUnitTime) {
                 boolean status = ipSelector.addFixedIp("ip调整, 追加ip", proxyIpPool, defaultTunnel, 1, false);
-                logger.info("追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许拉取的最大ip数={}",
+                log.info("追加ip, status={}, 真实成功率={}%, 规定成功率={}%, ip池大小={}, 单位时间内允许拉取的最大ip数={}",
                         status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             } else {
-                logger.warn("放弃动态调整: 真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许ip数{}",
+                log.warn("放弃动态调整: 真实成功率{}% < 规定成功率{}%, 但ip池数量{}大于等于单位时间内允许ip数{}",
                         realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), availableIpPerUnitTime);
             }
         }
@@ -243,10 +242,10 @@ public class ReqMonitorUtils {
 //                // 即使减少也不能少于核心ip数
 //                if (proxyIpPool.size() > coreIpSize) {
 //                    boolean status = ipSelector.removeFixedIp(1, proxyIpPool);
-//                    logger.info("减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 单位时间内允许拉取的最小ip数={}",
+//                    log.info("减少ip, status={}, 真实成功率={}%, 规定成功率={}%, 真实百分比超过3个点, ip池大小={}, 单位时间内允许拉取的最小ip数={}",
 //                            status, realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
 //                } else {
-//                    logger.info("放弃动态调整: 真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于单位时间内允许最小ip数{}",
+//                    log.info("放弃动态调整: 真实成功率{}% >= 规定成功率{}%, 且百分比超过3个点, 但ip池数量{}小于等于单位时间内允许最小ip数{}",
 //                            realPercent, minSuccessPercentForRemoveIp, proxyIpPool.size(), coreIpSize);
 //                }
 //            }
@@ -255,10 +254,10 @@ public class ReqMonitorUtils {
         int maxReqCostForAddIp = defaultTunnel.getMaxReqCostForAddIp();
         if (costAvg > maxReqCostForAddIp) {
             boolean status = ipSelector.addFixedIp("请求耗时大于 " + maxReqCostForAddIp + " ms, 追加ip", proxyIpPool, defaultTunnel, 1, false);
-            logger.info("请求耗时大于 " + maxReqCostForAddIp + " ms, 追加ip, status={}, cost={} ms, ip池大小={}, 单位时间内允许拉取的最大ip数={}",
+            log.info("请求耗时大于 " + maxReqCostForAddIp + " ms, 追加ip, status={}, cost={} ms, ip池大小={}, 单位时间内允许拉取的最大ip数={}",
                     status, costAvg, proxyIpPool.size(), availableIpPerUnitTime);
         } else {
-            logger.warn("放弃动态调整: costAvg={} ms", costAvg);
+            log.warn("放弃动态调整: costAvg={} ms", costAvg);
         }
     }
 

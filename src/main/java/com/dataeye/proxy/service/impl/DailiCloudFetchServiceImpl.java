@@ -6,8 +6,8 @@ import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.DailiCloudConfig;
 import com.dataeye.proxy.service.ProxyFetchService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -21,10 +21,9 @@ import java.util.Collections;
  * @date 2022/4/1 19:30
  * @description 代理云ip获取
  */
+@Slf4j
 //@Service
 public class DailiCloudFetchServiceImpl implements ProxyFetchService {
-
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DailiCloudFetchServiceImpl");
 
     @Resource
     DailiCloudConfig dailiCloudConfig;
@@ -34,20 +33,20 @@ public class DailiCloudFetchServiceImpl implements ProxyFetchService {
         String ipFectchUrl = dailiCloudConfig.getIpFectchUrl();
         String data = OkHttpTool.doGet(ipFectchUrl, Collections.emptyMap(), false);
         if (StringUtils.isBlank(data)) {
-            logger.error("代理云 - api接口返回为空, respone={}", data);
+            log.error("代理云 - api接口返回为空, respone={}", data);
             return null;
-//            logger.error("代理云获取ip为空，3秒后重试");
+//            log.error("代理云获取ip为空，3秒后重试");
 //            Thread.sleep(3000L);
 //            return getOne();
         }
         JSONObject result = JSONObject.parseObject(data);
         if (!result.getBooleanValue("success")) {
-            logger.error("代理云 - 拉取ip失败, respone={}", data);
+            log.error("代理云 - 拉取ip失败, respone={}", data);
             return null;
         }
         JSONArray array = result.getJSONArray("result");
         if (array.isEmpty()) {
-            logger.error("代理云 - 获取ip列表为空, respone={}", data);
+            log.error("代理云 - 获取ip列表为空, respone={}", data);
             return null;
         }
         for (Object element : array) {

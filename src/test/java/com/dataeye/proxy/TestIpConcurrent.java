@@ -1,10 +1,8 @@
 package com.dataeye.proxy;
 
 import com.alibaba.fastjson.JSONObject;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
 import okhttp3.*;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,10 +16,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/3/28 14:21
  * @description 测试单个ip的并发上限
  */
-//@Slf4j
 public class TestIpConcurrent {
-
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("TestIpConcurrent");
 
     private static final String pageUrl = "https://www.baidu.com";
 //    private static final String pageUrl = "http://www.zhihu.com";

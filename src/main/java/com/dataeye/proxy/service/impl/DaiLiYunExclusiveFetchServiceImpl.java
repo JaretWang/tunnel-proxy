@@ -7,10 +7,10 @@ import com.dataeye.proxy.bean.DaiLiYunExclusiveIpResp;
 import com.dataeye.proxy.bean.ProxyIp;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.ProxyFetchService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
 import com.dataeye.proxy.utils.TimeUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
@@ -31,10 +31,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/8/30 10:16
  * @description 代理云独享ip拉取服务
  */
+@Slf4j
 @Service
 public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DaiLiYunExclusiveServiceImpl");
     private static String account;
     private static String password;
     private static String key;
@@ -83,18 +83,18 @@ public class DaiLiYunExclusiveFetchServiceImpl implements ProxyFetchService {
         // send
         String resp = OkHttpTool.doGet(targetUrl);
         if (!JSON.isValid(resp)) {
-            logger.error("响应内容不是json");
+            log.error("响应内容不是json");
             return null;
         }
         JSONObject respObj = JSONObject.parseObject(resp);
         boolean success = respObj.getBooleanValue("success");
         if (!success) {
-            logger.error("获取ip失败, 响应内容{}", resp);
+            log.error("获取ip失败, 响应内容{}", resp);
             return null;
         }
         JSONArray result = respObj.getJSONArray("result");
         if (result == null || result.isEmpty()) {
-            logger.error("ip列表为空, 响应内容={}", resp);
+            log.error("ip列表为空, 响应内容={}", resp);
             return null;
         }
         List<ProxyIp> ipList = new LinkedList<>();

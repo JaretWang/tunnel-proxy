@@ -8,8 +8,8 @@ import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.config.ZhiMaConfig;
 import com.dataeye.proxy.selector.zhima.ZhiMaCustomIpSelector;
 import com.dataeye.proxy.service.ProxyFetchService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +26,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @date 2022/4/1 19:30
  * @description
  */
+@Slf4j
 @Service
 public class ZhiMaExclusiveFetchServiceImpl implements ProxyFetchService {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ZhiMaExclusiveFetchServiceImpl");
     private static final ConcurrentLinkedQueue<ProxyIp> IP_POOL = new ConcurrentLinkedQueue<>();
     @Resource
     ZhiMaConfig zhiMaConfig;
@@ -47,14 +47,14 @@ public class ZhiMaExclusiveFetchServiceImpl implements ProxyFetchService {
                 IP_POOL.offer(proxyIp);
             }
         }
-        logger.info("初始化ip池完成, size={}, data={}", IP_POOL.size(), JSON.toJSONString(IP_POOL));
+        log.info("初始化ip池完成, size={}, data={}", IP_POOL.size(), JSON.toJSONString(IP_POOL));
     }
 
     @Override
     public ProxyIp getOne(TunnelInstance tunnelInstance) throws InterruptedException {
         ProxyIp poll = IP_POOL.poll();
         if (poll == null) {
-            logger.error("ip is null from queue, quit");
+            log.error("ip is null from queue, quit");
         }
         return poll;
 
@@ -76,14 +76,14 @@ public class ZhiMaExclusiveFetchServiceImpl implements ProxyFetchService {
         String url = "http://47.103.37.73:8001/v1/info?username=seonzhang";
         String json = OkHttpTool.doGet(url);
         if (StringUtils.isBlank(json)) {
-            logger.error("请求结果为空：{}", json);
+            log.error("请求结果为空：{}", json);
             return null;
         }
 
         JSONObject jsonObject = JSONObject.parseObject(json);
         int code = jsonObject.getIntValue("code");
         if (code != 0) {
-            logger.error("响应码错误,原因: {}", json);
+            log.error("响应码错误,原因: {}", json);
             return null;
         }
 

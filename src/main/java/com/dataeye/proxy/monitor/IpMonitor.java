@@ -5,7 +5,7 @@ import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,9 +19,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @date 2022/9/1 15:25
  * @description
  */
+@Slf4j
 public class IpMonitor {
 
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitor");
 
     @Autowired
     ZhiMaOrdinaryIpSelector ipSelector;

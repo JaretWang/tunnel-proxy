@@ -1,12 +1,8 @@
 package com.dataeye.proxy.service;
 
 import com.dataeye.proxy.config.ProxyServerConfig;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.starter.httpclient.HttpClientResponse;
-import com.dataeye.starter.httpclient.ResponseEntityType;
-import com.dataeye.starter.httpclient.simple.SimpleHttpClient;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,18 +15,16 @@ import java.text.MessageFormat;
  * @date 2022/9/1 12:34
  * @description
  */
+@Slf4j
 @Service
 public class SendMailService {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("SendMailService");
     @Autowired
     ProxyServerConfig proxyServerConfig;
-    @Autowired
-    private SimpleHttpClient simpleHttpClient;
 
     public void sendMail(String subject, String content) {
         if (StringUtils.isBlank(subject) || StringUtils.isBlank(content)) {
-            logger.error("邮件发送失败, 内容为空, subject: {}, content: {}", subject, content);
+            log.error("邮件发送失败, 内容为空, subject: {}, content: {}", subject, content);
             return;
         }
         String to = "";
@@ -42,12 +36,12 @@ public class SendMailService {
             e.printStackTrace();
         }
         String requestUrl = MessageFormat.format(proxyServerConfig.getMailSendAddr(), subject, content, to);
-        HttpClientResponse response = simpleHttpClient.doGet(requestUrl, null, ResponseEntityType.STRING_UTF8, false);
-        if (response.codeIs200()) {
-            logger.info("邮件发送成功, subject: {}, content: {}", subject, content);
-            return;
-        }
-        logger.error("邮件发送失败, subject: {}, content: {}, code: {}, resp: {}", subject, content, response.getStatusCode(), response.getResponseContent());
+//        HttpClientResponse response = simpleHttpClient.doGet(requestUrl, null, ResponseEntityType.STRING_UTF8, false);
+//        if (response.codeIs200()) {
+//            log.info("邮件发送成功, subject: {}, content: {}", subject, content);
+//            return;
+//        }
+//        log.error("邮件发送失败, subject: {}, content: {}, code: {}, resp: {}", subject, content, response.getStatusCode(), response.getResponseContent());
     }
 
 }

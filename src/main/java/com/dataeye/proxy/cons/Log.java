@@ -1,7 +1,7 @@
 package com.dataeye.proxy.cons;
 
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author jaret
@@ -10,6 +10,7 @@ import org.slf4j.Logger;
  */
 public class Log {
 
-    public static final Logger SERVER = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
+    public static final Logger SERVER = LoggerFactory.getLogger("ApnProxyServer");
+
 
 }

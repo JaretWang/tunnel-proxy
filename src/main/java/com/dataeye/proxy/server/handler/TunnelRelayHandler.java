@@ -4,13 +4,13 @@ package com.dataeye.proxy.server.handler;
 import com.dataeye.proxy.bean.RequestMonitor;
 import com.dataeye.proxy.monitor.IpMonitorUtils;
 import com.dataeye.proxy.monitor.ReqMonitorUtils;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.util.ReferenceCountUtil;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
@@ -19,10 +19,10 @@ import java.nio.charset.StandardCharsets;
  * @author jaret
  * @date 2022/4/14 10:40
  */
+@Slf4j
 public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     public static final String HANDLER_NAME = "apnproxy.relay";
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ApnProxyServer");
     private final Channel relayChannel;
     private final String tag;
     private final RequestMonitor requestMonitor;
@@ -40,7 +40,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        logger.debug("TunnelRelayHandler channelActive: {}", tag);
+        log.debug("TunnelRelayHandler channelActive: {}", tag);
         if (!ctx.channel().config().getOption(ChannelOption.AUTO_READ)) {
             ctx.read();
         }
@@ -48,7 +48,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, Object msg) {
-        logger.debug("TunnelRelayHandler channelRead, tag={}, msg={}", tag, msg);
+        log.debug("TunnelRelayHandler channelRead, tag={}, msg={}", tag, msg);
 //        if (msg instanceof FullHttpRequest) {
 ////        if (msg instanceof FullHttpRequest && tag.contains("UA -->")) {
 ////        if (msg instanceof FullHttpRequest && tag.contains("--> UA")) {
@@ -122,7 +122,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         // 该方法会执行两次，因为要关闭两次， UA --> REMOTE | REMOTE --> UA
-        logger.debug("TunnelRelayHandler channelInactive: {}", tag);
+        log.debug("TunnelRelayHandler channelInactive: {}", tag);
         if (relayChannel != null && relayChannel.isActive()) {
             relayChannel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
@@ -132,7 +132,7 @@ public class TunnelRelayHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.error("转发通道 exceptionCaught: {}, tag: {}", cause.getMessage(), tag);
+        log.error("转发通道 exceptionCaught: {}, tag: {}", cause.getMessage(), tag);
         ReqMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         IpMonitorUtils.error(requestMonitor, "TunnelRelayHandler exceptionCaught", cause.getMessage());
         ctx.close();

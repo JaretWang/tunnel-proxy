@@ -1,7 +1,7 @@
 package com.dataeye.proxy.bean.dto;
 
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import java.io.Serializable;
@@ -11,6 +11,7 @@ import java.io.Serializable;
  * @date 2022/3/30 11:19
  * @description 单个隧道实例的初始化参数
  */
+@Slf4j
 @Data
 @Builder
 @AllArgsConstructor
@@ -18,8 +19,6 @@ import java.io.Serializable;
 @ToString(exclude = {"usedIp"})
 @EqualsAndHashCode(exclude = {"usedIp"})
 public class TunnelInstance implements Serializable, Cloneable {
-
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("TunnelInstance");
 
     private int id;
     /**

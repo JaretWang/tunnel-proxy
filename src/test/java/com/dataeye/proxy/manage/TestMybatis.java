@@ -3,18 +3,12 @@ package com.dataeye.proxy.manage;
 import com.dataeye.proxy.TunnelProxyApplication;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.dao.TunnelInitMapper;
+import com.dataeye.proxy.monitor.ReqMonitorUtils;
 import com.dataeye.proxy.service.SendMailService;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
-import com.dataeye.proxy.monitor.ReqMonitorUtils;
-import com.dataeye.starter.httpclient.HttpClientResponse;
-import com.dataeye.starter.httpclient.ResponseEntityType;
-import com.dataeye.starter.httpclient.common.CommonHttpClient;
-import com.dataeye.starter.httpclient.simple.SimpleHttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -35,7 +29,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 @ComponentScan(basePackages = "com.dataeye.proxy")
 public class TestMybatis {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ReqMonitorUtils");
 
     //    public static final TunnelInstance TUNNEL_INSTANCE = TunnelInstance.builder()
 //            .alias("youliang")
@@ -70,10 +63,6 @@ public class TestMybatis {
     ZhiMaFetchServiceImpl zhiMaFetchServiceImpl;
     @Resource
     SendMailService sendMailService;
-    @Autowired
-    SimpleHttpClient simpleHttpClient;
-    @Autowired
-    CommonHttpClient commonHttpClient;
     @Resource
     TunnelInitService tunnelInitService;
     @Autowired
@@ -102,10 +91,10 @@ public class TestMybatis {
         String url = "http://c.gdt.qq.com/gdt_click.fcg?viewid=M0sGpdOnGU10ovCRMNMfAiHO1LdGFeMekAbf_kA1jnVczzkBLsiksdUj9ahEtza1D5k!5EzORkZeIlQ2x_cMMJ7ftB6Aq36u7hZDj5iciBBdnitMfEZzuzqgHIVS6EfnXMS0wtEI1hlwKQ5U573IiXD5umaROWFnEJIzcXPT!OP9lvtTEMtpUTO5LyNP18h8ZMDASVBt_i!G7toT6rfeCl!PS4mEz7oSeP6cCCvKtvlRynPrUkVsSw&jtype=0&i=1&os=2&s_lp=101&acttype=__ACT_TYPE__&ch=__CHANNEL_ID__&seq=__SEQ__&aseq=__ABS_SEQ__&rt=__RETURN_TYPE__&s=%7B%22da%22%3A%22__WIDTH__%22%2C%22db%22%3A%22__HEIGHT__%22%2C%22down_x%22%3A%22__DOWN_X__%22%2C%22down_y%22%3A%22__DOWN_Y__%22%2C%22up_x%22%3A%22__UP_X__%22%2C%22up_y%22%3A%22__UP_Y__%22%7D&lpp=click_ext%3DeyJhdWlkIjoiMjM0OTQxNTQiLCJleHBfcGFyYW0iOiJKdW1wVXNlSnNBcGk6MSx3aXRoUGxheUNvbXBvbmVudDoxMSIsImxvbmdfcG9zX2lkIjoiNzA3MDgzMDIyNTQyMDY1MCIsIm1lZGl1bV9pZCI6IjQwODAzMzQzMjgwNjA5In0%253D&clklpp=__CLICK_LPP__&nxjp=1&xp=2&conn_type=__NET_STATUS__&vto=__VIDEO_PLAY_TIME__&tl=1";
 
 //        HttpClientResponse response = commonHttpClient.doGet(url, null, ResponseEntityType.STRING_UTF8, null);
-        HttpClientResponse response = simpleHttpClient.doGet(url, null, null, ResponseEntityType.STRING_UTF8, true);
+//        HttpClientResponse response = simpleHttpClient.doGet(url, null, null, ResponseEntityType.STRING_UTF8, true);
 //        System.out.println(response.getStatusCode());
-        System.out.println(response.getRedirectLocations());
-        System.out.println(response.getRealRequestUrl());
+//        System.out.println(response.getRedirectLocations());
+//        System.out.println(response.getRealRequestUrl());
 //        System.out.println(response.getResponseContent());
 //        System.out.println(response.getContentType());
 //        System.out.println(response.getContentLength());

@@ -14,9 +14,9 @@ import com.dataeye.proxy.cons.HttpCons;
 import com.dataeye.proxy.selector.CommonIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.impl.ZhiMaExclusiveFetchServiceImpl;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.NetUtils;
 import com.dataeye.proxy.utils.OkHttpTool;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,11 +38,11 @@ import java.util.stream.Collectors;
  * @date 2022/8/17 23:02
  * @description 芝麻定制ip选择器
  */
+@Slf4j
 @Component
 public class ZhiMaCustomIpSelector implements CommonIpSelector {
 
     public static final ConcurrentHashMap<String, ConcurrentLinkedQueue<ProxyIp>> IP_POOL = new ConcurrentHashMap<>();
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("ZhiMaCustomIpSelector");
     private static List<Integer> netCardSeqList;
 
     @Value("${server.port}")

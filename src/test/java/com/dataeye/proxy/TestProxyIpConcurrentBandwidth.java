@@ -1,15 +1,16 @@
 package com.dataeye.proxy;
 
 import com.dataeye.proxy.bean.ProxyIp;
-import com.dataeye.proxy.service.impl.*;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import com.dataeye.proxy.service.impl.DaiLiYunExclusiveFetchServiceImpl;
+import com.dataeye.proxy.service.impl.DailiCloudFetchServiceImpl;
+import com.dataeye.proxy.service.impl.ZhiMaExclusiveFetchServiceImpl;
+import com.dataeye.proxy.service.impl.ZhiMaFetchServiceImpl;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import okhttp3.*;
 import org.junit.Test;
 import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -35,8 +36,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = TunnelProxyApplication.class)
 public class TestProxyIpConcurrentBandwidth {
-
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TestIpConcurrentBandwidth");
 
     private static final String pageUrl = "https://www.baidu.com";
 //    private static final String pageUrl = "https://www.baidu.com/home/xman/data/tipspluslist?indextype=manht&_req_seqid=0xd4aa61fc0001fd21&asyn=1&t=1650376933156&sid=36310_31254_34813_35912_36165_34584_36121_36195_35802_36234_26350_36061";

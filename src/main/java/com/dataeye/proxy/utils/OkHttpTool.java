@@ -3,6 +3,7 @@ package com.dataeye.proxy.utils;
 import com.alibaba.fastjson.JSONObject;
 import com.dataeye.proxy.bean.dto.TunnelInstance;
 import com.dataeye.proxy.service.TunnelInitService;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/4/20 14:50
  * @description
  */
+@Slf4j
 @Component
 public class OkHttpTool {
 
@@ -37,7 +39,6 @@ public class OkHttpTool {
             .writeTimeout(5, TimeUnit.SECONDS)
             .build();
     private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("OkHttpTool");
     @Autowired
     TunnelInitService tunnelInitService;
 
@@ -55,7 +56,7 @@ public class OkHttpTool {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            logger.error("doPost error, url:{}", reqUrl, e);
+            log.error("doPost error, url:{}", reqUrl, e);
             return "";
         }
     }
@@ -81,7 +82,7 @@ public class OkHttpTool {
             Response response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            logger.error("doGet error, url:{}", reqUrl, e);
+            log.error("doGet error, url:{}", reqUrl, e);
             return "";
         }
     }
@@ -104,7 +105,7 @@ public class OkHttpTool {
             response = OKHTTP_CLIENT.newCall(request).execute();
             return response.body().string();
         } catch (Exception e) {
-            logger.error("doGet error, url:{}", reqUrl, e);
+            log.error("doGet error, url:{}", reqUrl, e);
             return "";
         } finally {
             closeResponse(response);

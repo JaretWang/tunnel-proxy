@@ -9,7 +9,7 @@ import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import com.dataeye.proxy.selector.zhima.ZhiMaOrdinaryIpSelector;
 import com.dataeye.proxy.service.TunnelInitService;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,11 +26,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/4/18 20:04
  * @description ip监控工具
  */
+@Slf4j
 @Component
 public class IpMonitorUtils {
 
     public static final ConcurrentHashMap<String, IpMonitor> IP_MONITOR_MAP = new ConcurrentHashMap<>();
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("IpMonitorUtils");
     private static final ScheduledExecutorService SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("ip-monitor-"), new ThreadPoolExecutor.AbortPolicy());
 

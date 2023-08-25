@@ -16,10 +16,10 @@ import com.dataeye.proxy.service.EnterpriseWeChatRobotSerice;
 import com.dataeye.proxy.service.TunnelInitService;
 import com.dataeye.proxy.service.VpsInstanceService;
 import com.dataeye.proxy.service.impl.VpsFetchServiceImpl;
-import com.dataeye.proxy.utils.MyLogbackRollingFileUtil;
 import com.dataeye.proxy.utils.OkHttpTool;
 import com.jcraft.jsch.Session;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,10 +40,10 @@ import java.util.stream.Collectors;
  * @date 2022/11/15 18:34
  * @description
  */
+@Slf4j
 @Component
 public class VpsStaticIpSelector implements CommonIpSelector, DisposableBean {
 
-    private static final Logger log = MyLogbackRollingFileUtil.getLogger("VpsStaticIpSelector");
     private final ScheduledExecutorService ipPoolSchedule = new ScheduledThreadPoolExecutor(1, new ThreadPoolConfig.TunnelThreadFactory("ipPoolSchedule-"), new ThreadPoolExecutor.AbortPolicy());
     private final ScheduledExecutorService healthCheckSchedule = new ScheduledThreadPoolExecutor(1, new ThreadPoolConfig.TunnelThreadFactory("healthCheckSchedule-"), new ThreadPoolExecutor.AbortPolicy());
     private final ScheduledExecutorService checkAllVpsSchedule = new ScheduledThreadPoolExecutor(1, new ThreadPoolConfig.TunnelThreadFactory("checkAllVpsSchedule-"), new ThreadPoolExecutor.AbortPolicy());

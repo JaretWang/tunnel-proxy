@@ -1,5 +1,6 @@
 package com.dataeye.proxy.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import java.net.Inet4Address;
@@ -13,9 +14,8 @@ import java.util.Enumeration;
  * @date 2022/4/27 14:40
  * @description
  */
+@Slf4j
 public class NetUtils {
-
-    private static final Logger LOGGER = MyLogbackRollingFileUtil.getLogger("NetUtils");
 
     /**
      * 获取eth0网卡对应的ip地址
@@ -39,7 +39,7 @@ public class NetUtils {
                     InetAddress address = addresses.nextElement();
                     if (address instanceof Inet4Address) {
                         String hostAddress = address.getHostAddress();
-                        LOGGER.info("local ip={}", hostAddress);
+                        log.info("local ip={}", hostAddress);
                         return hostAddress;
                     }
                 }

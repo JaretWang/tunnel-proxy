@@ -3,6 +3,7 @@ package com.dataeye.proxy.utils;
 import com.dataeye.proxy.config.ProxyServerConfig;
 import com.dataeye.proxy.config.ThreadPoolConfig;
 import io.netty.util.internal.PlatformDependent;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,10 +21,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * @date 2022/6/24 14:13
  * @description 堆外内存监控工具
  */
+@Slf4j
 @Component
 public class DirectMemoryUtils {
 
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("DirectMemoryUtils");
     private static final ScheduledThreadPoolExecutor SCHEDULE_EXECUTOR = new ScheduledThreadPoolExecutor(1,
             new ThreadPoolConfig.TunnelThreadFactory("direct-memory-monitor-"), new ThreadPoolExecutor.AbortPolicy());
     private static AtomicLong DIRECT_MEM = new AtomicLong(0);
@@ -41,7 +42,7 @@ public class DirectMemoryUtils {
     }
 
     public void doReport() {
-        logger.info("netty direct memory size={} byte, max={} byte", DIRECT_MEM.get(), PlatformDependent.maxDirectMemory());
+        log.info("netty direct memory size={} byte, max={} byte", DIRECT_MEM.get(), PlatformDependent.maxDirectMemory());
     }
 
 }

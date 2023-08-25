@@ -1,6 +1,7 @@
 package com.dataeye.proxy.utils;
 
 import com.dataeye.proxy.config.ThreadPoolConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import java.util.concurrent.ThreadFactory;
@@ -11,9 +12,8 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @date 2022/7/22 11:44
  * @description
  */
+@Slf4j
 public class ThreadUtils {
-
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("ThreadUtils");
 
     /**
      * getActiveCount()	线程池中正在执行任务的线程数量
@@ -40,7 +40,7 @@ public class ThreadUtils {
         int queueSize = threadPoolExecutor.getQueue().size();
         long taskCount = threadPoolExecutor.getTaskCount();
         long completedTaskCount = threadPoolExecutor.getCompletedTaskCount();
-        logger.info("线程组名={}, 核心线程数={}, 最大线程数={}, 池中实际线程数={}, 已提交任务数={}, 执行中线程数={}, 队列剩余任务数={}, 已完成任务数={}",
+        log.info("线程组名={}, 核心线程数={}, 最大线程数={}, 池中实际线程数={}, 已提交任务数={}, 执行中线程数={}, 队列剩余任务数={}, 已完成任务数={}",
                 namePrefix, corePoolSize, maximumPoolSize, poolSize, taskCount, activeCount, queueSize, completedTaskCount);
     }
 

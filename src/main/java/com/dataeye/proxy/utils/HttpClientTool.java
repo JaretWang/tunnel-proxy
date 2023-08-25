@@ -2,6 +2,7 @@ package com.dataeye.proxy.utils;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
 import javax.net.ssl.*;
@@ -21,11 +22,10 @@ import java.util.Map;
  * @date 2022/5/24 14:10
  * @description
  */
+@Slf4j
 @Data
 @Builder
 public class HttpClientTool {
-
-    private static final Logger logger = MyLogbackRollingFileUtil.getLogger("TestIpConcurrent");
 
     private String url;
     private String proxyIp;
